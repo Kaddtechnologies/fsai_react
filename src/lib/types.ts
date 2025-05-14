@@ -35,7 +35,7 @@ export interface Product {
 export interface Document {
   id: string;
   name: string;
-  type: 'pdf' | 'excel' | 'image' | 'text'; // Mime type or simplified type
+  type: 'pdf' | 'excel' | 'word' | 'powerpoint' | 'text'; // Mime type or simplified type
   uploadedAt: number;
   size: number; // in bytes
   processingStatus?: 'uploading' | 'processing' | 'completed' | 'failed';
@@ -52,5 +52,3 @@ export interface TranslationEntry {
   targetLanguage: string;
   timestamp: number;
 }
-
-    

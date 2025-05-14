@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,8 +14,7 @@ import type { Message, Conversation, Document, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { summarizeDocument } from '@/ai/flows/summarize-document';
-import { generateChatResponse } from '@/ai/flows/generate-chat-response'; // Import new flow
-// import { searchDocuments } from '@/ai/flows/search-documents'; // For future use
+import { generateChatResponse } from '@/ai/flows/generate-chat-response';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { MOCK_PRODUCTS, searchMockProducts } from '@/data/products';
@@ -27,6 +26,64 @@ const MOCK_USER = {
   name: "Flowserve User",
   avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "profile avatar"
 };
+
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+const ALLOWED_FILE_TYPES: Record<string, Document['type']> = {
+  // Word
+  "application/msword": "word",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "word",
+  // PowerPoint
+  "application/vnd.ms-powerpoint": "powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "powerpoint",
+  // Excel
+  "application/vnd.ms-excel": "excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "excel",
+  // PDF
+  "application/pdf": "pdf",
+  // Text
+  "text/plain": "text",
+};
+const ALLOWED_EXTENSIONS_STRING = ".doc,.docx,.ppt,.pptx,.xls,.xlsx,.pdf,.txt";
+
+const getDocumentTypeFromMime = (mimeType: string, fileName: string): Document['type'] | undefined => {
+  if (ALLOWED_FILE_TYPES[mimeType]) {
+    return ALLOWED_FILE_TYPES[mimeType];
+  }
+  // Fallback for text/plain if extension is .txt
+  if (mimeType === 'text/plain' && fileName.toLowerCase().endsWith('.txt')) {
+    return 'text';
+  }
+  // Check by extension if MIME type is generic (e.g. application/octet-stream)
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  if (extension) {
+    if (['doc', 'docx'].includes(extension)) return 'word';
+    if (['ppt', 'pptx'].includes(extension)) return 'powerpoint';
+    if (['xls', 'xlsx'].includes(extension)) return 'excel';
+    if (extension === 'pdf') return 'pdf';
+    if (extension === 'txt') return 'text';
+  }
+  return undefined;
+};
+
+const FileTypeIcon = ({ type }: { type: Document['type'] }) => {
+  switch (type) {
+    case 'pdf':
+      return <FileText size={16} className="text-muted-foreground" />;
+    case 'excel':
+      return <FileSpreadsheet size={16} className="text-muted-foreground" />;
+    case 'word':
+      return <FileText size={16} className="text-muted-foreground" />; // Using FileText as a generic doc icon
+    case 'powerpoint':
+      return <FileType size={16} className="text-muted-foreground" />; // Using FileType as a generic presentation icon
+    case 'text':
+      return <FileText size={16} className="text-muted-foreground" />;
+    default:
+      return <FileText size={16} className="text-muted-foreground" />;
+  }
+};
+
 
 const ChatPage = () => {
   const { toast } = useToast();
@@ -46,14 +103,12 @@ const ChatPage = () => {
 
   const activeConversation = conversations.find(conv => conv.id === activeConversationId);
 
-  // Load and save conversations from/to localStorage
   useEffect(() => {
     const storedConversations = localStorage.getItem('flowserveai-conversations');
     if (storedConversations) {
       try {
         const parsedConversations = JSON.parse(storedConversations);
         setConversations(parsedConversations);
-         // Ensure activeConversationId from URL is preferred, then localStorage, then first conv
         const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
         if (chatIdFromUrl) {
           setActiveConversationId(chatIdFromUrl);
@@ -63,13 +118,12 @@ const ChatPage = () => {
         } else if (parsedConversations.length > 0 && !activeConversationId) {
            setActiveConversationId(parsedConversations[0].id);
         }
-
       } catch (e) {
         console.error("Failed to parse conversations from localStorage", e);
-        localStorage.removeItem('flowserveai-conversations'); // Clear corrupted data
+        localStorage.removeItem('flowserveai-conversations');
       }
     }
-  }, [chatIdFromUrl]); // Removed conversations and activeConversationId from deps to avoid potential loops on initial load.
+  }, [chatIdFromUrl]);
 
   useEffect(() => {
     localStorage.setItem('flowserveai-conversations', JSON.stringify(conversations));
@@ -100,13 +154,13 @@ const ChatPage = () => {
           };
         }
         return conv;
-      })
+      }).sort((a, b) => b.updatedAt - a.updatedAt) // Ensure sorting is maintained
     );
   }, [activeConversationId]);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() && !activeConversation?.messages.some(msg => msg.attachments && msg.attachments.length > 0 && msg.processing)) return;
-    if (!activeConversationId || !activeConversation) { // Ensure activeConversation exists
+    if (!activeConversationId || !activeConversation) {
       toast({ title: "Error", description: "No active conversation selected.", variant: "destructive" });
       return;
     }
@@ -122,7 +176,7 @@ const ChatPage = () => {
     const currentMessages = activeConversation.messages || [];
     let updatedMessages = [...currentMessages, userMessage];
     updateConversation(updatedMessages);
-    const currentInputValue = inputValue; // Capture inputValue before clearing
+    const currentInputValue = inputValue;
     setInputValue('');
     setIsLoading(true);
 
@@ -131,29 +185,26 @@ const ChatPage = () => {
       try {
         const titleResponse = await generateChatTitle({ firstMessage: currentInputValue });
         conversationTitle = titleResponse.title;
-        // Update title in conversations state directly, as updateConversation might use stale closure for title
          setConversations(prev =>
           prev.map(conv => 
             conv.id === activeConversationId ? { ...conv, title: conversationTitle, messages: updatedMessages, updatedAt: Date.now() } : conv
-          )
+          ).sort((a,b) => b.updatedAt - a.updatedAt)
         );
       } catch (error) {
         console.error("Failed to generate chat title:", error);
-        // Keep going with default title 'New Chat' or current title
       }
     }
     
-    // AI response generation
     try {
-      const historyForAI = updatedMessages // Use updatedMessages up to the user's latest message
+      const historyForAI = updatedMessages
         .filter(msg => msg.sender === 'user' || msg.sender === 'ai')
-        .slice(0, -1) // Exclude the latest user message from history, it's the primary input
+        .slice(0, -1) 
         .map(msg => ({
           role: msg.sender as 'user' | 'ai',
-          content: msg.content
+          content: msg.content + (msg.attachments ? ` (Attached: ${msg.attachments.map(a => a.name).join(', ')})` : '')
         }));
 
-      let aiResponseContent = `FlowserveAI received: "${userMessage.content}"`; // Default content
+      let aiResponseContent = `FlowserveAI received: "${userMessage.content}"`;
       let aiMessageType: Message['type'] = 'text';
       let aiMessageData: any = null;
 
@@ -169,7 +220,6 @@ const ChatPage = () => {
           aiResponseContent = `Sorry, I couldn't find any products matching "${searchTerm}".`;
         }
       } else {
-        // Call Genkit flow for general chat response
         const aiResult = await generateChatResponse({ userInput: currentInputValue, history: historyForAI });
         aiResponseContent = aiResult.aiResponse;
       }
@@ -183,7 +233,6 @@ const ChatPage = () => {
         type: aiMessageType,
         data: aiMessageData,
       };
-      // Ensure title is preserved if it was updated
       updateConversation([...updatedMessages, aiMessage], conversationTitle !== activeConversation.title ? conversationTitle : undefined);
     } catch (error) {
       console.error("Failed to get AI response:", error);
@@ -207,11 +256,35 @@ const ChatPage = () => {
     if (!files || files.length === 0 || !activeConversationId) return;
 
     const file = files[0];
+
+    // File size validation
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast({
+        title: "File too large",
+        description: `File size cannot exceed ${MAX_FILE_SIZE_MB}MB.`,
+        variant: "destructive",
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    // File type validation
+    const docType = getDocumentTypeFromMime(file.type, file.name);
+    if (!docType) {
+      toast({
+        title: "Invalid file type",
+        description: `Allowed file types are: ${ALLOWED_EXTENSIONS_STRING}. Images are not allowed.`,
+        variant: "destructive",
+      });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     const documentId = `doc-${Date.now()}`;
     const newDocument: Document = {
       id: documentId,
       name: file.name,
-      type: file.type.startsWith('image/') ? 'image' : (file.type === 'application/pdf' ? 'pdf' : (file.type.includes('excel') || file.type.includes('spreadsheetml') ? 'excel' : 'text')),
+      type: docType,
       uploadedAt: Date.now(),
       size: file.size,
       processingStatus: 'uploading',
@@ -226,7 +299,7 @@ const ChatPage = () => {
         type: 'document_upload_status',
         processing: true,
         attachments: [newDocument],
-        data: { progress: 0, fileName: file.name, status: 'uploading' }
+        data: { progress: 0, fileName: file.name, status: 'uploading', documentType: newDocument.type }
     };
     
     let currentMessages = activeConversation?.messages || [];
@@ -325,7 +398,7 @@ const ChatPage = () => {
     const currentMessages = activeConversation?.messages || [];
     const updatedMessages = currentMessages.map(msg =>
       msg.id === editingMessage.id
-        ? { ...msg, content: editValue, originalContent: msg.content, timestamp: Date.now(), feedback: undefined } // Clear feedback on edit
+        ? { ...msg, content: editValue, originalContent: msg.content, timestamp: Date.now(), feedback: undefined }
         : msg
     );
     updateConversation(updatedMessages);
@@ -333,7 +406,7 @@ const ChatPage = () => {
     toast({ title: "Message edited" });
   };
   
-  if (conversations.length === 0 && !chatIdFromUrl) { // Check chatIdFromUrl to allow direct linking to new chat
+  if (conversations.length === 0 && !chatIdFromUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <BotMessageSquare className="w-24 h-24 mb-6 text-primary opacity-50" />
@@ -347,7 +420,6 @@ const ChatPage = () => {
   }
 
   if (!activeConversation && chatIdFromUrl && conversations.find(c => c.id === chatIdFromUrl)) {
-     // Still loading or activeConversation not yet found from URL, show loader or minimal state
      return (
         <div className="flex flex-col items-center justify-center h-full text-center">
             <Loader2 className="w-16 h-16 mb-4 text-primary animate-spin" />
@@ -409,10 +481,10 @@ const ChatPage = () => {
                     {message.originalContent && (
                        <p className="text-xs text-muted-foreground/70 mt-1">(edited)</p>
                     )}
-                    {message.type === 'document_upload_status' && message.data && (
+                    {message.type === 'document_upload_status' && message.data && message.attachments && message.attachments.length > 0 && (
                         <div className="mt-2 p-2 border border-border rounded-md bg-background/50">
                             <div className="flex items-center gap-2 mb-1">
-                                <FileText size={16} className="text-muted-foreground"/>
+                                <FileTypeIcon type={message.attachments[0].type} />
                                 <span className="font-medium text-xs">{message.data.fileName}</span>
                             </div>
                             {message.data.status === 'uploading' && <Progress value={0} className="h-1.5"/>}
@@ -498,7 +570,7 @@ const ChatPage = () => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Type your message or drop files..."
-            className="pr-28 pl-24 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring" // Changed pl-10 to pl-24
+            className="pr-28 pl-24 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -512,7 +584,13 @@ const ChatPage = () => {
               <Paperclip />
               <span className="sr-only">Attach file</span>
             </Button>
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                className="hidden" 
+                accept={ALLOWED_EXTENSIONS_STRING}
+            />
             <Button variant="ghost" size="icon" disabled> {/* Mic still disabled for now */}
               <Mic />
               <span className="sr-only">Use microphone</span>
@@ -529,6 +607,9 @@ const ChatPage = () => {
             <span className="sr-only">Send message</span>
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground text-center mt-2 px-4">
+          Flowserve AI can make mistakes. Please validate important information.
+        </p>
       </div>
     </div>
   );
