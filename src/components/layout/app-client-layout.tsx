@@ -2,9 +2,9 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   BotMessageSquare,
-  FileText, // Main icon for Documents tool
+  FileText, 
   Languages,
   MessageSquarePlus,
   Search,
@@ -38,7 +38,7 @@ import {
   Users,
   Briefcase,
   Loader2,
-  FileIcon, // Icon for document indicator in chat list
+  FileIcon,
 } from 'lucide-react';
 import type { Conversation, Message } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -96,69 +96,100 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
   const { toast } = useToast();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingConvId, setDeletingConvId] = useState<string | null>(null);
 
-  useEffect(() => {
-    setIsMounted(true);
+  const loadStateFromLocalStorage = useCallback(() => {
+    if (typeof window === 'undefined') return;
     const storedConversations = localStorage.getItem('flowserveai-conversations');
     let loadedConversations: Conversation[] = [];
     if (storedConversations) {
       try {
         loadedConversations = JSON.parse(storedConversations);
         loadedConversations.sort((a, b) => b.updatedAt - a.updatedAt);
-        setConversations(loadedConversations);
       } catch (e) { console.error("Failed to parse conversations", e); localStorage.removeItem('flowserveai-conversations'); }
     }
+    setConversations(loadedConversations);
     
-    const urlParams = new URLSearchParams(window.location.search);
-    const chatIdFromUrl = urlParams.get('chatId');
+    const chatIdFromUrl = searchParams.get('chatId');
     const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
 
     let currentActiveId = chatIdFromUrl;
     if (!currentActiveId && storedActiveId && loadedConversations.find(c => c.id === storedActiveId)) {
       currentActiveId = storedActiveId;
     }
-    // Do not default to first conversation if on a tools page like /documents or /translate
     if (!currentActiveId && loadedConversations.length > 0 && pathname === '/') { 
       currentActiveId = loadedConversations[0].id;
     }
     
+    setActiveConversationId(currentActiveId);
+
     if (currentActiveId) {
-      setActiveConversationId(currentActiveId);
       if(currentActiveId !== storedActiveId) {
         localStorage.setItem('flowserveai-activeConversationId', currentActiveId);
       }
-      // If on chat page ('/') and URL doesn't match active ID, update URL
       if (pathname === '/' && (!chatIdFromUrl || chatIdFromUrl !== currentActiveId)) {
-         router.replace(`/?chatId=${currentActiveId}${urlParams.get('documentIdToDiscuss') ? `&documentIdToDiscuss=${urlParams.get('documentIdToDiscuss')}`: ''}`, { scroll: false });
+         const documentIdToDiscuss = searchParams.get('documentIdToDiscuss');
+         router.replace(`/?chatId=${currentActiveId}${documentIdToDiscuss ? `&documentIdToDiscuss=${documentIdToDiscuss}`: ''}`, { scroll: false });
       }
-    } else if (pathname === '/' && loadedConversations.length === 0) {
-        // If on chat page, no convos, and no ID in URL, do nothing (welcome screen will show)
-    } else if (pathname === '/' && !chatIdFromUrl) {
-        // If on chat page, there are convos, but no active ID determined from URL or storage,
-        // it implies we should probably show the welcome/select chat message.
-        // This state can be handled by ChatPage itself.
+    } else if (pathname === '/' && chatIdFromUrl) {
+      // If URL has an ID but it's not valid/found, clear it
+      router.replace('/', {scroll: false});
     }
+  }, [pathname, router, searchParams]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMounted, pathname]); // router removed from deps to avoid re-triggering on its own replace calls
 
   useEffect(() => {
-    if (isMounted) {
+    setIsMounted(true);
+    loadStateFromLocalStorage();
+
+    const handleStorageUpdate = (event: StorageEvent | CustomEvent) => {
+      let key: string | null = null;
+      if (event instanceof StorageEvent) {
+          key = event.key;
+      } else if (event instanceof CustomEvent && event.detail) {
+          key = event.detail.key;
+      }
+
+      if (key === 'flowserveai-conversations' || key === 'flowserveai-activeConversationId') {
+        loadStateFromLocalStorage();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageUpdate);
+    window.addEventListener('flowserveai-storage-updated', handleStorageUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageUpdate);
+      window.removeEventListener('flowserveai-storage-updated', handleStorageUpdate as EventListener);
+    };
+  }, [loadStateFromLocalStorage]);
+
+
+  useEffect(() => {
+    if (isMounted && conversations.length > 0) { // Only save if there are actual conversations
       const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
       localStorage.setItem('flowserveai-conversations', JSON.stringify(sortedConversations));
+    } else if (isMounted && conversations.length === 0) {
+      // If all conversations are deleted, ensure localStorage reflects that
+      localStorage.removeItem('flowserveai-conversations');
+      localStorage.removeItem('flowserveai-activeConversationId');
     }
   }, [conversations, isMounted]);
   
   useEffect(() => {
     if (isMounted && activeConversationId) {
       localStorage.setItem('flowserveai-activeConversationId', activeConversationId);
+    } else if (isMounted && !activeConversationId && conversations.length === 0) {
+      // If no active ID and no conversations, clear it from storage
+       localStorage.removeItem('flowserveai-activeConversationId');
     }
-  }, [activeConversationId, isMounted]);
+  }, [activeConversationId, isMounted, conversations.length]);
 
 
   const createNewChat = async () => {
@@ -168,14 +199,10 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       createdAt: Date.now(), updatedAt: Date.now(),
     };
     
-    const updatedConversations = [newConversation, ...conversations].sort((a,b) => b.updatedAt - a.updatedAt);
-    setConversations(updatedConversations);
+    setConversations(prev => [newConversation, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
     setActiveConversationId(newConversationId);
-
-    if (isMounted) {
-      localStorage.setItem('flowserveai-activeConversationId', newConversationId);
-    }
     
+    // localStorage will be updated by useEffects
     router.push(`/?chatId=${newConversationId}`);
     toast({ title: "New chat created" });
   };
@@ -187,12 +214,12 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
 
   const confirmDeleteConversation = () => {
     if (!deletingConvId) return;
-    const currentConversations = conversations; 
-    const remainingConversations = currentConversations.filter(conv => conv.id !== deletingConvId);
-    setConversations(remainingConversations);
+    
+    setConversations(prev => prev.filter(conv => conv.id !== deletingConvId));
 
     if (activeConversationId === deletingConvId) {
-      const newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
+      const remainingConversations = conversations.filter(conv => conv.id !== deletingConvId); // use current state before filter
+      const newActiveId = remainingConversations.length > 0 ? remainingConversations.sort((a,b) => b.updatedAt - a.updatedAt)[0].id : null;
       setActiveConversationId(newActiveId);
       if (newActiveId) {
         router.push(`/?chatId=${newActiveId}`);
@@ -200,7 +227,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
         router.push('/'); 
       }
     }
-    toast({ title: "Conversation deleted", variant: "destructive" });
+    toast({ title: "Conversation deleted" }); // Removed destructive variant for neutrality
     setDeleteConfirmOpen(false);
     setDeletingConvId(null);
   };
@@ -217,7 +244,10 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     } else if (newTitle === "") { 
       toast({ title: "Rename cancelled", description: "Title cannot be empty.", variant: "destructive"});
     } else if (newTitle !== null && newTitle.trim() === currentTitle) {
-       toast({ title: "Rename cancelled", description: "Title was not changed.", variant: "default"});
+       // No toast needed if title is unchanged and prompt was not cancelled
+    } else if (newTitle === null) {
+      // User cancelled the prompt
+      toast({ title: "Rename cancelled", variant: "default"});
     }
   };
 
@@ -234,7 +264,21 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     <SidebarProvider defaultOpen={true}>
       <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 items-center">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2" onClick={() => {
+             // If already on chat page and clicking logo, ensure active chat is correctly set or cleared
+             if (pathname === '/') {
+                if (conversations.length > 0 && activeConversationId) {
+                    router.push(`/?chatId=${activeConversationId}`);
+                } else if (conversations.length > 0 && !activeConversationId) {
+                    const firstConvId = conversations.sort((a,b) => b.updatedAt - a.updatedAt)[0].id;
+                    setActiveConversationId(firstConvId);
+                    router.push(`/?chatId=${firstConvId}`);
+                } else {
+                    setActiveConversationId(null); // Go to welcome screen
+                    router.push('/');
+                }
+             }
+          }}>
             <BotMessageSquare className="h-8 w-8 text-primary" />
             <h1 className="text-xl font-bold text-foreground group-data-[collapsible=icon]:hidden">FlowserveAI</h1>
           </Link>
@@ -251,7 +295,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
           
           <SidebarGroup className="mt-4">
             <SidebarGroupLabel className="flex items-center justify-between"> <span>Conversations</span> </SidebarGroupLabel>
-            <ScrollArea className="h-[calc(100vh-420px)] group-data-[collapsible=icon]:h-[calc(100vh-320px)]"> {/* Adjusted height for new Tools section */}
+            <ScrollArea className="h-[calc(100vh-420px)] group-data-[collapsible=icon]:h-[calc(100vh-320px)]">
               <SidebarMenu>
                 {conversations.map((conv) => {
                   const hasDocuments = checkHasDocuments(conv.messages);
@@ -349,7 +393,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-2">
              <SidebarTrigger className="md:hidden" />
-             <h2 className="text-lg font-semibold">
+             <h2 className="text-lg font-semibold truncate max-w-[calc(100vw-150px)] sm:max-w-xs md:max-w-md">
                 {pathname === '/' && activeConversationId ? (conversations.find(c=>c.id === activeConversationId)?.title || 'Chat') : 
                  pathname === '/translate' ? 'Translation Module' : 
                  pathname === '/documents' ? 'Documents' :
@@ -376,7 +420,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletingConvId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setDeletingConvId(null); setDeleteConfirmOpen(false); }}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteConversation} className={buttonVariants({ variant: "destructive" })}> Delete </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -384,3 +428,5 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     </SidebarProvider>
   );
 }
+
+    
