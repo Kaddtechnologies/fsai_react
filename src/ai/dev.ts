@@ -1,1 +1,7 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/translate-text.ts';
+import '@/ai/flows/generate-chat-title.ts';
+import '@/ai/flows/search-documents.ts';
+import '@/ai/flows/summarize-document.ts';
