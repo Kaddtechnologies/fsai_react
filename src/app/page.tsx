@@ -2,12 +2,12 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType as FileTypeLucideIcon, Percent } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { Message, Conversation, Document, Product } from '@/lib/types';
@@ -31,18 +31,13 @@ const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const ALLOWED_FILE_TYPES: Record<string, Document['type']> = {
-  // Word
   "application/msword": "word",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "word",
-  // PowerPoint
   "application/vnd.ms-powerpoint": "powerpoint",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "powerpoint",
-  // Excel
   "application/vnd.ms-excel": "excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "excel",
-  // PDF
   "application/pdf": "pdf",
-  // Text
   "text/plain": "text",
 };
 const ALLOWED_EXTENSIONS_STRING = ".doc,.docx,.ppt,.pptx,.xls,.xlsx,.pdf,.txt";
@@ -51,11 +46,6 @@ const getDocumentTypeFromMime = (mimeType: string, fileName: string): Document['
   if (ALLOWED_FILE_TYPES[mimeType]) {
     return ALLOWED_FILE_TYPES[mimeType];
   }
-  // Fallback for text/plain if extension is .txt
-  if (mimeType === 'text/plain' && fileName.toLowerCase().endsWith('.txt')) {
-    return 'text';
-  }
-  // Check by extension if MIME type is generic (e.g. application/octet-stream)
   const extension = fileName.split('.').pop()?.toLowerCase();
   if (extension) {
     if (['doc', 'docx'].includes(extension)) return 'word';
@@ -67,31 +57,62 @@ const getDocumentTypeFromMime = (mimeType: string, fileName: string): Document['
   return undefined;
 };
 
-const FileTypeIcon = ({ type }: { type: Document['type'] }) => {
+const FileTypeIcon = ({ type, size = 24 }: { type: Document['type'], size?: number }) => {
   switch (type) {
     case 'pdf':
-      return <FileText size={16} className="text-muted-foreground" />;
+      return <FileText size={size} className="text-red-500" />;
     case 'excel':
-      return <FileSpreadsheet size={16} className="text-muted-foreground" />;
+      return <FileSpreadsheet size={size} className="text-green-500" />;
     case 'word':
-      return <FileText size={16} className="text-muted-foreground" />; // Using FileText as a generic doc icon
+      return <FileText size={size} className="text-blue-500" />;
     case 'powerpoint':
-      return <FileType size={16} className="text-muted-foreground" />; // Using FileType as a generic presentation icon
+      return <FileTypeLucideIcon size={size} className="text-orange-500" />;
     case 'text':
-      return <FileText size={16} className="text-muted-foreground" />;
+      return <FileText size={size} className="text-gray-500" />;
     default:
-      return <FileText size={16} className="text-muted-foreground" />;
+      return <FileText size={size} className="text-muted-foreground" />;
   }
 };
+
+// Placeholder for actual backend upload logic
+async function uploadFileToBackend(file: File, onProgress: (percentage: number) => void): Promise<{ success: boolean; backendId?: string; fileUrl?: string; error?: string }> {
+  console.warn("uploadFileToBackend: This is a placeholder. Implement actual backend upload.");
+  
+  // Simulate upload progress
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 10;
+    if (progress <= 100) {
+      onProgress(progress);
+    } else {
+      clearInterval(interval);
+    }
+  }, 200);
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      clearInterval(interval);
+      onProgress(100); // Ensure progress hits 100
+      // Simulate a successful upload for now
+      if (file.name.includes("fail")) {
+        resolve({ success: false, error: "Simulated backend upload failure." });
+      } else {
+        resolve({ success: true, backendId: `backend-${Date.now()}`, fileUrl: `https://example.com/uploads/${file.name}` });
+      }
+    }, 2000 + Math.random() * 1000); // Simulate network latency
+  });
+}
 
 
 const ChatPage = () => {
   const { toast } = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const chatIdFromUrl = searchParams.get('chatId');
+  const documentIdToDiscuss = searchParams.get('documentIdToDiscuss');
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(chatIdFromUrl);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -107,23 +128,35 @@ const ChatPage = () => {
     const storedConversations = localStorage.getItem('flowserveai-conversations');
     if (storedConversations) {
       try {
-        const parsedConversations = JSON.parse(storedConversations);
+        const parsedConversations: Conversation[] = JSON.parse(storedConversations);
         setConversations(parsedConversations);
         const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
-        if (chatIdFromUrl) {
-          setActiveConversationId(chatIdFromUrl);
-          if(chatIdFromUrl !== storedActiveId) localStorage.setItem('flowserveai-activeConversationId', chatIdFromUrl);
-        } else if (storedActiveId && parsedConversations.find((c: Conversation) => c.id === storedActiveId)) {
-          setActiveConversationId(storedActiveId);
-        } else if (parsedConversations.length > 0 && !activeConversationId) {
-           setActiveConversationId(parsedConversations[0].id);
+
+        let currentActiveId = chatIdFromUrl;
+        if (!currentActiveId && storedActiveId && parsedConversations.find(c => c.id === storedActiveId)) {
+          currentActiveId = storedActiveId;
         }
+        if (!currentActiveId && parsedConversations.length > 0) {
+          currentActiveId = parsedConversations[0].id;
+        }
+        
+        if (currentActiveId) {
+          setActiveConversationId(currentActiveId);
+           if (currentActiveId !== storedActiveId || (chatIdFromUrl && chatIdFromUrl !== currentActiveId)) {
+             localStorage.setItem('flowserveai-activeConversationId', currentActiveId);
+           }
+           if (chatIdFromUrl && chatIdFromUrl !== currentActiveId) {
+             // If URL has a chat ID but it's not the active one, or if no chat ID in URL but we found one
+             router.replace(`/?chatId=${currentActiveId}${documentIdToDiscuss ? `&documentIdToDiscuss=${documentIdToDiscuss}` : ''}`, { scroll: false });
+           }
+        }
+
       } catch (e) {
         console.error("Failed to parse conversations from localStorage", e);
         localStorage.removeItem('flowserveai-conversations');
       }
     }
-  }, [chatIdFromUrl]);
+  }, [chatIdFromUrl, router]); // Removed documentIdToDiscuss from deps to avoid loops with replace
 
   useEffect(() => {
     localStorage.setItem('flowserveai-conversations', JSON.stringify(conversations));
@@ -135,6 +168,32 @@ const ChatPage = () => {
     }
   }, [activeConversationId]);
 
+  // Effect to handle discussing a specific document
+  useEffect(() => {
+    if (documentIdToDiscuss && activeConversationId && conversations.length > 0) {
+      const allDocs = conversations.flatMap(c => c.messages.flatMap(m => m.attachments || []));
+      const docToDiscuss = allDocs.find(d => d.id === documentIdToDiscuss);
+
+      if (docToDiscuss && docToDiscuss.summary) {
+        const convo = conversations.find(c => c.id === activeConversationId);
+        if (convo && !convo.messages.some(m => m.data?.discussedDocumentId === documentIdToDiscuss)) {
+           const systemMessage: Message = {
+            id: `msg-doc-discuss-${Date.now()}`,
+            conversationId: activeConversationId,
+            content: `Let's discuss the document: **${docToDiscuss.name}**. \nSummary: _${docToDiscuss.summary}_ \n\nWhat would you like to know or discuss about it?`,
+            sender: 'ai', // Present as an AI starting point
+            timestamp: Date.now(),
+            type: 'text',
+            data: { discussedDocumentId: documentIdToDiscuss } // Mark that this doc was discussed
+          };
+          updateConversation([...convo.messages, systemMessage]);
+          // Clear the documentIdToDiscuss from URL to prevent re-triggering
+          router.replace(`/?chatId=${activeConversationId}`, { scroll: false });
+        }
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentIdToDiscuss, activeConversationId, conversations, router]); // updateConversation is stable
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -142,6 +201,33 @@ const ChatPage = () => {
 
   useEffect(scrollToBottom, [activeConversation?.messages]);
 
+  const updateMessageInData = (messageId: string, dataUpdates: Partial<Message['data']>, attachmentUpdates?: Partial<Document>) => {
+    setConversations(prev =>
+      prev.map(conv => {
+        if (conv.id === activeConversationId) {
+          return {
+            ...conv,
+            messages: conv.messages.map(msg => {
+              if (msg.id === messageId) {
+                const updatedMsg = {
+                  ...msg,
+                  data: { ...msg.data, ...dataUpdates },
+                };
+                if (attachmentUpdates && msg.attachments && msg.attachments.length > 0) {
+                  updatedMsg.attachments = [{ ...msg.attachments[0], ...attachmentUpdates }];
+                }
+                return updatedMsg;
+              }
+              return msg;
+            }),
+            updatedAt: Date.now(),
+          };
+        }
+        return conv;
+      }).sort((a, b) => b.updatedAt - a.updatedAt)
+    );
+  };
+  
   const updateConversation = useCallback((updatedMessages: Message[], newTitle?: string) => {
     setConversations(prev =>
       prev.map(conv => {
@@ -154,12 +240,13 @@ const ChatPage = () => {
           };
         }
         return conv;
-      }).sort((a, b) => b.updatedAt - a.updatedAt) // Ensure sorting is maintained
+      }).sort((a, b) => b.updatedAt - a.updatedAt)
     );
   }, [activeConversationId]);
 
+
   const handleSendMessage = async () => {
-    if (!inputValue.trim() && !activeConversation?.messages.some(msg => msg.attachments && msg.attachments.length > 0 && msg.processing)) return;
+    if (!inputValue.trim()) return;
     if (!activeConversationId || !activeConversation) {
       toast({ title: "Error", description: "No active conversation selected.", variant: "destructive" });
       return;
@@ -173,23 +260,17 @@ const ChatPage = () => {
       timestamp: Date.now(),
     };
 
-    const currentMessages = activeConversation.messages || [];
-    let updatedMessages = [...currentMessages, userMessage];
+    let updatedMessages = [...(activeConversation.messages || []), userMessage];
     updateConversation(updatedMessages);
     const currentInputValue = inputValue;
     setInputValue('');
     setIsLoading(true);
 
     let conversationTitle = activeConversation.title;
-    if (currentMessages.length === 0 && currentInputValue.trim() && activeConversation.title === 'New Chat') {
+    if (activeConversation.messages.length === 0 && currentInputValue.trim() && activeConversation.title === 'New Chat') {
       try {
         const titleResponse = await generateChatTitle({ firstMessage: currentInputValue });
         conversationTitle = titleResponse.title;
-         setConversations(prev =>
-          prev.map(conv => 
-            conv.id === activeConversationId ? { ...conv, title: conversationTitle, messages: updatedMessages, updatedAt: Date.now() } : conv
-          ).sort((a,b) => b.updatedAt - a.updatedAt)
-        );
       } catch (error) {
         console.error("Failed to generate chat title:", error);
       }
@@ -201,7 +282,10 @@ const ChatPage = () => {
         .slice(0, -1) 
         .map(msg => ({
           role: msg.sender as 'user' | 'ai',
-          content: msg.content + (msg.attachments ? ` (Attached: ${msg.attachments.map(a => a.name).join(', ')})` : '')
+          content: msg.content + 
+                   (msg.attachments && msg.attachments.length > 0 ? 
+                      ` (User attached a document: ${msg.attachments[0].name}. Its summary is: ${msg.attachments[0].summary || 'Summary not available.'})` 
+                      : '')
         }));
 
       let aiResponseContent = `FlowserveAI received: "${userMessage.content}"`;
@@ -215,7 +299,7 @@ const ChatPage = () => {
         if (products.length > 0) {
           aiResponseContent = `Found ${products.length} product(s) matching "${searchTerm}":`;
           aiMessageType = 'product_card';
-          aiMessageData = products;
+          aiMessageData = { products };
         } else {
           aiResponseContent = `Sorry, I couldn't find any products matching "${searchTerm}".`;
         }
@@ -254,112 +338,107 @@ const ChatPage = () => {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0 || !activeConversationId) return;
-
     const file = files[0];
 
-    // File size validation
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast({
-        title: "File too large",
-        description: `File size cannot exceed ${MAX_FILE_SIZE_MB}MB.`,
-        variant: "destructive",
-      });
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
+      toast({ title: "File too large", description: `File size cannot exceed ${MAX_FILE_SIZE_MB}MB.`, variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = ""; return;
     }
 
-    // File type validation
     const docType = getDocumentTypeFromMime(file.type, file.name);
     if (!docType) {
-      toast({
-        title: "Invalid file type",
-        description: `Allowed file types are: ${ALLOWED_EXTENSIONS_STRING}. Images are not allowed.`,
-        variant: "destructive",
-      });
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
+      toast({ title: "Invalid file type", description: `Allowed: ${ALLOWED_EXTENSIONS_STRING}. Images not allowed.`, variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = ""; return;
     }
 
-    const documentId = `doc-${Date.now()}`;
-    const newDocument: Document = {
-      id: documentId,
-      name: file.name,
-      type: docType,
-      uploadedAt: Date.now(),
-      size: file.size,
-      processingStatus: 'uploading',
+    const clientDocumentId = `doc-client-${Date.now()}`;
+    const initialDocument: Document = {
+      id: clientDocumentId, name: file.name, type: docType, uploadedAt: Date.now(),
+      size: file.size, status: 'pending_upload', progress: 0,
     };
 
+    const uploadMessageId = `msg-upload-${clientDocumentId}`;
     const uploadStatusMessage: Message = {
-        id: `msg-upload-${documentId}`,
-        conversationId: activeConversationId,
-        content: `Uploading ${file.name}...`,
-        sender: 'system',
-        timestamp: Date.now(),
-        type: 'document_upload_status',
-        processing: true,
-        attachments: [newDocument],
-        data: { progress: 0, fileName: file.name, status: 'uploading', documentType: newDocument.type }
+      id: uploadMessageId, conversationId: activeConversationId,
+      content: `Preparing to upload ${file.name}...`, sender: 'system', timestamp: Date.now(),
+      type: 'document_upload_status', attachments: [initialDocument],
+      data: { fileName: file.name, documentType: docType, progress: 0, status: 'pending_upload' }
     };
     
     let currentMessages = activeConversation?.messages || [];
     updateConversation([...currentMessages, uploadStatusMessage]);
-    
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
+
+    // Stage 1: Upload to Backend
+    updateMessageInData(uploadMessageId,
+      { status: 'uploading_to_backend', progress: 0 },
+      { status: 'uploading_to_backend', progress: 0 }
+    );
+
+    try {
+      const backendResult = await uploadFileToBackend(file, (p) => {
+        updateMessageInData(uploadMessageId, { progress: p }, { progress: p });
+      });
+
+      if (!backendResult.success || !backendResult.backendId) {
+        throw new Error(backendResult.error || "Backend upload failed.");
+      }
+      
+      const backendUploadedDoc: Partial<Document> = { backendId: backendResult.backendId, fileUrl: backendResult.fileUrl, status: 'pending_ai_processing', progress: 50 };
+      updateMessageInData(uploadMessageId, 
+        { status: 'pending_ai_processing', progress: 50, content: `Uploaded ${file.name}. Processing...` },
+        backendUploadedDoc
+      );
+
+      // Stage 2: AI Processing (Summarization)
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
         const dataUri = reader.result as string;
-        newDocument.dataUri = dataUri;
-        
-        currentMessages = conversations.find(c => c.id === activeConversationId)?.messages || [];
-        updateConversation(currentMessages.map(m => m.id === uploadStatusMessage.id ? {...m, data: {...m.data, progress: 50, status: 'processing'}, content: `Processing ${file.name}...`} : m));
+        updateMessageInData(uploadMessageId, 
+          { status: 'ai_processing', progress: 75 },
+          { dataUri, status: 'ai_processing', progress: 75 }
+        );
 
         try {
-            const summaryResponse = await summarizeDocument({ documentDataUri: dataUri });
-            newDocument.summary = summaryResponse.summary;
-            newDocument.processingStatus = 'completed';
-            
-            currentMessages = conversations.find(c => c.id === activeConversationId)?.messages || [];
-            updateConversation(currentMessages.map(m => m.id === uploadStatusMessage.id ? {
-                ...m, 
-                content: `Processed ${file.name}. Summary available.`, 
-                processing: false, 
-                attachments: [{...newDocument}],
-                data: {...m.data, progress: 100, status: 'completed', summary: summaryResponse.summary}
-            } : m));
-
-            toast({ title: "File processed", description: `${file.name} summarized successfully.` });
-
-        } catch (error) {
-            console.error("Failed to summarize document:", error);
-            newDocument.processingStatus = 'failed';
-            currentMessages = conversations.find(c => c.id === activeConversationId)?.messages || [];
-            updateConversation(currentMessages.map(m => m.id === uploadStatusMessage.id ? {
-                ...m, 
-                content: `Failed to process ${file.name}.`, 
-                processing: false, 
-                attachments: [{...newDocument}],
-                data: {...m.data, progress: 100, status: 'failed'}
-            } : m));
-            toast({ title: "Processing failed", description: `Could not process ${file.name}.`, variant: "destructive" });
+          const summaryResponse = await summarizeDocument({ documentDataUri: dataUri });
+          const finalDocUpdate: Partial<Document> = { summary: summaryResponse.summary, status: 'completed', progress: 100 };
+          updateMessageInData(uploadMessageId,
+            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: `Processed ${file.name}. Summary available.` },
+            finalDocUpdate
+          );
+          toast({ title: "File processed", description: `${file.name} uploaded and summarized.` });
+        } catch (aiError) {
+          console.error("AI processing error:", aiError);
+          const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: "AI processing failed." };
+          updateMessageInData(uploadMessageId,
+            { status: 'failed', progress: 100, error: "AI processing failed.", content: `Failed to process ${file.name} with AI.` },
+            finalDocUpdate
+          );
+          toast({ title: "AI Error", description: `Could not process ${file.name}.`, variant: "destructive" });
         }
-    };
-    reader.onerror = () => {
-        newDocument.processingStatus = 'failed';
-         currentMessages = conversations.find(c => c.id === activeConversationId)?.messages || [];
-         updateConversation(currentMessages.map(m => m.id === uploadStatusMessage.id ? {
-            ...m, 
-            content: `Failed to upload ${file.name}.`, 
-            processing: false, 
-            attachments: [{...newDocument}],
-            data: {...m.data, progress: 0, status: 'failed'}
-        } : m));
-        toast({ title: "Upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
-    };
-    
-    if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      };
+      reader.onerror = () => {
+        const errorMsg = "Failed to read file for AI processing.";
+        const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: errorMsg };
+        updateMessageInData(uploadMessageId,
+            { status: 'failed', progress: 100, error: errorMsg, content: `Error reading ${file.name}.` },
+            finalDocUpdate
+        );
+        toast({ title: "File Read Error", description: errorMsg, variant: "destructive" });
+      };
+
+    } catch (uploadError: any) {
+      console.error("Backend upload error:", uploadError);
+      const errorMsg = uploadError.message || "An unknown error occurred during upload.";
+      const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: errorMsg };
+      updateMessageInData(uploadMessageId,
+        { status: 'failed', progress: 100, error: errorMsg, content: `Failed to upload ${file.name}.` },
+        finalDocUpdate
+      );
+      toast({ title: "Upload Failed", description: errorMsg, variant: "destructive" });
     }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleCopy = (text: string) => {
@@ -368,40 +447,25 @@ const ChatPage = () => {
   };
 
   const handleTTS = (text: string) => {
-    if (isSpeaking) {
-      cancel();
-    } else {
-      speak(text);
-    }
+    if (isSpeaking) cancel(); else speak(text);
   };
   
   const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => {
-    const currentMessages = activeConversation?.messages || [];
-    const updatedMessages = currentMessages.map(msg => 
+    updateConversation((activeConversation?.messages || []).map(msg => 
       msg.id === messageId ? { ...msg, feedback } : msg
-    );
-    updateConversation(updatedMessages);
+    ));
   };
 
-  const startEdit = (message: Message) => {
-    setEditingMessage(message);
-    setEditValue(message.content);
-  };
-
-  const cancelEdit = () => {
-    setEditingMessage(null);
-    setEditValue('');
-  };
+  const startEdit = (message: Message) => { setEditingMessage(message); setEditValue(message.content); };
+  const cancelEdit = () => { setEditingMessage(null); setEditValue(''); };
 
   const submitEdit = () => {
     if (!editingMessage || !editValue.trim()) return;
-    const currentMessages = activeConversation?.messages || [];
-    const updatedMessages = currentMessages.map(msg =>
+    updateConversation((activeConversation?.messages || []).map(msg =>
       msg.id === editingMessage.id
         ? { ...msg, content: editValue, originalContent: msg.content, timestamp: Date.now(), feedback: undefined }
         : msg
-    );
-    updateConversation(updatedMessages);
+    ));
     cancelEdit();
     toast({ title: "Message edited" });
   };
@@ -411,15 +475,18 @@ const ChatPage = () => {
       <div className="flex flex-col items-center justify-center h-full text-center">
         <BotMessageSquare className="w-24 h-24 mb-6 text-primary opacity-50" />
         <h2 className="text-2xl font-semibold mb-2 text-foreground">Welcome to FlowserveAI</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">
-          Start a new conversation to chat with AI, manage documents, and browse products.
-        </p>
-        <p className="text-sm text-muted-foreground">Click "New Chat" in the sidebar to begin.</p>
+        <p className="text-muted-foreground mb-6 max-w-md">Start a new conversation or select one from the sidebar.</p>
       </div>
     );
   }
-
-  if (!activeConversation && chatIdFromUrl && conversations.find(c => c.id === chatIdFromUrl)) {
+  
+  if (!activeConversation && conversations.length > 0 && !chatIdFromUrl) {
+    // This case might happen if activeConversationId is not set from URL or localStorage properly initially.
+    // We attempt to set it in the main useEffect, so this should be rare if logic there is correct.
+    // Default to the first conversation if available and no specific chat ID is in URL.
+    // This logic is mostly covered by the main useEffect now.
+    setActiveConversationId(conversations[0].id);
+    router.replace(`/?chatId=${conversations[0].id}`);
      return (
         <div className="flex flex-col items-center justify-center h-full text-center">
             <Loader2 className="w-16 h-16 mb-4 text-primary animate-spin" />
@@ -433,13 +500,10 @@ const ChatPage = () => {
       <div className="flex flex-col items-center justify-center h-full text-center">
         <AlertTriangle className="w-24 h-24 mb-6 text-accent-warning opacity-70" />
         <h2 className="text-2xl font-semibold mb-2 text-foreground">No Active Chat</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">
-          Please select a conversation from the sidebar or start a new one. If you just created one, it might be loading.
-        </p>
+        <p className="text-muted-foreground mb-6 max-w-md">Select a conversation or start a new one.</p>
       </div>
     );
   }
-
 
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-9rem)] bg-background rounded-lg shadow-xl">
@@ -455,21 +519,13 @@ const ChatPage = () => {
               <div className={cn("max-w-[70%] p-3 rounded-xl shadow", 
                 message.sender === 'user' ? "bg-primary text-primary-foreground rounded-tr-none" : 
                 message.sender === 'ai' ? "bg-card text-card-foreground rounded-tl-none" :
-                "bg-muted text-muted-foreground w-full text-sm text-center"
+                message.type === 'document_upload_status' ? "bg-card border border-border w-full" : // Special styling for document status
+                "bg-muted text-muted-foreground w-full text-sm text-center" // Default system
               )}>
                 {editingMessage?.id === message.id && message.sender === 'user' ? (
                   <div className="space-y-2">
-                    <Textarea 
-                      value={editValue} 
-                      onChange={(e) => setEditValue(e.target.value)} 
-                      className="min-h-[60px] bg-background text-foreground"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          submitEdit();
-                        }
-                      }}
-                    />
+                    <Textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="min-h-[60px] bg-background text-foreground"
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); }}} />
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
                       <Button size="sm" onClick={submitEdit}>Save</Button>
@@ -477,31 +533,43 @@ const ChatPage = () => {
                   </div>
                 ) : (
                   <>
-                    <p className="whitespace-pre-wrap text-sm">{message.content}</p>
-                    {message.originalContent && (
-                       <p className="text-xs text-muted-foreground/70 mt-1">(edited)</p>
-                    )}
+                    {message.type !== 'document_upload_status' && <p className="whitespace-pre-wrap text-sm">{message.content}</p>}
+                    {message.originalContent && <p className="text-xs text-muted-foreground/70 mt-1">(edited)</p>}
+                    
                     {message.type === 'document_upload_status' && message.data && message.attachments && message.attachments.length > 0 && (
-                        <div className="mt-2 p-2 border border-border rounded-md bg-background/50">
-                            <div className="flex items-center gap-2 mb-1">
-                                <FileTypeIcon type={message.attachments[0].type} />
-                                <span className="font-medium text-xs">{message.data.fileName}</span>
-                            </div>
-                            {message.data.status === 'uploading' && <Progress value={0} className="h-1.5"/>}
-                            {message.data.status === 'processing' && <Progress value={message.data.progress || 50} className="h-1.5"/>}
-                            {message.data.status === 'completed' && <div className="text-xs text-accent-success flex items-center gap-1"><CheckCircle size={14}/>Completed</div>}
-                            {message.data.status === 'failed' && <div className="text-xs text-destructive flex items-center gap-1"><XCircle size={14}/>Failed</div>}
-                            {message.data.summary && (
-                                <details className="mt-2">
-                                    <summary className="text-xs cursor-pointer text-muted-foreground">View Summary</summary>
-                                    <p className="text-xs mt-1 p-1 bg-muted rounded">{message.data.summary}</p>
-                                </details>
-                            )}
+                      <div className="w-full">
+                        <div className="flex items-center gap-3 mb-2">
+                          <FileTypeIcon type={message.data.documentType} size={32} />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium truncate">{message.data.fileName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {message.data.status === 'pending_upload' && 'Waiting for upload...'}
+                              {message.data.status === 'uploading_to_backend' && `Uploading to backend... (${message.data.progress?.toFixed(0) || 0}%)`}
+                              {message.data.status === 'pending_ai_processing' && 'Uploaded. Pending AI processing...'}
+                              {message.data.status === 'ai_processing' && `AI Processing... (${message.data.progress?.toFixed(0) || 0}%)`}
+                              {message.data.status === 'completed' && <span className="text-accent-success flex items-center gap-1"><CheckCircle size={14}/>Completed</span>}
+                              {message.data.status === 'failed' && <span className="text-destructive flex items-center gap-1"><XCircle size={14}/>Failed: {message.data.error || "Unknown error"}</span>}
+                            </p>
+                          </div>
                         </div>
+                        {(message.data.status === 'uploading_to_backend' || message.data.status === 'ai_processing') && typeof message.data.progress === 'number' && (
+                          <Progress value={message.data.progress} className="h-1.5 w-full mb-2" />
+                        )}
+                        {message.data.status === 'completed' && message.data.summary && (
+                            <details className="mt-2">
+                                <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary</summary>
+                                <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap">{message.data.summary}</p>
+                            </details>
+                        )}
+                         {message.data.status === 'failed' && message.data.error && (
+                            <p className="text-xs mt-1 p-2 bg-destructive/10 text-destructive rounded">{message.data.error}</p>
+                        )}
+                      </div>
                     )}
-                    {message.type === 'product_card' && message.data && Array.isArray(message.data) && (
+
+                    {message.type === 'product_card' && message.data && message.data.products && Array.isArray(message.data.products) && (
                       <div className="mt-2 space-y-2">
-                        {(message.data as Product[]).map(product => (
+                        {(message.data.products as Product[]).map(product => (
                           <Card key={product.id} className="bg-muted/50">
                             <CardHeader className="p-3">
                               {product.imageUrl && <Image src={product.imageUrl} alt={product.name} width={80} height={80} className="rounded-md mb-2 object-cover" data-ai-hint="product item" />}
@@ -517,11 +585,10 @@ const ChatPage = () => {
                         ))}
                       </div>
                     )}
-                     {message.type === 'error' && (
-                      <p className="text-xs text-destructive mt-1">Error: Could not process request.</p>
-                    )}
+                    {message.type === 'error' && <p className="text-xs text-destructive mt-1">Error: Could not process request.</p>}
+                    
                     <div className="mt-1.5 flex items-center gap-1.5">
-                      {message.sender === 'ai' && message.type !== 'error' && (
+                      {message.sender === 'ai' && message.type !== 'error' && message.type !== 'document_upload_status' && (
                         <>
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(message.content)}><Copy size={14}/></Button>
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleTTS(message.content)}>
@@ -548,15 +615,9 @@ const ChatPage = () => {
           ))}
           {isLoading && (
             <div className="flex items-start gap-3 justify-start">
-               <Avatar className="h-8 w-8 border-2 border-secondary-gradient">
-                  <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback>
-                </Avatar>
+               <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
               <div className="max-w-[70%] p-3 rounded-xl shadow bg-card text-card-foreground rounded-tl-none">
-                <div className="flex items-center space-x-1">
-                  <span className="typing-dot"></span>
-                  <span className="typing-dot"></span>
-                  <span className="typing-dot"></span>
-                </div>
+                <div className="flex items-center space-x-1"> <span className="typing-dot"></span> <span className="typing-dot"></span> <span className="typing-dot"></span> </div>
               </div>
             </div>
           )}
@@ -567,49 +628,21 @@ const ChatPage = () => {
       <div className="border-t border-border p-4">
         <div className="relative">
           <Textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            value={inputValue} onChange={(e) => setInputValue(e.target.value)}
             placeholder="Type your message or drop files..."
             className="pr-28 pl-24 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            rows={1}
-          />
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}} rows={1} />
           <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
-              <Paperclip />
-              <span className="sr-only">Attach file</span>
-            </Button>
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload} 
-                className="hidden" 
-                accept={ALLOWED_EXTENSIONS_STRING}
-            />
-            <Button variant="ghost" size="icon" disabled> {/* Mic still disabled for now */}
-              <Mic />
-              <span className="sr-only">Use microphone</span>
-            </Button>
+            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}> <Paperclip /> <span className="sr-only">Attach file</span> </Button>
+            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept={ALLOWED_EXTENSIONS_STRING} />
+            <Button variant="ghost" size="icon" disabled> <Mic /> <span className="sr-only">Use microphone</span> </Button>
           </div>
-          <Button 
-            type="submit" 
-            size="icon" 
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary-gradient text-primary-foreground hover:opacity-90" 
-            onClick={handleSendMessage}
-            disabled={isLoading || (!inputValue.trim() && !(activeConversation?.messages.some(msg => msg.attachments && msg.attachments.length > 0 && msg.processing)))}
-          >
-            {isLoading ? <Loader2 className="animate-spin" /> : <SendHorizonal />}
-            <span className="sr-only">Send message</span>
+          <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary-gradient text-primary-foreground hover:opacity-90" 
+            onClick={handleSendMessage} disabled={isLoading || !inputValue.trim()}>
+            {isLoading ? <Loader2 className="animate-spin" /> : <SendHorizonal />} <span className="sr-only">Send message</span>
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground text-center mt-2 px-4">
-          Flowserve AI can make mistakes. Please validate important information.
-        </p>
+        <p className="text-xs text-muted-foreground text-center mt-2 px-4">Flowserve AI can make mistakes. Please validate important information.</p>
       </div>
     </div>
   );

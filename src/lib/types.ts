@@ -6,15 +6,27 @@ export interface Message {
   sender: 'user' | 'ai' | 'system';
   timestamp: number;
   type?: 'text' | 'document_summary' | 'product_card' | 'error' | 'document_upload_status';
-  processing?: boolean; // For AI responses or document processing
-  attachments?: Document[]; // For user messages with uploads
-  data?: any; // For rich content like product cards or document summaries
+  processing?: boolean; // For AI responses
+  attachments?: Document[];
+  data?: {
+    // For document_upload_status
+    fileName?: string;
+    documentType?: Document['type'];
+    progress?: number; // 0-100
+    status?: Document['status'];
+    summary?: string;
+    error?: string;
+    // For product_card (can be an array or single object)
+    products?: Product[] | Product;
+    // For other data types as needed
+    [key: string]: any;
+  };
   feedback?: 'liked' | 'disliked';
   originalContent?: string; // For edited messages
 }
 
 export interface Conversation {
-  id: string;
+  id:string;
   title: string;
   messages: Message[];
   createdAt: number;
@@ -29,19 +41,29 @@ export interface Product {
   imageUrl?: string;
   specifications: Record<string, string>;
   availability: 'In Stock' | 'Out of Stock' | 'Low Stock';
-  price?: string; // Optional price
+  price?: string;
 }
 
 export interface Document {
-  id: string;
+  id: string; // Client-side generated ID
+  backendId?: string; // ID from your backend after successful upload
+  fileUrl?: string; // URL if stored in a CDN/backend
   name: string;
-  type: 'pdf' | 'excel' | 'word' | 'powerpoint' | 'text'; // Mime type or simplified type
+  type: 'pdf' | 'excel' | 'word' | 'powerpoint' | 'text';
   uploadedAt: number;
   size: number; // in bytes
-  processingStatus?: 'uploading' | 'processing' | 'completed' | 'failed';
-  summary?: string; // Optional summary after processing
-  searchableChunks?: any[]; // Placeholder for searchable content
-  dataUri?: string; // For passing to AI flows
+  // Status reflects the entire lifecycle:
+  // pending_upload: File selected, not yet sent to backend
+  // uploading_to_backend: File is being sent to your backend
+  // pending_ai_processing: Backend upload complete, awaiting AI summarization/vectorization
+  // ai_processing: AI is working on the document
+  // completed: All steps finished, document ready
+  // failed: Any step failed
+  status: 'pending_upload' | 'uploading_to_backend' | 'pending_ai_processing' | 'ai_processing' | 'completed' | 'failed';
+  progress: number; // Overall progress (0-100), can be mapped from different stages
+  summary?: string;
+  dataUri?: string; // For client-side operations like sending to summarizeDocument flow for now
+  error?: string; // Store error message if any step fails
 }
 
 export interface TranslationEntry {
