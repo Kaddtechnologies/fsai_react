@@ -14,6 +14,7 @@ import type { Message, Conversation, Document, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
 import { summarizeDocument } from '@/ai/flows/summarize-document';
+import { generateChatResponse } from '@/ai/flows/generate-chat-response'; // Import new flow
 // import { searchDocuments } from '@/ai/flows/search-documents'; // For future use
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -49,19 +50,26 @@ const ChatPage = () => {
   useEffect(() => {
     const storedConversations = localStorage.getItem('flowserveai-conversations');
     if (storedConversations) {
-      setConversations(JSON.parse(storedConversations));
+      try {
+        const parsedConversations = JSON.parse(storedConversations);
+        setConversations(parsedConversations);
+         // Ensure activeConversationId from URL is preferred, then localStorage, then first conv
+        const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
+        if (chatIdFromUrl) {
+          setActiveConversationId(chatIdFromUrl);
+          if(chatIdFromUrl !== storedActiveId) localStorage.setItem('flowserveai-activeConversationId', chatIdFromUrl);
+        } else if (storedActiveId && parsedConversations.find((c: Conversation) => c.id === storedActiveId)) {
+          setActiveConversationId(storedActiveId);
+        } else if (parsedConversations.length > 0 && !activeConversationId) {
+           setActiveConversationId(parsedConversations[0].id);
+        }
+
+      } catch (e) {
+        console.error("Failed to parse conversations from localStorage", e);
+        localStorage.removeItem('flowserveai-conversations'); // Clear corrupted data
+      }
     }
-    // Ensure activeConversationId from URL is preferred, then localStorage, then first conv
-    const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
-    if (chatIdFromUrl) {
-      setActiveConversationId(chatIdFromUrl);
-      if(chatIdFromUrl !== storedActiveId) localStorage.setItem('flowserveai-activeConversationId', chatIdFromUrl);
-    } else if (storedActiveId) {
-      setActiveConversationId(storedActiveId);
-    } else if (conversations.length > 0 && !activeConversationId) {
-       setActiveConversationId(conversations[0].id);
-    }
-  }, [chatIdFromUrl]);
+  }, [chatIdFromUrl]); // Removed conversations and activeConversationId from deps to avoid potential loops on initial load.
 
   useEffect(() => {
     localStorage.setItem('flowserveai-conversations', JSON.stringify(conversations));
@@ -98,7 +106,7 @@ const ChatPage = () => {
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() && !activeConversation?.messages.some(msg => msg.attachments && msg.attachments.length > 0 && msg.processing)) return;
-    if (!activeConversationId) {
+    if (!activeConversationId || !activeConversation) { // Ensure activeConversation exists
       toast({ title: "Error", description: "No active conversation selected.", variant: "destructive" });
       return;
     }
@@ -111,41 +119,59 @@ const ChatPage = () => {
       timestamp: Date.now(),
     };
 
-    const currentMessages = activeConversation?.messages || [];
-    const updatedMessages = [...currentMessages, userMessage];
+    const currentMessages = activeConversation.messages || [];
+    let updatedMessages = [...currentMessages, userMessage];
     updateConversation(updatedMessages);
+    const currentInputValue = inputValue; // Capture inputValue before clearing
     setInputValue('');
     setIsLoading(true);
 
-    // Auto-generate title for the first message
-    if (currentMessages.length === 0 && inputValue.trim()) {
+    let conversationTitle = activeConversation.title;
+    if (currentMessages.length === 0 && currentInputValue.trim() && activeConversation.title === 'New Chat') {
       try {
-        const titleResponse = await generateChatTitle({ firstMessage: inputValue });
-        updateConversation(updatedMessages, titleResponse.title);
+        const titleResponse = await generateChatTitle({ firstMessage: currentInputValue });
+        conversationTitle = titleResponse.title;
+        // Update title in conversations state directly, as updateConversation might use stale closure for title
+         setConversations(prev =>
+          prev.map(conv => 
+            conv.id === activeConversationId ? { ...conv, title: conversationTitle, messages: updatedMessages, updatedAt: Date.now() } : conv
+          )
+        );
       } catch (error) {
         console.error("Failed to generate chat title:", error);
-        // Keep going with default title
+        // Keep going with default title 'New Chat' or current title
       }
     }
     
-    // Simulate AI response
-    setTimeout(async () => {
-      let aiResponseContent = `FlowserveAI received: "${userMessage.content}"`;
+    // AI response generation
+    try {
+      const historyForAI = updatedMessages // Use updatedMessages up to the user's latest message
+        .filter(msg => msg.sender === 'user' || msg.sender === 'ai')
+        .slice(0, -1) // Exclude the latest user message from history, it's the primary input
+        .map(msg => ({
+          role: msg.sender as 'user' | 'ai',
+          content: msg.content
+        }));
+
+      let aiResponseContent = `FlowserveAI received: "${userMessage.content}"`; // Default content
       let aiMessageType: Message['type'] = 'text';
       let aiMessageData: any = null;
 
-      // Check for product query
-      const productQueryMatch = inputValue.toLowerCase().match(/search products for (.*)/i) || inputValue.toLowerCase().match(/find (.*) products/i);
+      const productQueryMatch = currentInputValue.toLowerCase().match(/search products for (.*)/i) || currentInputValue.toLowerCase().match(/find (.*) products/i);
       if (productQueryMatch) {
         const searchTerm = productQueryMatch[1];
         const products = searchMockProducts(searchTerm);
         if (products.length > 0) {
           aiResponseContent = `Found ${products.length} product(s) matching "${searchTerm}":`;
           aiMessageType = 'product_card';
-          aiMessageData = products; // Array of products
+          aiMessageData = products;
         } else {
           aiResponseContent = `Sorry, I couldn't find any products matching "${searchTerm}".`;
         }
+      } else {
+        // Call Genkit flow for general chat response
+        const aiResult = await generateChatResponse({ userInput: currentInputValue, history: historyForAI });
+        aiResponseContent = aiResult.aiResponse;
       }
 
       const aiMessage: Message = {
@@ -157,9 +183,23 @@ const ChatPage = () => {
         type: aiMessageType,
         data: aiMessageData,
       };
-      updateConversation([...updatedMessages, aiMessage]);
+      // Ensure title is preserved if it was updated
+      updateConversation([...updatedMessages, aiMessage], conversationTitle !== activeConversation.title ? conversationTitle : undefined);
+    } catch (error) {
+      console.error("Failed to get AI response:", error);
+      const errorMessage: Message = {
+        id: `msg-err-${Date.now()}`,
+        conversationId: activeConversationId,
+        content: "Sorry, I encountered an error trying to respond. Please try again.",
+        sender: 'ai',
+        timestamp: Date.now(),
+        type: 'error',
+      };
+      updateConversation([...updatedMessages, errorMessage], conversationTitle !== activeConversation.title ? conversationTitle : undefined);
+      toast({ title: "AI Error", description: "Could not get response from AI.", variant: "destructive" });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,7 +217,6 @@ const ChatPage = () => {
       processingStatus: 'uploading',
     };
 
-    // Add a message indicating file upload
     const uploadStatusMessage: Message = {
         id: `msg-upload-${documentId}`,
         conversationId: activeConversationId,
@@ -193,14 +232,12 @@ const ChatPage = () => {
     let currentMessages = activeConversation?.messages || [];
     updateConversation([...currentMessages, uploadStatusMessage]);
     
-    // Simulate upload progress and processing
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = async () => {
         const dataUri = reader.result as string;
         newDocument.dataUri = dataUri;
         
-        // Update progress to 'processing'
         currentMessages = conversations.find(c => c.id === activeConversationId)?.messages || [];
         updateConversation(currentMessages.map(m => m.id === uploadStatusMessage.id ? {...m, data: {...m.data, progress: 50, status: 'processing'}, content: `Processing ${file.name}...`} : m));
 
@@ -247,7 +284,6 @@ const ChatPage = () => {
         toast({ title: "Upload failed", description: `Could not upload ${file.name}.`, variant: "destructive" });
     };
     
-    // Reset file input
     if (fileInputRef.current) {
         fileInputRef.current.value = "";
     }
@@ -289,21 +325,15 @@ const ChatPage = () => {
     const currentMessages = activeConversation?.messages || [];
     const updatedMessages = currentMessages.map(msg =>
       msg.id === editingMessage.id
-        ? { ...msg, content: editValue, originalContent: msg.content, timestamp: Date.now() }
+        ? { ...msg, content: editValue, originalContent: msg.content, timestamp: Date.now(), feedback: undefined } // Clear feedback on edit
         : msg
     );
     updateConversation(updatedMessages);
     cancelEdit();
     toast({ title: "Message edited" });
   };
-
-  if (!activeConversation && conversations.length > 0 && !chatIdFromUrl) {
-     // If no active conversation is set, and there are conversations, default to the first one.
-     // This handles the initial load case if URL param is not set.
-     // setActiveConversationId(conversations[0].id); // This would cause a loop, handle in useEffect
-  }
   
-  if (conversations.length === 0) {
+  if (conversations.length === 0 && !chatIdFromUrl) { // Check chatIdFromUrl to allow direct linking to new chat
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <BotMessageSquare className="w-24 h-24 mb-6 text-primary opacity-50" />
@@ -316,13 +346,23 @@ const ChatPage = () => {
     );
   }
 
+  if (!activeConversation && chatIdFromUrl && conversations.find(c => c.id === chatIdFromUrl)) {
+     // Still loading or activeConversation not yet found from URL, show loader or minimal state
+     return (
+        <div className="flex flex-col items-center justify-center h-full text-center">
+            <Loader2 className="w-16 h-16 mb-4 text-primary animate-spin" />
+            <p className="text-muted-foreground">Loading chat...</p>
+        </div>
+     );
+  }
+  
   if (!activeConversation) {
      return (
       <div className="flex flex-col items-center justify-center h-full text-center">
         <AlertTriangle className="w-24 h-24 mb-6 text-accent-warning opacity-70" />
         <h2 className="text-2xl font-semibold mb-2 text-foreground">No Active Chat</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
-          Please select a conversation from the sidebar or start a new one.
+          Please select a conversation from the sidebar or start a new one. If you just created one, it might be loading.
         </p>
       </div>
     );
@@ -405,8 +445,11 @@ const ChatPage = () => {
                         ))}
                       </div>
                     )}
+                     {message.type === 'error' && (
+                      <p className="text-xs text-destructive mt-1">Error: Could not process request.</p>
+                    )}
                     <div className="mt-1.5 flex items-center gap-1.5">
-                      {message.sender === 'ai' && (
+                      {message.sender === 'ai' && message.type !== 'error' && (
                         <>
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(message.content)}><Copy size={14}/></Button>
                           <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleTTS(message.content)}>
@@ -455,7 +498,7 @@ const ChatPage = () => {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Type your message or drop files..."
-            className="pr-28 pl-10 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring"
+            className="pr-28 pl-24 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring" // Changed pl-10 to pl-24
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -470,7 +513,7 @@ const ChatPage = () => {
               <span className="sr-only">Attach file</span>
             </Button>
             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-            <Button variant="ghost" size="icon" disabled>
+            <Button variant="ghost" size="icon" disabled> {/* Mic still disabled for now */}
               <Mic />
               <span className="sr-only">Use microphone</span>
             </Button>
@@ -480,7 +523,7 @@ const ChatPage = () => {
             size="icon" 
             className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary-gradient text-primary-foreground hover:opacity-90" 
             onClick={handleSendMessage}
-            disabled={isLoading}
+            disabled={isLoading || (!inputValue.trim() && !(activeConversation?.messages.some(msg => msg.attachments && msg.attachments.length > 0 && msg.processing)))}
           >
             {isLoading ? <Loader2 className="animate-spin" /> : <SendHorizonal />}
             <span className="sr-only">Send message</span>
@@ -492,5 +535,3 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
-
-    

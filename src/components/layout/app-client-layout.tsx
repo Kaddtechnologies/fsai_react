@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
 import {
   SidebarProvider,
   Sidebar,
@@ -38,12 +38,13 @@ import {
   LogOut,
   Users,
   Briefcase,
-  FileSliders,
-  Grid2x2,
+  // FileSliders, // Not used
+  // Grid2x2, // Not used
+  Loader2, // For loading state
 } from 'lucide-react';
 import type { Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { generateChatTitle } from '@/ai/flows/generate-chat-title';
+// import { generateChatTitle } from '@/ai/flows/generate-chat-title'; // Not used here anymore
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,24 +68,44 @@ const MOCK_USER = {
 export default function AppClientLayout({ children }: AppClientLayoutProps) {
   const { toast } = useToast();
   const pathname = usePathname();
+  const router = useRouter(); // Initialized useRouter
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-    // Load conversations from local storage (or API in a real app)
     const storedConversations = localStorage.getItem('flowserveai-conversations');
+    let loadedConversations: Conversation[] = [];
     if (storedConversations) {
-      setConversations(JSON.parse(storedConversations));
+      try {
+        loadedConversations = JSON.parse(storedConversations);
+        setConversations(loadedConversations);
+      } catch (e) {
+        console.error("Failed to parse conversations from localStorage", e);
+        localStorage.removeItem('flowserveai-conversations');
+      }
     }
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatIdFromUrl = urlParams.get('chatId');
     const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
-    if(storedActiveId) {
+
+    if (chatIdFromUrl) {
+      setActiveConversationId(chatIdFromUrl);
+      if(chatIdFromUrl !== storedActiveId) {
+        localStorage.setItem('flowserveai-activeConversationId', chatIdFromUrl);
+      }
+    } else if (storedActiveId && loadedConversations.find(c => c.id === storedActiveId)) {
       setActiveConversationId(storedActiveId);
-    } else if (conversations.length > 0) {
-      setActiveConversationId(conversations[0].id);
+      router.replace(`/?chatId=${storedActiveId}`); // Ensure URL reflects active chat if not set
+    } else if (loadedConversations.length > 0) {
+      const firstConvId = loadedConversations[0].id;
+      setActiveConversationId(firstConvId);
+      router.replace(`/?chatId=${firstConvId}`); // Navigate to the first chat if no other active id
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
 
   useEffect(() => {
     if (isMounted) {
@@ -95,47 +116,62 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
   useEffect(() => {
     if (isMounted && activeConversationId) {
       localStorage.setItem('flowserveai-activeConversationId', activeConversationId);
+      // No automatic navigation here to prevent loops, navigation handled by direct actions.
     }
   }, [activeConversationId, isMounted]);
 
 
   const createNewChat = async () => {
     const newConversationId = `conv-${Date.now()}`;
-    // Placeholder title, will be updated after first message
     const newConversation: Conversation = {
       id: newConversationId,
-      title: 'New Chat',
+      title: 'New Chat', 
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    setConversations((prev) => [newConversation, ...prev]);
+    
+    const updatedConversations = [newConversation, ...conversations];
+    setConversations(updatedConversations);
     setActiveConversationId(newConversationId);
-    // In a real app, you'd navigate to /chat/[newConversationId] or update context
-    // For this structure, page.tsx will pick up activeConversationId
-    if (pathname !== '/') {
-      // Potentially navigate, or rely on page.tsx to handle activeConversationId
+
+    if (isMounted) {
+      localStorage.setItem('flowserveai-conversations', JSON.stringify(updatedConversations));
+      localStorage.setItem('flowserveai-activeConversationId', newConversationId);
     }
+    
+    router.push(`/?chatId=${newConversationId}`); // Navigate to the new chat
     toast({ title: "New chat created" });
   };
 
   const deleteConversation = (id: string) => {
-    setConversations(prev => prev.filter(conv => conv.id !== id));
+    const remainingConversations = conversations.filter(conv => conv.id !== id);
+    setConversations(remainingConversations);
     if (activeConversationId === id) {
-      setActiveConversationId(conversations.length > 1 ? conversations.find(c => c.id !== id)?.id || null : null);
+      const newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
+      setActiveConversationId(newActiveId);
+      if (newActiveId) {
+        router.push(`/?chatId=${newActiveId}`);
+      } else {
+        router.push('/'); // Go to landing if no chats left
+      }
     }
     toast({ title: "Conversation deleted", variant: "destructive" });
   };
   
-  const renameConversation = (id: string, newTitle: string) => {
-    setConversations(prev => prev.map(conv => conv.id === id ? { ...conv, title: newTitle, updatedAt: Date.now() } : conv));
-    toast({ title: "Conversation renamed" });
+  const renameConversation = (id: string, currentTitle: string) => {
+    const newTitle = window.prompt("Enter new title:", currentTitle);
+    if (newTitle && newTitle.trim() && newTitle.trim() !== currentTitle) {
+      setConversations(prev => prev.map(conv => conv.id === id ? { ...conv, title: newTitle.trim(), updatedAt: Date.now() } : conv));
+      toast({ title: "Conversation renamed" });
+    } else if (newTitle === "") {
+      toast({ title: "Rename cancelled", description: "Title cannot be empty.", variant: "destructive"});
+    }
   };
 
 
   if (!isMounted) {
-    // Prevent hydration mismatch by not rendering UI that relies on localStorage until mounted
-    return <div className="flex h-screen w-screen items-center justify-center bg-background"><BotMessageSquare className="h-12 w-12 animate-pulse text-primary" /></div>;
+    return <div className="flex h-screen w-screen items-center justify-center bg-background"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
   return (
@@ -169,7 +205,10 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                     <Link href={`/?chatId=${conv.id}`} passHref legacyBehavior>
                       <SidebarMenuButton
                         isActive={activeConversationId === conv.id && pathname === '/'}
-                        onClick={() => setActiveConversationId(conv.id)}
+                        onClick={() => {
+                          setActiveConversationId(conv.id);
+                          // router.push(`/?chatId=${conv.id}`); // Link already handles navigation
+                        }}
                         className="truncate group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8"
                         tooltip={conv.title}
                       >
@@ -184,10 +223,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="right" align="start">
-                          <DropdownMenuItem onClick={() => {
-                            const newTitle = prompt("Enter new title:", conv.title);
-                            if (newTitle) renameConversation(conv.id, newTitle);
-                          }}>
+                          <DropdownMenuItem onClick={() => renameConversation(conv.id, conv.title) }>
                             <Edit3 className="mr-2 h-4 w-4" /> Rename
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => deleteConversation(conv.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
@@ -212,7 +248,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
-              {/* Placeholder for future tools */}
                <SidebarMenuItem>
                 <SidebarMenuButton tooltip="Documents" disabled>
                   <FileText /> <span className="group-data-[collapsible=icon]:hidden">Documents</span>
@@ -259,9 +294,9 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       <SidebarInset className="flex flex-col">
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center gap-2">
-             <SidebarTrigger className="md:hidden" /> {/* Mobile toggle */}
+             <SidebarTrigger className="md:hidden" />
              <h2 className="text-lg font-semibold">
-                {pathname === '/' && activeConversationId ? conversations.find(c=>c.id === activeConversationId)?.title : 
+                {pathname === '/' && activeConversationId ? (conversations.find(c=>c.id === activeConversationId)?.title || 'Chat') : 
                  pathname === '/translate' ? 'Translation Module' : 'FlowserveAI'}
              </h2>
           </div>
@@ -270,16 +305,12 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input type="search" placeholder="Search everything..." className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[300px]" />
             </div>
-            {/* Add other header items like notifications or quick actions here */}
           </div>
         </header>
         <main className="flex-1 overflow-auto p-4 sm:p-6">
-          {/* Pass conversations and active ID management functions to children if needed via context or props */}
           {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
   );
 }
-
-    
