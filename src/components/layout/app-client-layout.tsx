@@ -4,7 +4,7 @@
 import type { ReactNode } from 'react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
+import { usePathname, useRouter } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -18,9 +18,8 @@ import {
   SidebarTrigger,
   SidebarGroup,
   SidebarGroupLabel,
-  useSidebar,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -38,13 +37,10 @@ import {
   LogOut,
   Users,
   Briefcase,
-  // FileSliders, // Not used
-  // Grid2x2, // Not used
-  Loader2, // For loading state
+  Loader2,
 } from 'lucide-react';
 import type { Conversation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-// import { generateChatTitle } from '@/ai/flows/generate-chat-title'; // Not used here anymore
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,12 +49,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 interface AppClientLayoutProps {
   children: ReactNode;
 }
 
-// Mock user data
 const MOCK_USER = {
   name: "Flowserve User",
   email: "user@flowserve.ai",
@@ -68,10 +74,13 @@ const MOCK_USER = {
 export default function AppClientLayout({ children }: AppClientLayoutProps) {
   const { toast } = useToast();
   const pathname = usePathname();
-  const router = useRouter(); // Initialized useRouter
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingConvId, setDeletingConvId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -98,14 +107,16 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       }
     } else if (storedActiveId && loadedConversations.find(c => c.id === storedActiveId)) {
       setActiveConversationId(storedActiveId);
-      router.replace(`/?chatId=${storedActiveId}`); // Ensure URL reflects active chat if not set
-    } else if (loadedConversations.length > 0) {
+      if (pathname === '/') { // Only redirect if on chat page
+         router.replace(`/?chatId=${storedActiveId}`);
+      }
+    } else if (loadedConversations.length > 0 && pathname ==='/') { // Only redirect if on chat page and no other ID set
       const firstConvId = loadedConversations[0].id;
       setActiveConversationId(firstConvId);
-      router.replace(`/?chatId=${firstConvId}`); // Navigate to the first chat if no other active id
+      router.replace(`/?chatId=${firstConvId}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run only on mount
+  }, [isMounted, pathname]); // Added pathname to re-evaluate if user navigates manually
 
   useEffect(() => {
     if (isMounted) {
@@ -116,7 +127,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
   useEffect(() => {
     if (isMounted && activeConversationId) {
       localStorage.setItem('flowserveai-activeConversationId', activeConversationId);
-      // No automatic navigation here to prevent loops, navigation handled by direct actions.
     }
   }, [activeConversationId, isMounted]);
 
@@ -140,33 +150,51 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       localStorage.setItem('flowserveai-activeConversationId', newConversationId);
     }
     
-    router.push(`/?chatId=${newConversationId}`); // Navigate to the new chat
+    router.push(`/?chatId=${newConversationId}`);
     toast({ title: "New chat created" });
   };
 
-  const deleteConversation = (id: string) => {
-    const remainingConversations = conversations.filter(conv => conv.id !== id);
+  const requestDeleteConversation = (id: string) => {
+    setDeletingConvId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDeleteConversation = () => {
+    if (!deletingConvId) return;
+
+    const currentConversations = conversations; // Capture current state for filtering
+    const remainingConversations = currentConversations.filter(conv => conv.id !== deletingConvId);
     setConversations(remainingConversations);
-    if (activeConversationId === id) {
+
+    if (activeConversationId === deletingConvId) {
       const newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
       setActiveConversationId(newActiveId);
       if (newActiveId) {
         router.push(`/?chatId=${newActiveId}`);
       } else {
-        router.push('/'); // Go to landing if no chats left
+        router.push('/'); 
       }
     }
     toast({ title: "Conversation deleted", variant: "destructive" });
+    setDeleteConfirmOpen(false);
+    setDeletingConvId(null);
   };
   
   const renameConversation = (id: string, currentTitle: string) => {
-    const newTitle = window.prompt("Enter new title:", currentTitle);
+    const newTitle = window.prompt("Enter new title for the chat:", currentTitle);
     if (newTitle && newTitle.trim() && newTitle.trim() !== currentTitle) {
-      setConversations(prev => prev.map(conv => conv.id === id ? { ...conv, title: newTitle.trim(), updatedAt: Date.now() } : conv));
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === id ? { ...conv, title: newTitle.trim(), updatedAt: Date.now() } : conv
+        )
+      );
       toast({ title: "Conversation renamed" });
-    } else if (newTitle === "") {
+    } else if (newTitle === "") { // User entered empty string
       toast({ title: "Rename cancelled", description: "Title cannot be empty.", variant: "destructive"});
+    } else if (newTitle !== null) { // User clicked OK but title is same or only whitespace
+       toast({ title: "Rename cancelled", description: "Title was not changed.", variant: "default"});
     }
+    // If newTitle is null (user clicked cancel), do nothing
   };
 
 
@@ -207,7 +235,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                         isActive={activeConversationId === conv.id && pathname === '/'}
                         onClick={() => {
                           setActiveConversationId(conv.id);
-                          // router.push(`/?chatId=${conv.id}`); // Link already handles navigation
                         }}
                         className="truncate group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8"
                         tooltip={conv.title}
@@ -226,7 +253,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                           <DropdownMenuItem onClick={() => renameConversation(conv.id, conv.title) }>
                             <Edit3 className="mr-2 h-4 w-4" /> Rename
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => deleteConversation(conv.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                          <DropdownMenuItem onClick={() => requestDeleteConversation(conv.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -311,6 +338,22 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
           {children}
         </main>
       </SidebarInset>
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the conversation titled &quot;{conversations.find(c => c.id === deletingConvId)?.title || 'Selected Chat'}&quot; and all of its messages.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingConvId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteConversation} className={buttonVariants({ variant: "destructive" })}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SidebarProvider>
   );
 }
