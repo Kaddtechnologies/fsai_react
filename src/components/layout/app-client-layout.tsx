@@ -38,8 +38,9 @@ import {
   Users,
   Briefcase,
   Loader2,
+  FileIcon, // Added for document indicator
 } from 'lucide-react';
-import type { Conversation } from '@/lib/types';
+import type { Conversation, Message } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -59,6 +60,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { formatRelative } from 'date-fns';
+import { enUS } from 'date-fns/locale';
 
 
 interface AppClientLayoutProps {
@@ -70,6 +73,30 @@ const MOCK_USER = {
   email: "user@flowserve.ai",
   avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "profile avatar"
 };
+
+// Helper function to format date, ensuring it doesn't break on invalid dates
+const formatRelativeLocale = {
+  lastWeek: "eeee", // e.g. Friday
+  yesterday: "'Yesterday'",
+  today: "'Today'",
+  tomorrow: "'Tomorrow'",
+  nextWeek: "eeee", // e.g. Friday
+  other: "MMM d", // e.g. Sep 12
+};
+
+const formatRelativeCustom = (date: number | Date, baseDate: number | Date) => {
+  try {
+    return formatRelative(date, baseDate, { 
+      locale: {
+        ...enUS,
+        formatRelative: (token) => formatRelativeLocale[token as keyof typeof formatRelativeLocale] || formatRelativeLocale.other,
+      } 
+    });
+  } catch (e) {
+    return "Invalid date";
+  }
+};
+
 
 export default function AppClientLayout({ children }: AppClientLayoutProps) {
   const { toast } = useToast();
@@ -89,6 +116,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     if (storedConversations) {
       try {
         loadedConversations = JSON.parse(storedConversations);
+        // Sort by updatedAt descending to show recent chats first
+        loadedConversations.sort((a, b) => b.updatedAt - a.updatedAt);
         setConversations(loadedConversations);
       } catch (e) {
         console.error("Failed to parse conversations from localStorage", e);
@@ -107,20 +136,22 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       }
     } else if (storedActiveId && loadedConversations.find(c => c.id === storedActiveId)) {
       setActiveConversationId(storedActiveId);
-      if (pathname === '/') { // Only redirect if on chat page
+      if (pathname === '/') { 
          router.replace(`/?chatId=${storedActiveId}`);
       }
-    } else if (loadedConversations.length > 0 && pathname ==='/') { // Only redirect if on chat page and no other ID set
-      const firstConvId = loadedConversations[0].id;
+    } else if (loadedConversations.length > 0 && pathname ==='/') { 
+      const firstConvId = loadedConversations[0].id; // Already sorted, so [0] is the most recent
       setActiveConversationId(firstConvId);
       router.replace(`/?chatId=${firstConvId}`);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMounted, pathname]); // Added pathname to re-evaluate if user navigates manually
+  }, [isMounted, pathname]); 
 
   useEffect(() => {
     if (isMounted) {
-      localStorage.setItem('flowserveai-conversations', JSON.stringify(conversations));
+      // Sort conversations by updatedAt before saving to maintain order
+      const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
+      localStorage.setItem('flowserveai-conversations', JSON.stringify(sortedConversations));
     }
   }, [conversations, isMounted]);
   
@@ -141,7 +172,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       updatedAt: Date.now(),
     };
     
-    const updatedConversations = [newConversation, ...conversations];
+    // Add new conversation to the beginning and sort
+    const updatedConversations = [newConversation, ...conversations].sort((a,b) => b.updatedAt - a.updatedAt);
     setConversations(updatedConversations);
     setActiveConversationId(newConversationId);
 
@@ -162,12 +194,12 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
   const confirmDeleteConversation = () => {
     if (!deletingConvId) return;
 
-    const currentConversations = conversations; // Capture current state for filtering
+    const currentConversations = conversations; 
     const remainingConversations = currentConversations.filter(conv => conv.id !== deletingConvId);
     setConversations(remainingConversations);
 
     if (activeConversationId === deletingConvId) {
-      const newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null;
+      const newActiveId = remainingConversations.length > 0 ? remainingConversations[0].id : null; // [0] is most recent due to sorting
       setActiveConversationId(newActiveId);
       if (newActiveId) {
         router.push(`/?chatId=${newActiveId}`);
@@ -186,15 +218,18 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       setConversations(prev => 
         prev.map(conv => 
           conv.id === id ? { ...conv, title: newTitle.trim(), updatedAt: Date.now() } : conv
-        )
+        ).sort((a,b) => b.updatedAt - a.updatedAt) // Re-sort after update
       );
       toast({ title: "Conversation renamed" });
-    } else if (newTitle === "") { // User entered empty string
+    } else if (newTitle === "") { 
       toast({ title: "Rename cancelled", description: "Title cannot be empty.", variant: "destructive"});
-    } else if (newTitle !== null) { // User clicked OK but title is same or only whitespace
+    } else if (newTitle !== null) {
        toast({ title: "Rename cancelled", description: "Title was not changed.", variant: "default"});
     }
-    // If newTitle is null (user clicked cancel), do nothing
+  };
+
+  const checkHasDocuments = (messages: Message[]): boolean => {
+    return messages.some(msg => msg.attachments && msg.attachments.length > 0);
   };
 
 
@@ -228,7 +263,12 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
             </SidebarGroupLabel>
             <ScrollArea className="h-[calc(100vh-380px)] group-data-[collapsible=icon]:h-[calc(100vh-280px)]">
               <SidebarMenu>
-                {conversations.map((conv) => (
+                {conversations.map((conv) => {
+                  const hasDocuments = checkHasDocuments(conv.messages);
+                  const formattedDate = formatRelativeCustom(new Date(conv.updatedAt), new Date());
+                  const displayTitle = conv.title; // Truncation is handled by CSS if text overflows
+
+                  return (
                   <SidebarMenuItem key={conv.id}>
                     <Link href={`/?chatId=${conv.id}`} passHref legacyBehavior>
                       <SidebarMenuButton
@@ -236,11 +276,17 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                         onClick={() => {
                           setActiveConversationId(conv.id);
                         }}
-                        className="truncate group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8"
-                        tooltip={conv.title}
+                        className="h-auto items-start group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center"
+                        tooltip={displayTitle}
                       >
-                        <BotMessageSquare />
-                        <span className="group-data-[collapsible=icon]:hidden truncate flex-1">{conv.title}</span>
+                        <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
+                          <BotMessageSquare className="shrink-0" />
+                          <span className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0">{displayTitle}</span>
+                        </div>
+                        <div className="ml-[calc(1rem+0.5rem)] text-xs text-sidebar-foreground/60 mt-0.5 group-data-[collapsible=icon]:hidden flex items-center gap-1.5">
+                          {hasDocuments && <FileIcon size={12} className="shrink-0" />}
+                          <span className="truncate">{formattedDate}</span>
+                        </div>
                       </SidebarMenuButton>
                     </Link>
                      <DropdownMenu>
@@ -259,7 +305,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                         </DropdownMenuContent>
                       </DropdownMenu>
                   </SidebarMenuItem>
-                ))}
+                );
+              })}
               </SidebarMenu>
             </ScrollArea>
           </SidebarGroup>
@@ -357,3 +404,4 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     </SidebarProvider>
   );
 }
+
