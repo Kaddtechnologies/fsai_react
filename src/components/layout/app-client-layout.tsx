@@ -69,7 +69,7 @@ import { enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import WelcomeDialog from '@/components/help/welcome-dialog';
 
-// Define Loader2 directly in the file if it's simple and only used here
+// Define Loader2 directly in the file
 const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
 );
@@ -85,12 +85,12 @@ const MOCK_USER = {
 };
 
 const formatRelativeLocale = {
-  lastWeek: "eeee",
+  lastWeek: "eeee", // e.g., "Monday"
   yesterday: "'Yesterday'",
   today: "'Today'",
   tomorrow: "'Tomorrow'",
   nextWeek: "eeee",
-  other: "MMM d",
+  other: "MMM d", // e.g., "Sep 12"
 };
 
 const formatRelativeCustom = (date: number | Date, baseDate: number | Date) => {
@@ -100,7 +100,7 @@ const formatRelativeCustom = (date: number | Date, baseDate: number | Date) => {
     });
   } catch (e) {
     console.error("Error formatting date:", e);
-    return "Invalid date";
+    return "Invalid date"; // Fallback for invalid dates
   }
 };
 
@@ -124,7 +124,7 @@ const ConversationTypeIcon = ({ type }: { type: ConversationType }) => {
   }
 };
 
-export default function AppClientLayout({ children }: AppClientLayoutProps) {
+export default function AppClientLayout({ children }: AppClientLayoutProps): JSX.Element {
   const { toast } = useToast();
   const pathname = usePathname();
   const router = useRouter();
@@ -145,7 +145,10 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       try {
         loadedConversations = JSON.parse(storedConversations);
         loadedConversations.sort((a, b) => b.updatedAt - a.updatedAt);
-      } catch (e) { console.error("Failed to parse conversations", e); localStorage.removeItem('flowserveai-conversations'); }
+      } catch (e) {
+        console.error("Failed to parse conversations from localStorage", e);
+        localStorage.removeItem('flowserveai-conversations');
+      }
     }
     setConversations(loadedConversations);
 
@@ -153,13 +156,14 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
 
     let currentActiveId = chatIdFromUrl;
+
     if (!currentActiveId && storedActiveId && loadedConversations.find(c => c.id === storedActiveId)) {
       currentActiveId = storedActiveId;
     }
     if (!currentActiveId && loadedConversations.length > 0 && pathname === '/') {
       currentActiveId = loadedConversations[0].id;
     }
-
+    
     setActiveConversationId(currentActiveId);
 
     if (currentActiveId) {
@@ -174,6 +178,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       router.replace('/', {scroll: false});
     }
   }, [pathname, router, searchParams]);
+
 
   useEffect(() => {
     setIsMounted(true);
@@ -201,6 +206,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     };
   }, [loadStateFromLocalStorage]);
 
+
   useEffect(() => {
     if (isMounted && conversations.length > 0) {
       const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -219,16 +225,19 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     }
   }, [activeConversationId, isMounted, conversations.length]);
 
+
   const createNewChat = async () => {
     const newConversationId = `conv-${Date.now()}`;
     const newConversation: Conversation = {
-      id: newConversationId, title: 'New Chat', messages: [],
-      createdAt: Date.now(), updatedAt: Date.now(),
+      id: newConversationId,
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
 
     setConversations(prev => [newConversation, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
     setActiveConversationId(newConversationId);
-
     router.push(`/?chatId=${newConversationId}`);
     toast({ title: "New chat created" });
   };
@@ -295,10 +304,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                     const firstConvId = conversations[0].id;
                     setActiveConversationId(firstConvId);
                     router.push(`/?chatId=${firstConvId}`);
-                } else if (activeConversationId) {
-                    router.push(`/?chatId=${activeConversationId}`);
-                } else {
-                    router.push('/');
                 }
              }
           }}>
@@ -344,19 +349,18 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                             {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'},
                             "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
                         )}
-                        tooltip={{
-                            children: <div className="max-w-xs break-words p-1">{displayTitle}</div>,
+                         tooltip={{
+                            children: <div className="max-w-xs break-words p-1" title={displayTitle}>{displayTitle}</div>,
                             hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
                           }}
                       >
-                        {/* This div replaces the React.Fragment to accept props from SidebarMenuButton when asChild is true */}
                         <div>
                           <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center" title={displayTitle}>
                             <ConversationTypeIcon type={convType} />
                             <span
                               className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0"
                               style={{maxWidth: '160px'}}
-                              title={displayTitle} // For native browser tooltip on hover for truncated titles
+                              title={displayTitle}
                             >
                               {displayTitle}
                             </span>
@@ -365,7 +369,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                               "text-xs text-sidebar-foreground/80 mt-1.5 flex items-center justify-between w-full",
                               "group-data-[collapsible=icon]:hidden"
                           )}>
-                            <span className="flex items-center gap-1">
+                            <span className="flex items-center gap-1 cursor-default">
                               {hasDocuments && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -505,3 +509,5 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     </SidebarProvider>
   );
 }
+
+    
