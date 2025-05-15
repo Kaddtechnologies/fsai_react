@@ -363,7 +363,7 @@ const ChatPage = () => {
 
     const docType = getDocumentTypeFromMime(file.type, file.name);
     if (!docType) {
-      toast({ title: "Invalid file type", description: `Allowed: ${ALLOWED_EXTENSIONS_STRING}.`, variant: "destructive" });
+      toast({ title: "Invalid file type", description: `Allowed: ${ALLOWED_EXTENSIONS_STRING}. Images are not supported.`, variant: "destructive" });
       if (fileInputRef.current) fileInputRef.current.value = ""; return;
     }
 
@@ -503,7 +503,7 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-9rem)] bg-background rounded-lg shadow-xl">
+    <div className="flex flex-col h-full bg-background rounded-lg shadow-xl">
       <ScrollArea className="flex-1 p-4 pr-2">
         <div className="space-y-6">
           {activeConversation.messages.map((message) => (
@@ -621,5 +621,3 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
-
-    

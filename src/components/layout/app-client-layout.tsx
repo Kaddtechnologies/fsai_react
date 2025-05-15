@@ -38,7 +38,7 @@ import {
   Users,
   Briefcase,
   Loader2,
-  FileIcon,
+  Paperclip, // Changed from FileIcon
 } from 'lucide-react';
 import type { Conversation, Message } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -60,6 +60,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"; // Added Tooltip imports
 import { formatRelative } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -302,7 +303,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                     key={conv.id} 
                     className={cn(
                         "flex items-center justify-between group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
-                        "border-b border-sidebar-border/20 last:border-b-0 py-1 px-0.5" // Added padding and border for separation
+                        "border-b border-sidebar-border/20 last:border-b-0 py-1 px-0.5" 
                     )}
                   >
                     <Link 
@@ -315,36 +316,47 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                         isActive={activeConversationId === conv.id && pathname === '/'}
                         className={cn(
                             "w-full h-auto flex-col items-start p-2",
-                            {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'}, // Enhanced active state
+                            {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'}, 
                             "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
                         )}
-                        tooltip={displayTitle} // For collapsed sidebar
+                        tooltip={displayTitle} 
                       >
                         <div> 
                           <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
                             <BotMessageSquare className="shrink-0" />
                             <span 
-                              className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0 max-w-[160px]" // Added max-w for truncation
-                              title={displayTitle} // Tooltip for expanded view when truncated (desktop)
+                              className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0 max-w-[160px]" 
+                              title={displayTitle} 
                             >
                               {displayTitle}
                             </span>
                           </div>
                           <div className={cn(
-                              "text-xs text-sidebar-foreground/70 mt-1 flex items-center justify-between w-full", // justify-between
+                              "text-xs text-sidebar-foreground/70 mt-1 flex items-center justify-between w-full", 
                               "group-data-[collapsible=icon]:hidden"
                           )}>
-                            <span className="flex items-center gap-1"> {/* Doc icon on left */}
-                              {hasDocuments && <FileIcon size={12} className="shrink-0 text-primary/70" />}
+                            <span className="flex items-center gap-1"> 
+                              {hasDocuments && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="flex items-center cursor-default">
+                                      <Paperclip size={12} className="shrink-0 text-sidebar-primary" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="p-1.5 text-xs bg-popover text-popover-foreground">
+                                    <p>Contains documents</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </span>
-                            <span className="truncate"> {/* Timestamp on right */}
+                            <span className="truncate"> 
                               {formattedDate}
                             </span>
                           </div>
                         </div>
                       </SidebarMenuButton>
                     </Link>
-                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1"> {/* Ensure popover button is visible */}
+                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1"> 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -454,4 +466,3 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     </SidebarProvider>
   );
 }
-
