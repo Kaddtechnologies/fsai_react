@@ -173,11 +173,10 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
 
 
   useEffect(() => {
-    if (isMounted && conversations.length > 0) { // Only save if there are actual conversations
+    if (isMounted && conversations.length > 0) { 
       const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
       localStorage.setItem('flowserveai-conversations', JSON.stringify(sortedConversations));
     } else if (isMounted && conversations.length === 0) {
-      // If all conversations are deleted, ensure localStorage reflects that
       localStorage.removeItem('flowserveai-conversations');
       localStorage.removeItem('flowserveai-activeConversationId');
     }
@@ -187,7 +186,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     if (isMounted && activeConversationId) {
       localStorage.setItem('flowserveai-activeConversationId', activeConversationId);
     } else if (isMounted && !activeConversationId && conversations.length === 0) {
-      // If no active ID and no conversations, clear it from storage
        localStorage.removeItem('flowserveai-activeConversationId');
     }
   }, [activeConversationId, isMounted, conversations.length]);
@@ -311,29 +309,24 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                         asChild 
                         isActive={activeConversationId === conv.id && pathname === '/'}
                         className={cn(
-                            "w-full h-auto flex-col items-start p-2", // Ensure p-2 for consistent padding
+                            "w-full h-auto flex-col items-start p-2",
                             "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
                         )}
                         tooltip={displayTitle}
                       >
-                        <>
+                        <div> {/* Replaced React.Fragment with a div */}
                           <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
                             <BotMessageSquare className="shrink-0" />
                             <span className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0">{displayTitle}</span>
                           </div>
                           <div className={cn(
                               "text-xs text-sidebar-foreground/80 mt-0.5 flex items-center gap-1.5",
-                              "group-data-[collapsible=icon]:hidden", // Entire line hidden in icon mode
-                              {"ml-[calc(1rem+0.5rem)]": !hasDocuments }, // Standard margin if no doc icon
-                              {"ml-[calc(0.5rem+12px+0.375rem)]": hasDocuments} // Adjusted margin if doc icon (0.5rem for BotSquare, 12px for FileIcon, 0.375rem for gap)
-                              // This logic for margin might need tweaking based on exact icon sizes and desired alignment
-                              // Simpler: use consistent left padding for the line, icon takes space naturally
-                              // "pl-[calc(1rem+0.5rem)]" // Aligns with BotMessageSquare's icon if it also has pl-2 effectively from parent padding
+                              "group-data-[collapsible=icon]:hidden"
                           )}>
-                            {hasDocuments && <FileIcon size={12} className="shrink-0 text-primary/70" />}
-                            <span className="truncate">{formattedDate}</span>
+                            {hasDocuments && <FileIcon size={12} className="shrink-0 text-primary/70 ml-[calc(1rem+0.5rem)]" />}
+                            <span className={cn("truncate", { "ml-[calc(1rem+0.5rem)]" : !hasDocuments})}>{formattedDate}</span>
                           </div>
-                        </>
+                        </div>
                       </SidebarMenuButton>
                     </Link>
                     <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden">
