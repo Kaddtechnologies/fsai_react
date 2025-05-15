@@ -62,6 +62,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { formatRelative } from 'date-fns';
 import { enUS } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 
 interface AppClientLayoutProps {
@@ -202,7 +203,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     setConversations(prev => [newConversation, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
     setActiveConversationId(newConversationId);
     
-    // localStorage will be updated by useEffects
     router.push(`/?chatId=${newConversationId}`);
     toast({ title: "New chat created" });
   };
@@ -218,7 +218,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     setConversations(prev => prev.filter(conv => conv.id !== deletingConvId));
 
     if (activeConversationId === deletingConvId) {
-      const remainingConversations = conversations.filter(conv => conv.id !== deletingConvId); // use current state before filter
+      const remainingConversations = conversations.filter(conv => conv.id !== deletingConvId); 
       const newActiveId = remainingConversations.length > 0 ? remainingConversations.sort((a,b) => b.updatedAt - a.updatedAt)[0].id : null;
       setActiveConversationId(newActiveId);
       if (newActiveId) {
@@ -227,7 +227,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
         router.push('/'); 
       }
     }
-    toast({ title: "Conversation deleted" }); // Removed destructive variant for neutrality
+    toast({ title: "Conversation deleted" });
     setDeleteConfirmOpen(false);
     setDeletingConvId(null);
   };
@@ -241,12 +241,11 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
         ).sort((a,b) => b.updatedAt - a.updatedAt)
       );
       toast({ title: "Conversation renamed" });
-    } else if (newTitle === "") { 
+    } else if (newTitle !== null && newTitle.trim() === "") { 
       toast({ title: "Rename cancelled", description: "Title cannot be empty.", variant: "destructive"});
     } else if (newTitle !== null && newTitle.trim() === currentTitle) {
-       // No toast needed if title is unchanged and prompt was not cancelled
+       toast({ title: "Rename cancelled", description: "Title was not changed.", variant: "default"});
     } else if (newTitle === null) {
-      // User cancelled the prompt
       toast({ title: "Rename cancelled", variant: "default"});
     }
   };
@@ -265,7 +264,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 items-center">
           <Link href="/" className="flex items-center gap-2" onClick={() => {
-             // If already on chat page and clicking logo, ensure active chat is correctly set or cleared
              if (pathname === '/') {
                 if (conversations.length > 0 && activeConversationId) {
                     router.push(`/?chatId=${activeConversationId}`);
@@ -274,7 +272,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                     setActiveConversationId(firstConvId);
                     router.push(`/?chatId=${firstConvId}`);
                 } else {
-                    setActiveConversationId(null); // Go to welcome screen
+                    setActiveConversationId(null); 
                     router.push('/');
                 }
              }
@@ -303,34 +301,54 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                   const displayTitle = conv.title;
 
                   return (
-                  <SidebarMenuItem key={conv.id}>
-                    <Link href={`/?chatId=${conv.id}`} passHref legacyBehavior>
-                      <SidebarMenuButton
-                        isActive={activeConversationId === conv.id && pathname === '/'}
+                  <SidebarMenuItem key={conv.id} className="flex items-center justify-between pr-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pr-0">
+                    <Link 
+                        href={`/?chatId=${conv.id}`} 
+                        className="flex-grow min-w-0"
                         onClick={() => setActiveConversationId(conv.id)}
-                        className="h-auto items-start group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center"
+                    >
+                      <SidebarMenuButton
+                        asChild 
+                        isActive={activeConversationId === conv.id && pathname === '/'}
+                        className={cn(
+                            "w-full h-auto flex-col items-start p-2", // Ensure p-2 for consistent padding
+                            "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
+                        )}
                         tooltip={displayTitle}
                       >
-                        <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
-                          <BotMessageSquare className="shrink-0" />
-                          <span className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0">{displayTitle}</span>
-                        </div>
-                        <div className="ml-[calc(1rem+0.5rem)] text-xs text-sidebar-foreground/60 mt-0.5 group-data-[collapsible=icon]:hidden flex items-center gap-1.5">
-                          {hasDocuments && <FileIcon size={12} className="shrink-0 text-primary/70" />}
-                          <span className="truncate">{formattedDate}</span>
-                        </div>
+                        <>
+                          <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
+                            <BotMessageSquare className="shrink-0" />
+                            <span className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0">{displayTitle}</span>
+                          </div>
+                          <div className={cn(
+                              "text-xs text-sidebar-foreground/80 mt-0.5 flex items-center gap-1.5",
+                              "group-data-[collapsible=icon]:hidden", // Entire line hidden in icon mode
+                              {"ml-[calc(1rem+0.5rem)]": !hasDocuments }, // Standard margin if no doc icon
+                              {"ml-[calc(0.5rem+12px+0.375rem)]": hasDocuments} // Adjusted margin if doc icon (0.5rem for BotSquare, 12px for FileIcon, 0.375rem for gap)
+                              // This logic for margin might need tweaking based on exact icon sizes and desired alignment
+                              // Simpler: use consistent left padding for the line, icon takes space naturally
+                              // "pl-[calc(1rem+0.5rem)]" // Aligns with BotMessageSquare's icon if it also has pl-2 effectively from parent padding
+                          )}>
+                            {hasDocuments && <FileIcon size={12} className="shrink-0 text-primary/70" />}
+                            <span className="truncate">{formattedDate}</span>
+                          </div>
+                        </>
                       </SidebarMenuButton>
                     </Link>
-                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                           <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 group-data-[collapsible=icon]:hidden">
-                            <ChevronDown className="h-4 w-4" /> </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="right" align="start">
-                          <DropdownMenuItem onClick={() => renameConversation(conv.id, conv.title) }> <Edit3 className="mr-2 h-4 w-4" /> Rename </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => requestDeleteConversation(conv.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10"> <Trash2 className="mr-2 h-4 w-4" /> Delete </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                               <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <ChevronDown className="h-4 w-4" /> 
+                               </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent side="right" align="start">
+                              <DropdownMenuItem onClick={() => renameConversation(conv.id, conv.title) }> <Edit3 className="mr-2 h-4 w-4" /> Rename </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => requestDeleteConversation(conv.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10"> <Trash2 className="mr-2 h-4 w-4" /> Delete </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                   </SidebarMenuItem>
                 );
               })}
@@ -342,14 +360,14 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
              <SidebarGroupLabel>Tools</SidebarGroupLabel>
             <SidebarMenu>
               <SidebarMenuItem>
-                <Link href="/documents" passHref legacyBehavior>
+                <Link href="/documents" passHref legacyBehavior={false}>
                   <SidebarMenuButton isActive={pathname === '/documents'} tooltip="Documents">
                     <FileText /> <span className="group-data-[collapsible=icon]:hidden">Documents</span>
                   </SidebarMenuButton>
                 </Link>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <Link href="/translate" passHref legacyBehavior>
+                <Link href="/translate" passHref legacyBehavior={false}>
                   <SidebarMenuButton isActive={pathname === '/translate'} tooltip="Translate">
                     <Languages /> <span className="group-data-[collapsible=icon]:hidden">Translate</span>
                   </SidebarMenuButton>
@@ -428,5 +446,3 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     </SidebarProvider>
   );
 }
-
-    
