@@ -139,7 +139,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
          router.replace(`/?chatId=${currentActiveId}${documentIdToDiscuss ? `&documentIdToDiscuss=${documentIdToDiscuss}`: ''}`, { scroll: false });
       }
     } else if (pathname === '/' && chatIdFromUrl) {
-      // If URL has an ID but it's not valid/found, clear it
       router.replace('/', {scroll: false});
     }
   }, [pathname, router, searchParams]);
@@ -299,10 +298,16 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                   const displayTitle = conv.title;
 
                   return (
-                  <SidebarMenuItem key={conv.id} className="flex items-center justify-between pr-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:pr-0">
+                  <SidebarMenuItem 
+                    key={conv.id} 
+                    className={cn(
+                        "flex items-center justify-between group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
+                        "border-b border-sidebar-border/20 last:border-b-0 py-1 px-0.5" // Added padding and border for separation
+                    )}
+                  >
                     <Link 
                         href={`/?chatId=${conv.id}`} 
-                        className="flex-grow min-w-0"
+                        className="flex-grow min-w-0" 
                         onClick={() => setActiveConversationId(conv.id)}
                     >
                       <SidebarMenuButton
@@ -310,30 +315,40 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                         isActive={activeConversationId === conv.id && pathname === '/'}
                         className={cn(
                             "w-full h-auto flex-col items-start p-2",
+                            {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'}, // Enhanced active state
                             "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
                         )}
-                        tooltip={displayTitle}
+                        tooltip={displayTitle} // For collapsed sidebar
                       >
-                        <div> {/* Replaced React.Fragment with a div */}
+                        <div> 
                           <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
                             <BotMessageSquare className="shrink-0" />
-                            <span className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0">{displayTitle}</span>
+                            <span 
+                              className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0 max-w-[160px]" // Added max-w for truncation
+                              title={displayTitle} // Tooltip for expanded view when truncated (desktop)
+                            >
+                              {displayTitle}
+                            </span>
                           </div>
                           <div className={cn(
-                              "text-xs text-sidebar-foreground/80 mt-0.5 flex items-center gap-1.5",
+                              "text-xs text-sidebar-foreground/70 mt-1 flex items-center justify-between w-full", // justify-between
                               "group-data-[collapsible=icon]:hidden"
                           )}>
-                            {hasDocuments && <FileIcon size={12} className="shrink-0 text-primary/70 ml-[calc(1rem+0.5rem)]" />}
-                            <span className={cn("truncate", { "ml-[calc(1rem+0.5rem)]" : !hasDocuments})}>{formattedDate}</span>
+                            <span className="flex items-center gap-1"> {/* Doc icon on left */}
+                              {hasDocuments && <FileIcon size={12} className="shrink-0 text-primary/70" />}
+                            </span>
+                            <span className="truncate"> {/* Timestamp on right */}
+                              {formattedDate}
+                            </span>
                           </div>
                         </div>
                       </SidebarMenuButton>
                     </Link>
-                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden">
+                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1"> {/* Ensure popover button is visible */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <ChevronDown className="h-4 w-4" /> 
+                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" /> 
                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
@@ -439,3 +454,4 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     </SidebarProvider>
   );
 }
+
