@@ -17,7 +17,7 @@ export interface Message {
     summary?: string;
     error?: string;
     // For product_card (can be an array or single object)
-    products?: Product[] | Product;
+    products?: Product[] | Product; 
     // For other data types as needed
     [key: string]: any;
   };
@@ -25,12 +25,16 @@ export interface Message {
   originalContent?: string; // For edited messages
 }
 
+export type ConversationType = 'ai' | 'document' | 'product' | 'mixed';
+
 export interface Conversation {
   id:string;
   title: string;
   messages: Message[];
   createdAt: number;
   updatedAt: number;
+  // Optional: could be computed on the fly or stored if performance becomes an issue
+  type?: ConversationType; 
 }
 
 export interface Product {
@@ -39,8 +43,8 @@ export interface Product {
   description: string;
   sku: string;
   imageUrl?: string;
-  specifications: Record<string, string>;
-  availability: 'In Stock' | 'Out of Stock' | 'Low Stock';
+  specifications: Record<string, string | string[]>; // Allow string arrays for specs
+  availability: 'In Stock' | 'Out of Stock' | 'Low Stock' | 'Varies by configuration';
   price?: string;
 }
 
@@ -73,4 +77,18 @@ export interface TranslationEntry {
   sourceLanguage: string;
   targetLanguage: string;
   timestamp: number;
+}
+
+// For Welcome Dialog Charts
+export interface ChartNode {
+  id: string;
+  label: string;
+  children?: ChartNode[];
+}
+
+export interface FlowStep {
+  id: string;
+  icon: React.ElementType;
+  title: string;
+  description: string;
 }

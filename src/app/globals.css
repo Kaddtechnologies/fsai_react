@@ -61,6 +61,8 @@ body {
     --sidebar-accent-foreground: 210 40% 96.1%; /* #F1F5F9 */
     --sidebar-border: 214.8 27.9% 26.5%; /* #334155 */
     --sidebar-ring: 221 89% 60%; /* #3B82F6 */
+
+    --golden-border-color: hsl(45, 100%, 51%); /* A bright gold, adjust as needed */
   }
 
   /* 
@@ -97,6 +99,8 @@ body {
     --sidebar-accent-foreground: 210 40% 96.1%;
     --sidebar-border: 214.8 27.9% 26.5%;
     --sidebar-ring: 221 89% 60%;
+
+    --golden-border-color: hsl(45, 100%, 51%);
   }
 }
 
@@ -144,6 +148,13 @@ body {
   background-clip: text;
   color: transparent;
 }
+.text-primary-gradient {
+  background-image: linear-gradient(to right, #ce3939, #8b2323); /* Adjusted end color for better visibility on dark */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 
 /* For message typing animation */
 .typing-dot {
@@ -169,5 +180,3 @@ body {
     transform: scale(1.0);
   }
 }
-
-    

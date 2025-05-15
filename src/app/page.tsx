@@ -3,13 +3,14 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType as FileTypeLucideIcon, MessageCircleWarning, FolderOpen } from 'lucide-react';
+import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType as FileTypeLucideIcon, MessageCircleWarning, FolderOpen, Package, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import type { Message, Conversation, Document, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -116,6 +117,8 @@ const ChatPage = () => {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isChatPageLoading, setIsChatPageLoading] = useState(true);
+  const [currentPlaceholder, setCurrentPlaceholder] = useState("Chat with AI, or ask about documents and products...");
+
 
   const { speak, cancel, isSpeaking } = useSpeechSynthesis();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -151,16 +154,14 @@ const ChatPage = () => {
          router.replace(`/?chatId=${newActiveId}${documentIdToDiscuss ? `&documentIdToDiscuss=${documentIdToDiscuss}`: ''}`, { scroll: false });
       }
     } else if (pathname === '/' && chatIdFromUrl) { 
-      // If URL had an ID, but we couldn't make it active (e.g., not found, or no convos at all)
-      // and we are on the chat page, redirect to base to show appropriate empty/welcome state.
       router.replace(`/`, { scroll: false });
     }
     setIsChatPageLoading(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatIdFromUrl, pathname]); // documentIdToDiscuss removed as it's handled in a separate effect
+  }, [chatIdFromUrl, pathname]); 
 
   useEffect(() => {
-    if (conversations.length > 0) { // Only save if there are actual conversations
+    if (conversations.length > 0) { 
       localStorage.setItem('flowserveai-conversations', JSON.stringify(conversations));
     }
   }, [conversations]);
@@ -219,7 +220,6 @@ const ChatPage = () => {
               if (msg.id === messageId) {
                 const updatedMsg = { ...msg, data: { ...msg.data, ...dataUpdates } };
                 if (attachmentUpdates && msg.attachments && msg.attachments.length > 0) {
-                  // Ensure to merge with existing attachment data, not replace it entirely.
                   updatedMsg.attachments = [{ ...msg.attachments[0], ...attachmentUpdates }];
                 }
                 return updatedMsg;
@@ -248,9 +248,7 @@ const ChatPage = () => {
         return conv;
       }).sort((a, b) => b.updatedAt - a.updatedAt);
       
-      // Directly update localStorage here to ensure it's the latest version
       localStorage.setItem('flowserveai-conversations', JSON.stringify(newConversations));
-      // Trigger a custom event that AppClientLayout can listen to, to refresh its state
       window.dispatchEvent(new CustomEvent('flowserveai-storage-updated', { detail: { key: 'flowserveai-conversations' } }));
 
       return newConversations;
@@ -274,11 +272,10 @@ const ChatPage = () => {
     };
 
     let updatedMessages = [...(activeConversation.messages || []), userMessage];
-    const currentInputValue = inputValue; // Capture before clearing
+    const currentInputValue = inputValue; 
     setInputValue('');
     setIsLoadingAIResponse(true);
     
-    // Optimistically update UI with user message
     updateConversation(updatedMessages); 
 
     let conversationTitle = activeConversation.title;
@@ -288,7 +285,6 @@ const ChatPage = () => {
         conversationTitle = titleResponse.title;
       } catch (error) {
         console.error("Failed to generate chat title:", error);
-        // Keep existing title or 'New Chat'
       }
     }
     
@@ -308,10 +304,11 @@ const ChatPage = () => {
       let aiMessageType: Message['type'] = 'text';
       let aiMessageData: any = null;
 
-      const productQueryMatch = currentInputValue.toLowerCase().match(/search products for (.*)/i) || currentInputValue.toLowerCase().match(/find (.*) products/i);
+      const productQueryMatch = currentInputValue.toLowerCase().match(/search products? for (.*)/i) || currentInputValue.toLowerCase().match(/find (.*) products?/i) || currentInputValue.toLowerCase().match(/show me (.*) products?/i);
       if (productQueryMatch) {
-        const searchTerm = productQueryMatch[1];
-        const products = searchMockProducts(searchTerm);
+        const searchTerm = productQueryMatch[1].trim();
+        setCurrentPlaceholder(`Searching products for "${searchTerm}"...`);
+        const products = searchMockProducts(searchTerm); // Using the mock search
         if (products.length > 0) {
           aiResponseContent = `Found ${products.length} product(s) matching "${searchTerm}":`;
           aiMessageType = 'product_card';
@@ -319,6 +316,7 @@ const ChatPage = () => {
         } else {
           aiResponseContent = `Sorry, I couldn't find any products matching "${searchTerm}".`;
         }
+        setCurrentPlaceholder("Ask about products, documents, or chat with AI...");
       } else {
         const aiResult = await generateChatResponse({ userInput: currentInputValue, history: historyForAI });
         aiResponseContent = aiResult.aiResponse;
@@ -346,6 +344,7 @@ const ChatPage = () => {
       };
       updateConversation([...updatedMessages, errorMessage], conversationTitle !== activeConversation.title ? conversationTitle : undefined);
       toast({ title: "AI Error", description: "Could not get response from AI.", variant: "destructive" });
+      setCurrentPlaceholder("Ask about products, documents, or chat with AI...");
     } finally {
       setIsLoadingAIResponse(false);
     }
@@ -497,7 +496,7 @@ const ChatPage = () => {
         <MessageCircleWarning className="w-24 h-24 mb-6 text-accent-warning opacity-70" />
         <h2 className="text-2xl font-semibold mb-2 text-foreground">{message}</h2>
         <p className="text-muted-foreground mb-6 max-w-md">Please select an existing conversation from the sidebar or start a new one.</p>
-         <Button onClick={() => router.push('/')}>Go to Chats</Button> {/* Or a create new chat button */}
+         <Button onClick={() => router.push('/')}>Go to Chats</Button>
       </div>
     );
   }
@@ -555,11 +554,39 @@ const ChatPage = () => {
                     )}
 
                     {message.type === 'product_card' && message.data?.products && Array.isArray(message.data.products) && (
-                      <div className="mt-2 space-y-2">
+                      <div className="mt-2 space-y-3">
                         {(message.data.products as Product[]).map(product => (
-                          <Card key={product.id} className="bg-muted/50">
-                            <CardHeader className="p-3"> {product.imageUrl && <Image src={product.imageUrl} alt={product.name} width={80} height={80} className="rounded-md mb-2 object-cover" data-ai-hint="product item" />} <CardTitle className="text-sm">{product.name}</CardTitle> <CardDescription className="text-xs">SKU: {product.sku}</CardDescription> </CardHeader>
-                            <CardContent className="p-3 text-xs"> <p>{product.description}</p> <p className="mt-1"><strong>Availability:</strong> {product.availability}</p> {product.price && <p><strong>Price:</strong> {product.price}</p>} </CardContent>
+                          <Card key={product.id} className="bg-card/70 border-border overflow-hidden shadow-md">
+                            <CardHeader className="p-3 flex flex-row items-start gap-3">
+                              {product.imageUrl && (
+                                <Image 
+                                  src={product.imageUrl} 
+                                  alt={product.name} 
+                                  width={60} height={60} 
+                                  className="rounded-md object-cover aspect-square" 
+                                  data-ai-hint={product.name.split(' ').slice(0,2).join(' ').toLowerCase()}
+                                />
+                              )}
+                              <div className="flex-1">
+                                <CardTitle className="text-base font-semibold">{product.name}</CardTitle>
+                                <CardDescription className="text-xs mt-0.5">SKU: {product.sku}</CardDescription>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="p-3 pt-0 text-xs space-y-1">
+                              <p className="line-clamp-3">{product.description}</p>
+                              <p><strong className="text-muted-foreground">Availability:</strong> <span className={cn(product.availability === 'In Stock' ? 'text-accent-success' : product.availability === 'Low Stock' ? 'text-accent-warning' : 'text-destructive')}>{product.availability}</span></p>
+                              {product.price && <p><strong className="text-muted-foreground">Price:</strong> {product.price}</p>}
+                              {Object.entries(product.specifications || {}).length > 0 && (
+                                <details className="mt-1.5">
+                                  <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Specifications</summary>
+                                  <div className="mt-1 p-2 bg-muted/50 rounded text-xs space-y-0.5 max-h-32 overflow-y-auto">
+                                    {Object.entries(product.specifications).map(([key, value]) => (
+                                      <p key={key}><strong className="text-muted-foreground">{key}:</strong> {Array.isArray(value) ? value.join(', ') : value}</p>
+                                    ))}
+                                  </div>
+                                </details>
+                              )}
+                            </CardContent>
                           </Card>
                         ))}
                       </div>
@@ -598,10 +625,15 @@ const ChatPage = () => {
       </ScrollArea>
 
       <div className="border-t border-border p-4">
+        <div className="flex items-center gap-2 mb-2 px-1">
+            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><Brain size={12} className="mr-1.5"/> AI</Badge>
+            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><FileText size={12} className="mr-1.5"/> Documents</Badge>
+            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><Package size={12} className="mr-1.5"/> Products</Badge>
+        </div>
         <div className="relative">
           <Textarea
             value={inputValue} onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type your message or drop files..."
+            placeholder={currentPlaceholder}
             className="pr-28 pl-24 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}} rows={1} />
           <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">

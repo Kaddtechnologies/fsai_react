@@ -25,7 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   BotMessageSquare,
-  FileText, 
+  FileText,
   Languages,
   MessageSquarePlus,
   Search,
@@ -37,10 +37,13 @@ import {
   LogOut,
   Users,
   Briefcase,
-  Loader2,
-  Paperclip, // Changed from FileIcon
+  Paperclip,
+  HelpCircle,
+  Package,
+  FileQuestion,
+  Brain,
 } from 'lucide-react';
-import type { Conversation, Message } from '@/lib/types';
+import type { Conversation, Message, ConversationType, Document } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -60,11 +63,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"; // Added Tooltip imports
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatRelative } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import WelcomeDialog from '@/components/help/welcome-dialog';
 
+// Define Loader2 directly in the file if it's simple and only used here
+const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+);
 
 interface AppClientLayoutProps {
   children: ReactNode;
@@ -87,24 +95,47 @@ const formatRelativeLocale = {
 
 const formatRelativeCustom = (date: number | Date, baseDate: number | Date) => {
   try {
-    return formatRelative(date, baseDate, { 
-      locale: { ...enUS, formatRelative: (token) => formatRelativeLocale[token as keyof typeof formatRelativeLocale] || formatRelativeLocale.other, } 
+    return formatRelative(date, baseDate, {
+      locale: { ...enUS, formatRelative: (token) => formatRelativeLocale[token as keyof typeof formatRelativeLocale] || formatRelativeLocale.other, }
     });
-  } catch (e) { return "Invalid date"; }
+  } catch (e) {
+    console.error("Error formatting date:", e);
+    return "Invalid date";
+  }
 };
 
+const getConversationType = (messages: Message[]): ConversationType => {
+  const hasDocumentMessages = messages.some(msg => msg.type === 'document_summary' || msg.type === 'document_upload_status' || (msg.attachments && msg.attachments.length > 0));
+  const hasProductMessages = messages.some(msg => msg.type === 'product_card');
+
+  if (hasDocumentMessages && hasProductMessages) return 'mixed';
+  if (hasDocumentMessages) return 'document';
+  if (hasProductMessages) return 'product';
+  return 'ai';
+};
+
+const ConversationTypeIcon = ({ type }: { type: ConversationType }) => {
+  switch (type) {
+    case 'document': return <FileQuestion size={14} className="text-sidebar-primary shrink-0" />;
+    case 'product': return <Package size={14} className="text-sidebar-primary shrink-0" />;
+    case 'mixed': return <Brain size={14} className="text-sidebar-primary shrink-0" />;
+    case 'ai':
+    default: return <BotMessageSquare size={14} className="text-sidebar-foreground/70 shrink-0" />;
+  }
+};
 
 export default function AppClientLayout({ children }: AppClientLayoutProps) {
   const { toast } = useToast();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingConvId, setDeletingConvId] = useState<string | null>(null);
+  const [isWelcomeDialogOpen, setIsWelcomeDialogOpen] = useState(false);
 
   const loadStateFromLocalStorage = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -117,7 +148,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       } catch (e) { console.error("Failed to parse conversations", e); localStorage.removeItem('flowserveai-conversations'); }
     }
     setConversations(loadedConversations);
-    
+
     const chatIdFromUrl = searchParams.get('chatId');
     const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
 
@@ -125,10 +156,10 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     if (!currentActiveId && storedActiveId && loadedConversations.find(c => c.id === storedActiveId)) {
       currentActiveId = storedActiveId;
     }
-    if (!currentActiveId && loadedConversations.length > 0 && pathname === '/') { 
+    if (!currentActiveId && loadedConversations.length > 0 && pathname === '/') {
       currentActiveId = loadedConversations[0].id;
     }
-    
+
     setActiveConversationId(currentActiveId);
 
     if (currentActiveId) {
@@ -143,7 +174,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       router.replace('/', {scroll: false});
     }
   }, [pathname, router, searchParams]);
-
 
   useEffect(() => {
     setIsMounted(true);
@@ -161,7 +191,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
         loadStateFromLocalStorage();
       }
     };
-    
+
     window.addEventListener('storage', handleStorageUpdate);
     window.addEventListener('flowserveai-storage-updated', handleStorageUpdate as EventListener);
 
@@ -171,9 +201,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     };
   }, [loadStateFromLocalStorage]);
 
-
   useEffect(() => {
-    if (isMounted && conversations.length > 0) { 
+    if (isMounted && conversations.length > 0) {
       const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
       localStorage.setItem('flowserveai-conversations', JSON.stringify(sortedConversations));
     } else if (isMounted && conversations.length === 0) {
@@ -181,7 +210,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
       localStorage.removeItem('flowserveai-activeConversationId');
     }
   }, [conversations, isMounted]);
-  
+
   useEffect(() => {
     if (isMounted && activeConversationId) {
       localStorage.setItem('flowserveai-activeConversationId', activeConversationId);
@@ -190,17 +219,16 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
     }
   }, [activeConversationId, isMounted, conversations.length]);
 
-
   const createNewChat = async () => {
     const newConversationId = `conv-${Date.now()}`;
     const newConversation: Conversation = {
       id: newConversationId, title: 'New Chat', messages: [],
       createdAt: Date.now(), updatedAt: Date.now(),
     };
-    
+
     setConversations(prev => [newConversation, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
     setActiveConversationId(newConversationId);
-    
+
     router.push(`/?chatId=${newConversationId}`);
     toast({ title: "New chat created" });
   };
@@ -212,34 +240,34 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
 
   const confirmDeleteConversation = () => {
     if (!deletingConvId) return;
-    
-    setConversations(prev => prev.filter(conv => conv.id !== deletingConvId));
+
+    const updatedConversations = conversations.filter(conv => conv.id !== deletingConvId);
+    setConversations(updatedConversations);
 
     if (activeConversationId === deletingConvId) {
-      const remainingConversations = conversations.filter(conv => conv.id !== deletingConvId); 
-      const newActiveId = remainingConversations.length > 0 ? remainingConversations.sort((a,b) => b.updatedAt - a.updatedAt)[0].id : null;
+      const newActiveId = updatedConversations.length > 0 ? updatedConversations[0].id : null;
       setActiveConversationId(newActiveId);
       if (newActiveId) {
         router.push(`/?chatId=${newActiveId}`);
       } else {
-        router.push('/'); 
+        router.push('/');
       }
     }
     toast({ title: "Conversation deleted" });
     setDeleteConfirmOpen(false);
     setDeletingConvId(null);
   };
-  
+
   const renameConversation = (id: string, currentTitle: string) => {
     const newTitle = window.prompt("Enter new title for the chat:", currentTitle);
     if (newTitle && newTitle.trim() && newTitle.trim() !== currentTitle) {
-      setConversations(prev => 
-        prev.map(conv => 
+      setConversations(prev =>
+        prev.map(conv =>
           conv.id === id ? { ...conv, title: newTitle.trim(), updatedAt: Date.now() } : conv
         ).sort((a,b) => b.updatedAt - a.updatedAt)
       );
       toast({ title: "Conversation renamed" });
-    } else if (newTitle !== null && newTitle.trim() === "") { 
+    } else if (newTitle !== null && newTitle.trim() === "") {
       toast({ title: "Rename cancelled", description: "Title cannot be empty.", variant: "destructive"});
     } else if (newTitle !== null && newTitle.trim() === currentTitle) {
        toast({ title: "Rename cancelled", description: "Title was not changed.", variant: "default"});
@@ -249,7 +277,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
   };
 
   const checkHasDocuments = (messages: Message[]): boolean => {
-    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed'));
+    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed' && (att as Document).fileUrl));
   };
 
 
@@ -258,19 +286,18 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
   }
 
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider>
       <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 items-center">
           <Link href="/" className="flex items-center gap-2" onClick={() => {
              if (pathname === '/') {
-                if (conversations.length > 0 && activeConversationId) {
-                    router.push(`/?chatId=${activeConversationId}`);
-                } else if (conversations.length > 0 && !activeConversationId) {
-                    const firstConvId = conversations.sort((a,b) => b.updatedAt - a.updatedAt)[0].id;
+                if (conversations.length > 0 && !activeConversationId) {
+                    const firstConvId = conversations[0].id;
                     setActiveConversationId(firstConvId);
                     router.push(`/?chatId=${firstConvId}`);
+                } else if (activeConversationId) {
+                    router.push(`/?chatId=${activeConversationId}`);
                 } else {
-                    setActiveConversationId(null); 
                     router.push('/');
                 }
              }
@@ -288,54 +315,57 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
               </Button>
             </SidebarMenuItem>
           </SidebarMenu>
-          
+
           <SidebarGroup className="mt-4">
             <SidebarGroupLabel className="flex items-center justify-between"> <span>Conversations</span> </SidebarGroupLabel>
-            <ScrollArea className="h-[calc(100vh-420px)] group-data-[collapsible=icon]:h-[calc(100vh-320px)]">
+            <ScrollArea className="h-[calc(100vh-480px)] group-data-[collapsible=icon]:h-[calc(100vh-380px)]">
               <SidebarMenu>
                 {conversations.map((conv) => {
                   const hasDocuments = checkHasDocuments(conv.messages);
                   const formattedDate = formatRelativeCustom(new Date(conv.updatedAt), new Date());
                   const displayTitle = conv.title;
+                  const convType = getConversationType(conv.messages);
 
                   return (
-                  <SidebarMenuItem 
-                    key={conv.id} 
-                    className={cn(
-                        "flex items-center justify-between group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
-                        "border-b border-sidebar-border/20 last:border-b-0 py-1 px-0.5" 
-                    )}
+                  <SidebarMenuItem
+                    key={conv.id}
+                    className="flex items-center justify-between border-b border-sidebar-border/20 last:border-b-0 py-1.5 px-1"
                   >
-                    <Link 
-                        href={`/?chatId=${conv.id}`} 
-                        className="flex-grow min-w-0" 
+                    <Link
+                        href={`/?chatId=${conv.id}`}
+                        className="flex-grow min-w-0"
                         onClick={() => setActiveConversationId(conv.id)}
                     >
                       <SidebarMenuButton
-                        asChild 
+                        asChild
                         isActive={activeConversationId === conv.id && pathname === '/'}
                         className={cn(
-                            "w-full h-auto flex-col items-start p-2",
-                            {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'}, 
+                            "w-full h-auto flex-col items-start p-2.5",
+                            {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'},
                             "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
                         )}
-                        tooltip={displayTitle} 
+                        tooltip={{
+                            children: <div className="max-w-xs break-words p-1">{displayTitle}</div>,
+                            hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
+                          }}
                       >
-                        <div> 
-                          <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
-                            <BotMessageSquare className="shrink-0" />
-                            <span 
-                              className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0 max-w-[160px]" 
-                              title={displayTitle} 
+                        {/* This div replaces the React.Fragment to accept props from SidebarMenuButton when asChild is true */}
+                        <div>
+                          <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center" title={displayTitle}>
+                            <ConversationTypeIcon type={convType} />
+                            <span
+                              className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0"
+                              style={{maxWidth: '160px'}}
+                              title={displayTitle} // For native browser tooltip on hover for truncated titles
                             >
                               {displayTitle}
                             </span>
                           </div>
                           <div className={cn(
-                              "text-xs text-sidebar-foreground/70 mt-1 flex items-center justify-between w-full", 
+                              "text-xs text-sidebar-foreground/80 mt-1.5 flex items-center justify-between w-full",
                               "group-data-[collapsible=icon]:hidden"
                           )}>
-                            <span className="flex items-center gap-1"> 
+                            <span className="flex items-center gap-1">
                               {hasDocuments && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -349,18 +379,18 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
                                 </Tooltip>
                               )}
                             </span>
-                            <span className="truncate"> 
+                            <span className="truncate">
                               {formattedDate}
                             </span>
                           </div>
                         </div>
                       </SidebarMenuButton>
                     </Link>
-                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1"> 
+                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" /> 
+                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
@@ -402,7 +432,15 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="p-4 mt-auto border-t border-sidebar-border">
+        <SidebarFooter className="p-4 mt-auto border-t border-sidebar-border space-y-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => setIsWelcomeDialogOpen(true)} tooltip="Help & Information">
+                    <HelpCircle /> <span className="group-data-[collapsible=icon]:hidden">Help & Information</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+           </SidebarMenu>
+
            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:justify-center p-2">
@@ -420,7 +458,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel> <DropdownMenuSeparator />
               <DropdownMenuItem disabled><Users className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-              <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem> <DropdownMenuSeparator />
+              <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled> <LogOut className="mr-2 h-4 w-4" /> Log out </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -432,8 +470,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
           <div className="flex items-center gap-2">
              <SidebarTrigger className="md:hidden" />
              <h2 className="text-lg font-semibold truncate max-w-[calc(100vw-150px)] sm:max-w-xs md:max-w-md">
-                {pathname === '/' && activeConversationId ? (conversations.find(c=>c.id === activeConversationId)?.title || 'Chat') : 
-                 pathname === '/translate' ? 'Translation Module' : 
+                {pathname === '/' && activeConversationId ? (conversations.find(c=>c.id === activeConversationId)?.title || 'Chat') :
+                 pathname === '/translate' ? 'Translation Module' :
                  pathname === '/documents' ? 'Documents' :
                  'FlowserveAI'}
              </h2>
@@ -463,6 +501,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
     </SidebarProvider>
   );
 }
