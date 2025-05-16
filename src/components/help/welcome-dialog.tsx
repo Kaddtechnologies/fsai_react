@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bot, FileText, Globe, UploadCloud, MessageSquareText, Info, ChevronRight, PlayCircle, X } from 'lucide-react';
 import Image from 'next/image';
 import type { ChartNode, FlowStep } from '@/lib/types';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface WelcomeDialogProps {
   open: boolean;

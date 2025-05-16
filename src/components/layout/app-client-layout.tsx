@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { ReactNode } from 'react';
@@ -6,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
-  SidebarProvider, // Reverted alias
+  SidebarProvider,
   Sidebar,
   SidebarHeader,
   SidebarContent,
@@ -295,219 +294,219 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
   }
 
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border">
-        <SidebarHeader className="p-4 items-center">
-          <Link href="/" className="flex items-center gap-2" onClick={() => {
-             if (pathname === '/') {
-                if (conversations.length > 0 && !activeConversationId) {
-                    const firstConvId = conversations[0].id;
-                    setActiveConversationId(firstConvId);
-                    router.push(`/?chatId=${firstConvId}`);
-                }
-             }
-          }}>
-            <BotMessageSquare className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-bold text-foreground group-data-[collapsible=icon]:hidden">FlowserveAI</h1>
-          </Link>
-        </SidebarHeader>
+    <TooltipProvider>
+      <SidebarProvider defaultOpen={true}>
+        <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border">
+          <SidebarHeader className="p-4 items-center">
+            <Link href="/" className="flex items-center gap-2" onClick={() => {
+              if (pathname === '/') {
+                  if (conversations.length > 0 && !activeConversationId) {
+                      const firstConvId = conversations[0].id;
+                      setActiveConversationId(firstConvId);
+                      router.push(`/?chatId=${firstConvId}`);
+                  }
+              }
+            }}>
+              <BotMessageSquare className="h-8 w-8 text-primary" />
+              <h1 className="text-xl font-bold text-foreground group-data-[collapsible=icon]:hidden">FlowserveAI</h1>
+            </Link>
+          </SidebarHeader>
 
-        <SidebarContent className="p-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <Button variant="outline" className="w-full justify-start group-data-[collapsible=icon]:justify-center bg-primary-gradient text-primary-foreground hover:opacity-90" onClick={createNewChat}>
-                <MessageSquarePlus /> <span className="group-data-[collapsible=icon]:hidden ml-2">New Chat</span>
-              </Button>
-            </SidebarMenuItem>
-          </SidebarMenu>
-
-          <SidebarGroup className="mt-4">
-            <SidebarGroupLabel className="flex items-center justify-between"> <span>Conversations</span> </SidebarGroupLabel>
-            <ScrollArea className="h-[calc(100vh-480px)] group-data-[collapsible=icon]:h-[calc(100vh-380px)]">
-              <SidebarMenu>
-                {conversations.map((conv) => {
-                  const hasDocuments = checkHasDocuments(conv.messages);
-                  const formattedDate = formatRelativeCustom(new Date(conv.updatedAt), new Date());
-                  const displayTitle = conv.title;
-                  const convType = getConversationType(conv.messages);
-
-                  return (
-                  <SidebarMenuItem
-                    key={conv.id}
-                    className="flex items-center justify-between border-b border-sidebar-border/20 last:border-b-0 py-1.5 px-1"
-                  >
-                    <Link
-                        href={`/?chatId=${conv.id}`}
-                        className="flex-grow min-w-0"
-                        onClick={() => setActiveConversationId(conv.id)}
-                    >
-                      <SidebarMenuButton
-                        asChild
-                        isActive={activeConversationId === conv.id && pathname === '/'}
-                        className={cn(
-                            "w-full h-auto flex-col items-start p-2.5",
-                            {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'},
-                            "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
-                        )}
-                        tooltip={{
-                          children: <div className="max-w-xs break-words p-1" title={displayTitle}>{displayTitle}</div>,
-                           hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
-                        }}
-                      >
-                        <div>
-                          <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center" title={displayTitle}>
-                            <ConversationTypeIcon type={convType} />
-                            <span
-                              className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0"
-                              style={{maxWidth: '160px'}}
-                              title={displayTitle}
-                            >
-                              {displayTitle}
-                            </span>
-                          </div>
-                          <div className={cn(
-                              "text-xs text-sidebar-foreground/80 mt-1.5 flex items-center justify-between w-full",
-                              "group-data-[collapsible=icon]:hidden"
-                          )}>
-                            <span className="flex items-center gap-1 cursor-default">
-                              {hasDocuments && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="flex items-center cursor-default">
-                                      <Paperclip size={12} className="shrink-0 text-sidebar-primary" />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="p-1.5 text-xs bg-popover text-popover-foreground">
-                                    <p>Contains documents</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </span>
-                            <span className="truncate">
-                              {formattedDate}
-                            </span>
-                          </div>
-                        </div>
-                      </SidebarMenuButton>
-                    </Link>
-                    <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                               <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
-                               </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent side="right" align="start">
-                              <DropdownMenuItem onClick={() => renameConversation(conv.id, conv.title) }> <Edit3 className="mr-2 h-4 w-4" /> Rename </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => requestDeleteConversation(conv.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10"> <Trash2 className="mr-2 h-4 w-4" /> Delete </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                  </SidebarMenuItem>
-                );
-              })}
-              </SidebarMenu>
-            </ScrollArea>
-          </SidebarGroup>
-
-          <SidebarGroup className="mt-auto">
-             <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarContent className="p-2">
             <SidebarMenu>
               <SidebarMenuItem>
-                <Link href="/documents" passHref legacyBehavior={false}>
-                  <SidebarMenuButton isActive={pathname === '/documents'} tooltip="Documents">
-                    <FileText /> <span className="group-data-[collapsible=icon]:hidden">Documents</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <Link href="/translate" passHref legacyBehavior={false}>
-                  <SidebarMenuButton isActive={pathname === '/translate'} tooltip="Translate">
-                    <Languages /> <span className="group-data-[collapsible=icon]:hidden">Translate</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Products" disabled>
-                  <Briefcase /> <span className="group-data-[collapsible=icon]:hidden">Products</span>
-                </SidebarMenuButton>
+                <Button variant="outline" className="w-full justify-start group-data-[collapsible=icon]:justify-center bg-primary-gradient text-primary-foreground hover:opacity-90" onClick={createNewChat}>
+                  <MessageSquarePlus /> <span className="group-data-[collapsible=icon]:hidden ml-2">New Chat</span>
+                </Button>
               </SidebarMenuItem>
             </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
 
-        <SidebarFooter className="p-4 mt-auto border-t border-sidebar-border space-y-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => setIsWelcomeDialogOpen(true)} tooltip="Help & Information">
-                    <HelpCircle /> <span className="group-data-[collapsible=icon]:hidden">Help & Information</span>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-           </SidebarMenu>
+            <SidebarGroup className="mt-4">
+              <SidebarGroupLabel className="flex items-center justify-between"> <span>Conversations</span> </SidebarGroupLabel>
+              <ScrollArea className="h-[calc(100vh-480px)] group-data-[collapsible=icon]:h-[calc(100vh-380px)]">
+                <SidebarMenu>
+                  {conversations.map((conv) => {
+                    const hasDocuments = checkHasDocuments(conv.messages);
+                    const formattedDate = formatRelativeCustom(new Date(conv.updatedAt), new Date());
+                    const displayTitle = conv.title;
+                    const convType = getConversationType(conv.messages);
 
-           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:justify-center p-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={MOCK_USER.avatarUrl} alt={MOCK_USER.name} data-ai-hint="profile avatar"/>
-                  <AvatarFallback>{MOCK_USER.name.substring(0,1)}</AvatarFallback>
-                </Avatar>
-                <div className="ml-2 group-data-[collapsible=icon]:hidden text-left">
-                  <p className="text-sm font-medium truncate">{MOCK_USER.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{MOCK_USER.email}</p>
-                </div>
-                 <ChevronRight className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="start" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel> <DropdownMenuSeparator />
-              <DropdownMenuItem disabled><Users className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-              <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled> <LogOut className="mr-2 h-4 w-4" /> Log out </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarFooter>
-      </Sidebar>
+                    return (
+                    <SidebarMenuItem
+                      key={conv.id}
+                      className="flex items-center justify-between border-b border-sidebar-border/20 last:border-b-0 py-1.5 px-1"
+                    >
+                      <Link
+                          href={`/?chatId=${conv.id}`}
+                          className="flex-grow min-w-0"
+                          onClick={() => setActiveConversationId(conv.id)}
+                      >
+                        <SidebarMenuButton
+                          asChild
+                          isActive={activeConversationId === conv.id && pathname === '/'}
+                          className={cn(
+                              "w-full h-auto flex-col items-start p-2.5",
+                              {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'},
+                              "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
+                          )}
+                          tooltip={{
+                            children: <div className="max-w-xs break-words p-1" title={displayTitle}>{displayTitle}</div>,
+                            hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
+                          }}
+                        >
+                          <div>
+                            <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center" title={displayTitle}>
+                              <ConversationTypeIcon type={convType} />
+                              <span
+                                className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0"
+                                style={{maxWidth: '160px'}}
+                                title={displayTitle}
+                              >
+                                {displayTitle}
+                              </span>
+                            </div>
+                            <div className={cn(
+                                "text-xs text-sidebar-foreground/80 mt-1.5 flex items-center justify-between w-full",
+                                "group-data-[collapsible=icon]:hidden"
+                            )}>
+                              <span className="flex items-center gap-1 cursor-default">
+                                {hasDocuments && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="flex items-center cursor-default">
+                                        <Paperclip size={12} className="shrink-0 text-sidebar-primary" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="p-1.5 text-xs bg-popover text-popover-foreground">
+                                      <p>Contains documents</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </span>
+                              <span className="truncate">
+                                {formattedDate}
+                              </span>
+                            </div>
+                          </div>
+                        </SidebarMenuButton>
+                      </Link>
+                      <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1">
+                          <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent side="right" align="start">
+                                <DropdownMenuItem onClick={() => renameConversation(conv.id, conv.title) }> <Edit3 className="mr-2 h-4 w-4" /> Rename </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => requestDeleteConversation(conv.id)} className="text-destructive focus:text-destructive focus:bg-destructive/10"> <Trash2 className="mr-2 h-4 w-4" /> Delete </DropdownMenuItem>
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                      </div>
+                    </SidebarMenuItem>
+                  );
+                })}
+                </SidebarMenu>
+              </ScrollArea>
+            </SidebarGroup>
 
-      <SidebarInset className="flex flex-col">
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
-          <div className="flex items-center gap-2">
-             <SidebarTrigger className="md:hidden" />
-             <h2 className="text-lg font-semibold truncate max-w-[calc(100vw-150px)] sm:max-w-xs md:max-w-md">
-                {pathname === '/' && activeConversationId ? (conversations.find(c=>c.id === activeConversationId)?.title || 'Chat') :
-                 pathname === '/translate' ? 'Translation Module' :
-                 pathname === '/documents' ? 'Documents' :
-                 'FlowserveAI'}
-             </h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative group-data-[collapsible=icon]:hidden">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input type="search" placeholder="Search everything..." className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[300px]" disabled />
+            <SidebarGroup className="mt-auto">
+              <SidebarGroupLabel>Tools</SidebarGroupLabel>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Link href="/documents" passHref legacyBehavior={false}>
+                    <SidebarMenuButton isActive={pathname === '/documents'} tooltip="Documents">
+                      <FileText /> <span className="group-data-[collapsible=icon]:hidden">Documents</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href="/translate" passHref legacyBehavior={false}>
+                    <SidebarMenuButton isActive={pathname === '/translate'} tooltip="Translate">
+                      <Languages /> <span className="group-data-[collapsible=icon]:hidden">Translate</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton tooltip="Products" disabled>
+                    <Briefcase /> <span className="group-data-[collapsible=icon]:hidden">Products</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter className="p-4 mt-auto border-t border-sidebar-border space-y-2">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                  <SidebarMenuButton onClick={() => setIsWelcomeDialogOpen(true)} tooltip="Help & Information">
+                      <HelpCircle /> <span className="group-data-[collapsible=icon]:hidden">Help & Information</span>
+                  </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="w-full justify-start group-data-[collapsible=icon]:justify-center p-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={MOCK_USER.avatarUrl} alt={MOCK_USER.name} data-ai-hint="profile avatar"/>
+                    <AvatarFallback>{MOCK_USER.name.substring(0,1)}</AvatarFallback>
+                  </Avatar>
+                  <div className="ml-2 group-data-[collapsible=icon]:hidden text-left">
+                    <p className="text-sm font-medium truncate">{MOCK_USER.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{MOCK_USER.email}</p>
+                  </div>
+                  <ChevronRight className="ml-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel> <DropdownMenuSeparator />
+                <DropdownMenuItem disabled><Users className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
+                <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled> <LogOut className="mr-2 h-4 w-4" /> Log out </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarFooter>
+        </Sidebar>
+
+        <SidebarInset className="flex flex-col">
+          <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-md sm:px-6">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="md:hidden" />
+              <h2 className="text-lg font-semibold truncate max-w-[calc(100vw-150px)] sm:max-w-xs md:max-w-md">
+                  {pathname === '/' && activeConversationId ? (conversations.find(c=>c.id === activeConversationId)?.title || 'Chat') :
+                  pathname === '/translate' ? 'Translation Module' :
+                  pathname === '/documents' ? 'Documents' :
+                  'FlowserveAI'}
+              </h2>
             </div>
-          </div>
-        </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6">
-          {children}
-        </main>
-      </SidebarInset>
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the conversation titled &quot;{conversations.find(c => c.id === deletingConvId)?.title || 'Selected Chat'}&quot; and all of its messages.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setDeletingConvId(null); setDeleteConfirmOpen(false); }}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteConversation} className={buttonVariants({ variant: "destructive" })}> Delete </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
-    </SidebarProvider>
+            <div className="flex items-center gap-4">
+              <div className="relative group-data-[collapsible=icon]:hidden">
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input type="search" placeholder="Search everything..." className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[300px]" disabled />
+              </div>
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto p-4 sm:p-6">
+            {children}
+          </main>
+        </SidebarInset>
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the conversation titled &quot;{conversations.find(c => c.id === deletingConvId)?.title || 'Selected Chat'}&quot; and all of its messages.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => { setDeletingConvId(null); setDeleteConfirmOpen(false); }}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteConversation} className={buttonVariants({ variant: "destructive" })}> Delete </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
+      </SidebarProvider>
+    </TooltipProvider>
   );
 }
-
-    

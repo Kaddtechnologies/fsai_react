@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { translateText } from '@/ai/flows/translate-text';
-import type { TranslationJob, TranslationJobType, TranslationJobStatus, UploadedFile } from '@/lib/types';
+import type { TranslationJob, TranslationJobType, TranslationJobStatus, UploadedFile, TranslatedFileArtifact } from '@/lib/types';
 import { useSpeechSynthesis } from '@/hooks/use-speech-synthesis';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -370,7 +370,7 @@ const TranslatePage = () => {
      const jobToUpdate = jobs.find(j => j.id === jobId);
      if (jobToUpdate) {
         const newStatus = jobToUpdate.status === 'archived' ? 'draft' : 'archived'; // or original status
-        const updatedJob = {...jobToUpdate, status: newStatus, updatedAt: Date.now()};
+        const updatedJob: TranslationJob = {...jobToUpdate, status: newStatus as TranslationJobStatus, updatedAt: Date.now()};
         setJobs(prev => prev.map(j => j.id === jobId ? updatedJob : j));
         if (activeJob?.id === jobId) {
             setActiveJob(updatedJob); // Update active job if it's the one being archived/unarchived
