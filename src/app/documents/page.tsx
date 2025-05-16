@@ -4,11 +4,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FileText, FileSpreadsheet, FileType as FileTypeLucideIcon, FileSearch, MessageSquarePlus, AlertTriangle, FolderOpen, Eye } from 'lucide-react';
+import { FileText, FileSpreadsheet, FileType as FileTypeLucideIcon, FileSearch, MessageSquarePlus, AlertTriangle, FolderOpen, Eye, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogClose } from "@/components/ui/dialog";
 import type { Conversation, Document } from '@/lib/types';
 import { format } from 'date-fns';
 
@@ -171,10 +171,10 @@ const DocumentsPage = () => {
           <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{modalSummaryContent.title}</DialogTitle>
-               <p className="text-sm text-muted-foreground">Markdown Content Preview</p>
+              <DialogDescriptionComponent className="text-sm text-muted-foreground">Raw Markdown Preview. This shows the exact Markdown text; it is not rendered into formatted HTML.</DialogDescriptionComponent>
             </DialogHeader>
-            <ScrollArea className="flex-1 py-2 pr-3 -mr-2">
-              <pre className="text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
+            <ScrollArea className="flex-1 min-h-0 py-2 pr-3 -mr-2">
+              <pre className="block w-full text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
                 {modalSummaryContent.content}
               </pre>
             </ScrollArea>
@@ -190,7 +190,4 @@ const DocumentsPage = () => {
 
 export default DocumentsPage;
 
-// Helper (can be moved to utils if used elsewhere)
-const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-);
+    
