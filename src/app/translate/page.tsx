@@ -53,10 +53,10 @@ const ALLOWED_DOC_MIMES: Record<string, string> = {
 
 const JobStatusBadge: React.FC<{ status: TranslationJobStatus }> = ({ status }) => {
   const variant: "default" | "secondary" | "destructive" | "outline" =
-    status === 'complete' ? 'default' : // Green (primary is red by default, default is better for green)
-    status === 'in-progress' ? 'secondary' : // Blue (using secondary as blue indicator)
-    status === 'archived' ? 'destructive' : // Red
-    status === 'draft' ? 'outline' : // Gray
+    status === 'complete' ? 'default' :
+    status === 'in-progress' ? 'secondary' :
+    status === 'archived' ? 'destructive' :
+    status === 'draft' ? 'outline' :
     status === 'failed' ? 'destructive' :
     'outline';
   
@@ -118,7 +118,7 @@ const TranslatePage = () => {
 
   // Save jobs to localStorage
   useEffect(() => {
-    if (jobs.length > 0 || localStorage.getItem('flowserveai-translation-jobs')) { // only write if there are jobs or if the item exists (to clear it)
+    if (jobs.length > 0 || localStorage.getItem('flowserveai-translation-jobs')) { 
         localStorage.setItem('flowserveai-translation-jobs', JSON.stringify(jobs.sort((a,b) => b.updatedAt - a.updatedAt)));
     }
   }, [jobs]);
@@ -143,7 +143,7 @@ const TranslatePage = () => {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       sourceLanguage: 'auto',
-      targetLanguages: ['es'], // Default target language
+      targetLanguages: ['es'], 
     };
   };
 
@@ -151,7 +151,7 @@ const TranslatePage = () => {
     const newJob = createNewJobObject(type);
     setActiveJob(newJob);
     setJobs(prev => [newJob, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
-    loadJobToForm(newJob); // Populate form from new job
+    loadJobToForm(newJob); 
   };
 
   const loadJobToForm = (job: TranslationJob) => {
@@ -168,45 +168,41 @@ const TranslatePage = () => {
   const handleSelectJobFromHistory = (jobId: string) => {
     const jobToLoad = jobs.find(j => j.id === jobId);
     if (jobToLoad) {
-      if (activeJob?.status === 'draft' && activeJob.id !== jobToLoad.id && activeJob.name === 'Untitled Translation Job' && !activeJob.inputText && (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0) ) {
-        // If current active job is an empty, untitled draft, replace it without prompt
+      if (activeJob?.status === 'draft' && activeJob.id !== jobToLoad.id && activeJob.name === 'Untitled Translation Job' && !activeJob.inputText?.trim() && (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0) ) {
         setJobs(prev => prev.filter(j => j.id !== activeJob.id));
-      } else if (activeJob?.status === 'draft' && activeJob.id !== jobToLoad.id) {
-         // Consider asking to save current draft or implement auto-save more robustly
-         // For now, just switch
       }
       loadJobToForm(jobToLoad);
     }
   };
 
   const updateActiveJobDetails = (updates: Partial<TranslationJob>) => {
-    if (!activeJob) return null; // Or create a new job if no active one? For now, return null.
+    if (!activeJob) return null; 
     
     const updatedJob = { ...activeJob, ...updates, updatedAt: Date.now() };
-    setActiveJob(updatedJob);
-    setJobs(prevJobs => {
+    setActiveJob(updatedJob); // Update form-bound activeJob first
+    setJobs(prevJobs => { // Then update the main jobs list
         const jobExists = prevJobs.some(j => j.id === updatedJob.id);
         if (jobExists) {
             return prevJobs.map(j => j.id === updatedJob.id ? updatedJob : j).sort((a,b) => b.updatedAt - a.updatedAt);
         }
-        // If job doesn't exist (e.g., created on file upload when no activeJob), add it
         return [updatedJob, ...prevJobs].sort((a,b) => b.updatedAt - a.updatedAt);
     });
     return updatedJob;
   };
 
   const handleJobTypeChange = (newType: TranslationJobType) => {
-    setJobType(newType);
+    setJobType(newType); // Update local state for select component
     if (activeJob) {
-      updateActiveJobDetails({ type: newType, sourceFiles: newType === 'text' ? [] : activeJob.sourceFiles, inputText: newType === 'document' ? '' : activeJob.inputText });
-      if (newType === 'text') {
-        setUploadedFiles([]); // Clear uploaded files if switching to text
-      } else {
-        setInputText(''); // Clear input text if switching to document
-        setOutputText('');
-      }
+      updateActiveJobDetails({ 
+        type: newType, 
+        sourceFiles: newType === 'text' ? [] : activeJob.sourceFiles, 
+        inputText: newType === 'document' ? '' : activeJob.inputText,
+        outputTextByLanguage: {}, // Clear output when type changes
+        translatedFilesByLanguage: {} // Clear translated files when type changes
+      });
+      if (newType === 'text') setUploadedFiles([]);
+      else { setInputText(''); setOutputText('');}
     } else {
-      // If no active job, create a new one of the selected type
       handleNewJob(newType);
     }
   };
@@ -228,11 +224,45 @@ const TranslatePage = () => {
       status: 'draft', 
       inputText: jobType === 'text' ? inputText : undefined,
       sourceFiles: jobType === 'document' ? uploadedFiles : undefined,
-      outputTextByLanguage: jobType === 'text' ? { [targetLang]: outputText } : activeJob.outputTextByLanguage,
+      outputTextByLanguage: jobType === 'text' && outputText ? { [targetLang]: outputText } : activeJob.outputTextByLanguage,
+      // Keep translatedFilesByLanguage if it exists, don't overwrite with empty object unless necessary
     };
     updateActiveJobDetails(currentJobDetails);
     toast({ title: "Draft Saved", description: `Job "${jobTitle}" saved as draft.` });
   };
+  
+  const handleCancelJob = () => {
+    if (!activeJob) return;
+
+    const jobInList = jobs.find(j => j.id === activeJob.id);
+
+    const isPristineNewJob = 
+      activeJob.name === 'Untitled Translation Job' &&
+      !activeJob.inputText?.trim() &&
+      (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0) &&
+      (!activeJob.outputTextByLanguage || Object.keys(activeJob.outputTextByLanguage).length === 0) &&
+      jobInList && 
+      jobInList.name === 'Untitled Translation Job' &&
+      !jobInList.inputText?.trim() &&
+      (!jobInList.sourceFiles || jobInList.sourceFiles.length === 0) &&
+      jobInList.status === 'draft';
+
+
+    if (isPristineNewJob) {
+      setJobs(prev => prev.filter(j => j.id !== activeJob.id));
+      setActiveJob(null);
+      resetMainForm(); 
+      toast({ title: "New job cancelled" });
+    } else if (jobInList) {
+      loadJobToForm(jobInList); 
+      toast({ title: "Changes discarded", description: "Reverted to last saved state." });
+    } else {
+      setActiveJob(null);
+      resetMainForm();
+      toast({ title: "Job cancelled" });
+    }
+  };
+
 
   const handleTranslateTextJob = async () => {
     if (!activeJob || jobType !== 'text' || !inputText.trim()) return;
@@ -254,8 +284,8 @@ const TranslatePage = () => {
     try {
       const result = await translateText({
         text: inputText,
-        sourceLanguage: sourceLang === 'auto' ? 'English' : supportedLanguages.find(l => l.code === sourceLang)?.name || 'English', // Default to English if auto/unknown
-        targetLanguage: supportedLanguages.find(l => l.code === targetLang)?.name || 'Spanish', // Default to Spanish if unknown
+        sourceLanguage: sourceLang === 'auto' ? 'English' : supportedLanguages.find(l => l.code === sourceLang)?.name || 'English', 
+        targetLanguage: supportedLanguages.find(l => l.code === targetLang)?.name || 'Spanish',
       });
       setOutputText(result.translatedText);
       updateActiveJobDetails({
@@ -277,31 +307,39 @@ const TranslatePage = () => {
     const files = event.target.files;
     if (!files) return;
     
-    let currentActiveJob = activeJob;
-    if (!currentActiveJob) {
+    let currentJobForUpload = activeJob;
+
+    if (!currentJobForUpload) {
       const newJob = createNewJobObject('document');
-      setActiveJob(newJob); // Set it as active
-      setJobs(prev => [newJob, ...prev].sort((a,b) => b.updatedAt - a.updatedAt)); // Add to jobs list
-      loadJobToForm(newJob); // Load it into the form, which also sets jobType state
-      currentActiveJob = newJob; // Use this new job for processing
-      setJobType('document'); // Explicitly set form's jobType state
-    } else if (currentActiveJob.type !== 'document') {
-      // If there is an active job but it's a text job, switch it
-      currentActiveJob = updateActiveJobDetails({ type: 'document', inputText: '', outputTextByLanguage: {} })!;
-      setJobType('document'); // Update the form's jobType state
-      setInputText(''); // Clear text fields
+      setActiveJob(newJob); 
+      setJobs(prev => [newJob, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
+      loadJobToForm(newJob); 
+      currentJobForUpload = newJob; 
+      setJobType('document'); 
+    } else if (currentJobForUpload.type !== 'document') {
+      currentJobForUpload = updateActiveJobDetails({ 
+          type: 'document', 
+          inputText: '', 
+          outputTextByLanguage: {},
+          sourceFiles: [], // Start fresh for document job files
+          translatedFilesByLanguage: {} 
+      })!;
+      setJobType('document'); 
+      setInputText(''); 
       setOutputText('');
+      setUploadedFiles([]); // Clear UI state for uploaded files
       toast({ title: "Job type switched", description: "Switched to Document Translation mode."});
     }
-
-    processFiles(Array.from(files), currentActiveJob);
-    if(fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+    
+    if (currentJobForUpload) {
+        processFiles(Array.from(files), currentJobForUpload);
+    }
+    if(fileInputRef.current) fileInputRef.current.value = ""; 
   };
 
   const processFiles = (filesToProcess: File[], jobToUpdate: TranslationJob) => {
-    if (!jobToUpdate || jobToUpdate.type !== 'document') {
-       // This case should ideally be handled by handleFileSelect ensuring jobToUpdate is correct.
-       toast({ title: "Error", description: "Cannot process files without a document job.", variant: "destructive" });
+    if (jobToUpdate.type !== 'document') {
+       toast({ title: "Error", description: "Cannot process files: job is not a document job.", variant: "destructive" });
        return;
     }
 
@@ -330,15 +368,15 @@ const TranslatePage = () => {
         type: file.type,
         progress: 0,
         status: 'queued',
-        fileObject: file, // Keep the File object for potential direct upload later
-        convertToDocx: file.type === 'application/pdf' ? false : undefined, // Default PDF to DOCX conversion
+        fileObject: file, 
+        convertToDocx: file.type === 'application/pdf' ? false : undefined, 
       });
       currentTotalSize += file.size;
     }
 
     if (newUploads.length > 0) {
       const updatedSourceFiles = [...existingFiles, ...newUploads];
-      setUploadedFiles(updatedSourceFiles); // Update local state for UI
+      setUploadedFiles(updatedSourceFiles); 
       updateActiveJobDetails({ sourceFiles: updatedSourceFiles, status: 'draft' });
       toast({ title: "Files Added", description: `${newUploads.length} file(s) added to the job.` });
     }
@@ -364,7 +402,7 @@ const TranslatePage = () => {
     }
     
     setIsLoading(true);
-    updateActiveJobDetails({ 
+    const jobWithProgress = updateActiveJobDetails({ 
         status: 'in-progress', 
         name: jobTitle, 
         sourceLanguage: sourceLang, 
@@ -372,23 +410,28 @@ const TranslatePage = () => {
     });
     
     setUploadedFiles(prev => prev.map(f => ({...f, status: 'processing', progress: 20})));
+    if(jobWithProgress) updateActiveJobDetails({sourceFiles: uploadedFiles.map(f => ({...f, status: 'processing', progress: 20}))});
+
 
     await new Promise(resolve => setTimeout(resolve, 1500)); 
     
     setUploadedFiles(prev => prev.map(f => ({...f, status: 'processing', progress: 60})));
+    if(jobWithProgress) updateActiveJobDetails({sourceFiles: uploadedFiles.map(f => ({...f, status: 'processing', progress: 60}))});
+
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    setUploadedFiles(prev => prev.map(f => ({...f, status: 'completed', progress: 100})));
+    const finalFiles = uploadedFiles.map(f => ({...f, status: 'completed', progress: 100} as UploadedFile));
+    setUploadedFiles(finalFiles);
     
     const mockTranslatedFiles: Record<string, TranslatedFileArtifact[]> = {
-      [targetLang]: uploadedFiles.map(f => ({
+      [targetLang]: finalFiles.map(f => ({
         name: `translated_${f.originalName.split('.')[0]}_${targetLang}.${f.convertToDocx && f.type ==='application/pdf' ? 'docx' : f.originalName.split('.').pop() || 'txt'}`,
-        url: '#simulated-download', // Placeholder URL
+        url: '#simulated-download', 
         format: f.convertToDocx && f.type ==='application/pdf' ? 'docx' : f.originalName.split('.').pop() || 'txt'
       }))
     };
 
-    updateActiveJobDetails({ status: 'complete', translatedFilesByLanguage: mockTranslatedFiles });
+    updateActiveJobDetails({ status: 'complete', translatedFilesByLanguage: mockTranslatedFiles, sourceFiles: finalFiles });
     toast({ title: "Document Translation Complete (Simulated)", description: `Job "${jobTitle}" finished.` });
     setIsLoading(false);
   };
@@ -421,10 +464,14 @@ const TranslatePage = () => {
      const jobToUpdate = jobs.find(j => j.id === jobId);
      if (jobToUpdate) {
         const newStatus = jobToUpdate.status === 'archived' ? (jobToUpdate.inputText || (jobToUpdate.sourceFiles && jobToUpdate.sourceFiles.length > 0) ? 'draft' : 'draft') : 'archived';
-        const updatedJob: TranslationJob = {...jobToUpdate, status: newStatus as TranslationJobStatus, updatedAt: Date.now()};
-        setJobs(prev => prev.map(j => j.id === jobId ? updatedJob : j).sort((a,b) => b.updatedAt - a.updatedAt));
+        const updatedJobData: Partial<TranslationJob> = {status: newStatus as TranslationJobStatus};
+        
+        setJobs(prev => prev.map(j => j.id === jobId ? {...j, ...updatedJobData, updatedAt: Date.now()} : j).sort((a,b) => b.updatedAt - a.updatedAt));
+        
         if (activeJob?.id === jobId) {
-            loadJobToForm(updatedJob); // Reload job to form to reflect status change
+             setActiveJob(prevActive => prevActive ? {...prevActive, ...updatedJobData, updatedAt: Date.now()} : null);
+             // Also update form fields if they depend on status directly, though loadJobToForm handles most
+             if (newStatus === 'archived') { /* disable form fields if needed */ }
         }
         toast({ title: jobToUpdate.status === 'archived' ? "Job Unarchived" : "Job Archived" });
      }
@@ -447,9 +494,8 @@ const TranslatePage = () => {
 
   return (
     <TooltipProvider>
-      <div className="flex h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4 p-1"> {/* Adjust header height var if needed */}
-        {/* Main Translation Area */}
-        <Card className="flex-grow-[3] basis-0 shadow-xl flex flex-col overflow-hidden"> {/* 60% width approx */}
+      <div className="flex h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4 p-1">
+        <Card className="flex-grow-[3] basis-0 shadow-xl flex flex-col overflow-hidden">
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-2xl">
@@ -457,7 +503,7 @@ const TranslatePage = () => {
               </CardTitle>
               {activeJob && <JobStatusBadge status={activeJob.status} />}
             </div>
-             {activeJob && <CardDescription>ID: {activeJob.id}</CardDescription>}
+             {activeJob && <CardDescription>ID: {activeJob.id.substring(0,12)}...</CardDescription>}
           </CardHeader>
           <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
             {!activeJob ? (
@@ -487,7 +533,7 @@ const TranslatePage = () => {
                     <Select 
                         value={jobType} 
                         onValueChange={(v) => handleJobTypeChange(v as TranslationJobType)} 
-                        disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed' && !((activeJob.sourceFiles && activeJob.sourceFiles.length > 0) || activeJob.inputText )) }
+                        disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed' && activeJob.status !== 'archived')}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -636,6 +682,12 @@ const TranslatePage = () => {
           </CardContent>
           {activeJob && (
             <CardFooter className="border-t p-4 flex justify-end gap-2">
+              {(activeJob.status !== 'complete' && activeJob.status !== 'in-progress') && (
+                 <Button variant="outline" onClick={handleCancelJob} disabled={isLoading}>
+                   <XCircle className="mr-2 h-4 w-4" /> Cancel
+                 </Button>
+              )}
+
               {(activeJob.status === 'draft' || activeJob.status === 'failed') && (
                 <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading || !jobTitle.trim()}>
                   <Save className="mr-2 h-4 w-4" /> Save Draft
@@ -657,8 +709,7 @@ const TranslatePage = () => {
           )}
         </Card>
 
-        {/* Job History Panel */}
-        <Card className="flex-grow-[2] basis-0 shadow-xl flex flex-col overflow-hidden"> {/* 40% width approx */}
+        <Card className="flex-grow-[2] basis-0 shadow-xl flex flex-col overflow-hidden">
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-xl">Job History</CardTitle>
@@ -785,3 +836,4 @@ const TranslatePage = () => {
 };
 
 export default TranslatePage;
+
