@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  ArrowRightLeft, Copy, Volume2, Trash2, LanguagesIcon, PlusCircle, Search, Filter, Archive, CheckSquare, Square,
-  FileText, FileUp, Save, Play, XCircle, RotateCcw, Edit3, Download, Share2, Clock, ListFilter, X, FileSliders, AlertTriangle, Loader2
+  ArrowRightLeft, Copy, Volume2, Trash2, LanguagesIcon, PlusCircle, Search, Filter, Archive, CheckSquare, Square, X,
+  FileText, FileUp, Save, Play, XCircle as XCircleIcon, RotateCcw, Edit3, Download, Share2, Clock, ListFilter, FileSliders, AlertTriangle, Loader2, CheckCircle as CheckCircleIcon, Info
 } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import { Checkbox } from '@/components/ui/checkbox';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { translateText } from '@/ai/flows/translate-text';
 import type { TranslationJob, TranslationJobType, TranslationJobStatus, UploadedFile, TranslatedFileArtifact } from '@/lib/types';
@@ -91,16 +93,21 @@ const TranslatePage = () => {
 
   const [jobs, setJobs] = useState<TranslationJob[]>([]);
   const [activeJob, setActiveJob] = useState<TranslationJob | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // For AI translation calls
+  const [isLoading, setIsLoading] = useState(false); 
 
-  // Main area form state (bound to activeJob)
+  // Main area form state (bound to activeJob or directly manipulated)
   const [jobTitle, setJobTitle] = useState('');
   const [jobType, setJobType] = useState<TranslationJobType>('text');
   const [sourceLang, setSourceLang] = useState('auto');
-  const [targetLang, setTargetLang] = useState('es'); // Single target for now
+  const [targetLang, setTargetLang] = useState('es'); 
   const [inputText, setInputText] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [outputText, setOutputText] = useState(''); // For text jobs
+  const [outputText, setOutputText] = useState(''); 
+
+  const [isFormDirty, setIsFormDirty] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [selectedTranslatedFiles, setSelectedTranslatedFiles] = useState<Record<string, boolean>>({});
+
 
   // Job history panel state
   const [historySearchTerm, setHistorySearchTerm] = useState('');
@@ -123,7 +130,27 @@ const TranslatePage = () => {
     }
   }, [jobs]);
 
-  const resetMainForm = () => {
+  // Track form dirty state
+  useEffect(() => {
+    if (!activeJob) {
+      setIsFormDirty(false);
+      return;
+    }
+    const titleDirty = jobTitle !== activeJob.name;
+    const typeDirty = jobType !== activeJob.type;
+    const sourceLangDirty = sourceLang !== activeJob.sourceLanguage;
+    const targetLangDirty = targetLang !== (activeJob.targetLanguages[0] || 'es');
+    const inputTextDirty = inputText !== (activeJob.inputText || '');
+    // Basic check for uploadedFiles, more sophisticated check might involve deep comparison or length
+    const filesDirty = uploadedFiles.length !== (activeJob.sourceFiles?.length || 0) || 
+                       !uploadedFiles.every((uf, i) => activeJob.sourceFiles && activeJob.sourceFiles[i] && uf.id === activeJob.sourceFiles[i].id && uf.convertToDocx === activeJob.sourceFiles[i].convertToDocx);
+
+    setIsFormDirty(titleDirty || typeDirty || sourceLangDirty || targetLangDirty || inputTextDirty || filesDirty);
+  }, [jobTitle, jobType, sourceLang, targetLang, inputText, uploadedFiles, activeJob]);
+
+
+  const resetMainForm = (clearActiveJob = true) => {
+    if (clearActiveJob) setActiveJob(null);
     setJobTitle('');
     setJobType('text');
     setSourceLang('auto');
@@ -131,6 +158,8 @@ const TranslatePage = () => {
     setInputText('');
     setUploadedFiles([]);
     setOutputText('');
+    setSelectedTranslatedFiles({});
+    setIsFormDirty(false);
   };
   
   const createNewJobObject = (type: TranslationJobType = 'text'): TranslationJob => {
@@ -148,13 +177,25 @@ const TranslatePage = () => {
   };
 
   const handleNewJob = (type: TranslationJobType = 'text') => {
+    // If current activeJob is an unsaved, pristine "Untitled Translation Job", remove it
+    if (activeJob && activeJob.name === 'Untitled Translation Job' && activeJob.status === 'draft' && !activeJob.inputText && (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0)) {
+      const isPristineInList = jobs.find(j => j.id === activeJob.id && j.name === 'Untitled Translation Job' && !j.inputText && (!j.sourceFiles || j.sourceFiles.length === 0) && j.status === 'draft');
+      if (isPristineInList) {
+        setJobs(prev => prev.filter(j => j.id !== activeJob.id));
+      }
+    }
+
     const newJob = createNewJobObject(type);
-    setActiveJob(newJob);
+    setActiveJob(newJob); // Set new job as active first
     setJobs(prev => [newJob, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
-    loadJobToForm(newJob); 
+    loadJobToForm(newJob); // Then load its details into the form
   };
 
-  const loadJobToForm = (job: TranslationJob) => {
+  const loadJobToForm = (job: TranslationJob | null) => {
+    if (!job) {
+      resetMainForm();
+      return;
+    }
     setActiveJob(job);
     setJobTitle(job.name);
     setJobType(job.type);
@@ -163,43 +204,62 @@ const TranslatePage = () => {
     setInputText(job.inputText || '');
     setUploadedFiles(job.sourceFiles || []);
     setOutputText(job.outputTextByLanguage?.[job.targetLanguages[0]] || '');
+    setSelectedTranslatedFiles({});
+    // setIsFormDirty(false) will be triggered by the useEffect dependency on activeJob
+    // Use a timeout to ensure activeJob has updated before checking dirty state
+    setTimeout(() => setIsFormDirty(false), 0);
   };
 
   const handleSelectJobFromHistory = (jobId: string) => {
     const jobToLoad = jobs.find(j => j.id === jobId);
     if (jobToLoad) {
-      if (activeJob?.status === 'draft' && activeJob.id !== jobToLoad.id && activeJob.name === 'Untitled Translation Job' && !activeJob.inputText?.trim() && (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0) ) {
-        setJobs(prev => prev.filter(j => j.id !== activeJob.id));
+      // If current activeJob is an unsaved, pristine "Untitled Translation Job", remove it before loading another
+      if (activeJob && activeJob.id !== jobToLoad.id && activeJob.name === 'Untitled Translation Job' && activeJob.status === 'draft' && !isFormDirty) {
+         const isPristineInList = jobs.find(j => j.id === activeJob.id && j.name === 'Untitled Translation Job' && !j.inputText && (!j.sourceFiles || j.sourceFiles.length === 0) && j.status === 'draft');
+         if (isPristineInList) {
+           setJobs(prev => prev.filter(j => j.id !== activeJob.id));
+         }
       }
       loadJobToForm(jobToLoad);
     }
   };
 
-  const updateActiveJobDetails = (updates: Partial<TranslationJob>) => {
+  const updateActiveJobDetails = (updates: Partial<TranslationJob>, newStatus?: TranslationJobStatus) => {
     if (!activeJob) return null; 
     
-    const updatedJob = { ...activeJob, ...updates, updatedAt: Date.now() };
-    setActiveJob(updatedJob); // Update form-bound activeJob first
-    setJobs(prevJobs => { // Then update the main jobs list
+    const updatedJob = { 
+      ...activeJob, 
+      ...updates, 
+      status: newStatus || updates.status || activeJob.status, 
+      updatedAt: Date.now() 
+    };
+
+    setActiveJob(updatedJob); 
+    setJobs(prevJobs => { 
         const jobExists = prevJobs.some(j => j.id === updatedJob.id);
         if (jobExists) {
             return prevJobs.map(j => j.id === updatedJob.id ? updatedJob : j).sort((a,b) => b.updatedAt - a.updatedAt);
         }
         return [updatedJob, ...prevJobs].sort((a,b) => b.updatedAt - a.updatedAt);
     });
+    // If status changes, form dirtiness might need re-evaluation or reset
+    if (newStatus && newStatus !== activeJob.status) {
+        setTimeout(() => setIsFormDirty(false), 0);
+    }
     return updatedJob;
   };
 
   const handleJobTypeChange = (newType: TranslationJobType) => {
-    setJobType(newType); // Update local state for select component
+    setJobType(newType); 
     if (activeJob) {
-      updateActiveJobDetails({ 
+      const updatedDetails: Partial<TranslationJob> = { 
         type: newType, 
-        sourceFiles: newType === 'text' ? [] : activeJob.sourceFiles, 
-        inputText: newType === 'document' ? '' : activeJob.inputText,
-        outputTextByLanguage: {}, // Clear output when type changes
-        translatedFilesByLanguage: {} // Clear translated files when type changes
-      });
+        sourceFiles: newType === 'text' ? [] : activeJob.sourceFiles || [], 
+        inputText: newType === 'document' ? '' : activeJob.inputText || '',
+        outputTextByLanguage: {}, 
+        translatedFilesByLanguage: {} 
+      };
+      updateActiveJobDetails(updatedDetails);
       if (newType === 'text') setUploadedFiles([]);
       else { setInputText(''); setOutputText('');}
     } else {
@@ -221,46 +281,46 @@ const TranslatePage = () => {
       type: jobType,
       sourceLanguage: sourceLang,
       targetLanguages: [targetLang],
-      status: 'draft', 
+      // status is not changed by save draft, unless it was 'failed' then it can become 'draft'
+      status: activeJob.status === 'failed' ? 'draft' : activeJob.status,
       inputText: jobType === 'text' ? inputText : undefined,
       sourceFiles: jobType === 'document' ? uploadedFiles : undefined,
       outputTextByLanguage: jobType === 'text' && outputText ? { [targetLang]: outputText } : activeJob.outputTextByLanguage,
-      // Keep translatedFilesByLanguage if it exists, don't overwrite with empty object unless necessary
     };
     updateActiveJobDetails(currentJobDetails);
+    setTimeout(() => setIsFormDirty(false), 0); // Reset dirty state after save
     toast({ title: "Draft Saved", description: `Job "${jobTitle}" saved as draft.` });
   };
   
   const handleCancelJob = () => {
     if (!activeJob) return;
 
-    const jobInList = jobs.find(j => j.id === activeJob.id);
-
-    const isPristineNewJob = 
-      activeJob.name === 'Untitled Translation Job' &&
-      !activeJob.inputText?.trim() &&
-      (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0) &&
-      (!activeJob.outputTextByLanguage || Object.keys(activeJob.outputTextByLanguage).length === 0) &&
-      jobInList && 
-      jobInList.name === 'Untitled Translation Job' &&
-      !jobInList.inputText?.trim() &&
-      (!jobInList.sourceFiles || jobInList.sourceFiles.length === 0) &&
-      jobInList.status === 'draft';
-
-
-    if (isPristineNewJob) {
-      setJobs(prev => prev.filter(j => j.id !== activeJob.id));
-      setActiveJob(null);
-      resetMainForm(); 
-      toast({ title: "New job cancelled" });
-    } else if (jobInList) {
-      loadJobToForm(jobInList); 
-      toast({ title: "Changes discarded", description: "Reverted to last saved state." });
+    if (isFormDirty) {
+      setShowCancelConfirm(true);
     } else {
-      setActiveJob(null);
+      // If not dirty (e.g. pristine new job, or just opened an existing job)
+      // If it's a pristine "Untitled Translation Job", remove it from list
+      if (activeJob.name === 'Untitled Translation Job' && !activeJob.inputText && (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0)) {
+         const jobInList = jobs.find(j => j.id === activeJob.id);
+         if (jobInList && jobInList.name === 'Untitled Translation Job' && !jobInList.inputText && (!jobInList.sourceFiles || jobInList.sourceFiles.length === 0)) {
+           setJobs(prev => prev.filter(j => j.id !== activeJob.id));
+         }
+      }
       resetMainForm();
-      toast({ title: "Job cancelled" });
+      toast({ title: "Job Cancelled" });
     }
+  };
+
+  const confirmCancelJob = () => {
+    if (activeJob && activeJob.name === 'Untitled Translation Job' && !activeJob.inputText && (!activeJob.sourceFiles || activeJob.sourceFiles.length === 0)) {
+        const jobInList = jobs.find(j => j.id === activeJob.id);
+        if (jobInList && jobInList.name === 'Untitled Translation Job' && !jobInList.inputText && (!jobInList.sourceFiles || jobInList.sourceFiles.length === 0)) {
+            setJobs(prev => prev.filter(j => j.id !== activeJob.id));
+        }
+    }
+    resetMainForm();
+    toast({ title: "Changes Discarded" });
+    setShowCancelConfirm(false);
   };
 
 
@@ -274,12 +334,11 @@ const TranslatePage = () => {
     setIsLoading(true);
     setOutputText('');
     const jobWithProgress = updateActiveJobDetails({ 
-        status: 'in-progress', 
         name: jobTitle, 
         inputText, 
         sourceLanguage: sourceLang, 
         targetLanguages: [targetLang] 
-    });
+    }, 'in-progress');
 
     try {
       const result = await translateText({
@@ -289,13 +348,12 @@ const TranslatePage = () => {
       });
       setOutputText(result.translatedText);
       updateActiveJobDetails({
-        status: 'complete',
         outputTextByLanguage: { ...(jobWithProgress?.outputTextByLanguage || {}), [targetLang]: result.translatedText },
-      });
+      }, 'complete');
       toast({ title: "Translation Complete", description: `Job "${jobTitle}" finished.` });
     } catch (error) {
       console.error("Translation failed:", error);
-      updateActiveJobDetails({ status: 'failed', errorMessage: "Translation API call failed." });
+      updateActiveJobDetails({ errorMessage: "Translation API call failed." }, 'failed');
       toast({ title: "Translation Error", description: "Could not translate text.", variant: "destructive" });
     } finally {
       setIsLoading(false);
@@ -311,41 +369,41 @@ const TranslatePage = () => {
 
     if (!currentJobForUpload) {
       const newJob = createNewJobObject('document');
-      setActiveJob(newJob); 
       setJobs(prev => [newJob, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
       loadJobToForm(newJob); 
       currentJobForUpload = newJob; 
-      setJobType('document'); 
+      setJobType('document'); // Explicitly set in form state
     } else if (currentJobForUpload.type !== 'document') {
-      currentJobForUpload = updateActiveJobDetails({ 
-          type: 'document', 
-          inputText: '', 
-          outputTextByLanguage: {},
-          sourceFiles: [], // Start fresh for document job files
-          translatedFilesByLanguage: {} 
-      })!;
-      setJobType('document'); 
-      setInputText(''); 
-      setOutputText('');
-      setUploadedFiles([]); // Clear UI state for uploaded files
+      handleJobTypeChange('document'); // This will update activeJob
+      // Need to get the updated job from state, as updateActiveJobDetails is async
+      // For simplicity, we'll assume handleJobTypeChange correctly sets activeJob.type for next steps
+      // or grab it after a small delay, or re-fetch from jobs list.
+      // For now, we rely on handleJobTypeChange updating the job type.
+      currentJobForUpload = {...currentJobForUpload, type: 'document', sourceFiles: [], inputText: '', outputTextByLanguage: {}}; // reflect change locally
       toast({ title: "Job type switched", description: "Switched to Document Translation mode."});
     }
     
-    if (currentJobForUpload) {
-        processFiles(Array.from(files), currentJobForUpload);
-    }
+    // Ensure currentJobForUpload is the one from state after potential type change
+    // This is tricky because setState is async. A ref or passing the job object might be more robust.
+    // For now, we proceed with the potentially modified currentJobForUpload.
+    // A safer way would be to use a callback with setJobs if `activeJob` needs to be used immediately after an update.
+    // Or, processFiles should fetch the latest `activeJob` from `jobs` list.
+    
+    const jobToUpdate = jobs.find(j => j.id === currentJobForUpload!.id) || currentJobForUpload!;
+    processFiles(Array.from(files), jobToUpdate);
+    
     if(fileInputRef.current) fileInputRef.current.value = ""; 
   };
 
   const processFiles = (filesToProcess: File[], jobToUpdate: TranslationJob) => {
-    if (jobToUpdate.type !== 'document') {
+     if (jobToUpdate.type !== 'document') {
        toast({ title: "Error", description: "Cannot process files: job is not a document job.", variant: "destructive" });
        return;
     }
 
     let currentTotalSize = (jobToUpdate.sourceFiles || []).reduce((acc, f) => acc + f.size, 0);
     const newUploads: UploadedFile[] = [];
-    const existingFiles = jobToUpdate.sourceFiles || [];
+    const existingFiles = [...(jobToUpdate.sourceFiles || [])]; // clone to avoid direct state mutation before setState
 
     for (const file of filesToProcess) {
       if (existingFiles.length + newUploads.length >= MAX_FILES_PER_JOB) {
@@ -368,7 +426,6 @@ const TranslatePage = () => {
         type: file.type,
         progress: 0,
         status: 'queued',
-        fileObject: file, 
         convertToDocx: file.type === 'application/pdf' ? false : undefined, 
       });
       currentTotalSize += file.size;
@@ -376,7 +433,7 @@ const TranslatePage = () => {
 
     if (newUploads.length > 0) {
       const updatedSourceFiles = [...existingFiles, ...newUploads];
-      setUploadedFiles(updatedSourceFiles); 
+      setUploadedFiles(updatedSourceFiles); // Update UI state for uploaded files
       updateActiveJobDetails({ sourceFiles: updatedSourceFiles, status: 'draft' });
       toast({ title: "Files Added", description: `${newUploads.length} file(s) added to the job.` });
     }
@@ -402,43 +459,85 @@ const TranslatePage = () => {
     }
     
     setIsLoading(true);
-    const jobWithProgress = updateActiveJobDetails({ 
-        status: 'in-progress', 
+    updateActiveJobDetails({ 
         name: jobTitle, 
         sourceLanguage: sourceLang, 
         targetLanguages: [targetLang] 
+    }, 'in-progress');
+
+    let currentFiles = [...uploadedFiles]; // Work with a copy for updates
+
+    const processedFiles: UploadedFile[] = [];
+    const translatedArtifacts: TranslatedFileArtifact[] = [];
+
+    for (let i = 0; i < currentFiles.length; i++) {
+        const file = currentFiles[i];
+        
+        // Simulate uploading/initial processing
+        currentFiles = currentFiles.map(f => f.id === file.id ? {...f, status: 'processing', progress: 20} : f);
+        setUploadedFiles(currentFiles); // Update UI
+        updateActiveJobDetails({sourceFiles: currentFiles}); // Persist to activeJob
+        await new Promise(resolve => setTimeout(resolve, 700)); // Simulate delay
+
+        // Simulate main processing
+        currentFiles = currentFiles.map(f => f.id === file.id ? {...f, status: 'processing', progress: 60} : f);
+        setUploadedFiles(currentFiles);
+        updateActiveJobDetails({sourceFiles: currentFiles});
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
+
+        // Simulate completion
+        const completedFile = {...file, status: 'completed', progress: 100} as UploadedFile;
+        currentFiles = currentFiles.map(f => f.id === file.id ? completedFile : f);
+        setUploadedFiles(currentFiles);
+        updateActiveJobDetails({sourceFiles: currentFiles});
+        processedFiles.push(completedFile);
+
+        translatedArtifacts.push({
+            name: `translated_${completedFile.originalName.split('.')[0]}_${targetLang}.${completedFile.convertToDocx && completedFile.type ==='application/pdf' ? 'docx' : completedFile.originalName.split('.').pop() || 'txt'}`,
+            url: '#simulated-download', 
+            format: completedFile.convertToDocx && completedFile.type ==='application/pdf' ? 'docx' : completedFile.originalName.split('.').pop() || 'txt'
+        });
+        toast({ title: "File Processed", description: `${completedFile.originalName} translation complete (simulated).` });
+        await new Promise(resolve => setTimeout(resolve, 300)); // Small delay between files
+    }
+    
+    updateActiveJobDetails({ 
+        status: 'complete', 
+        translatedFilesByLanguage: { [targetLang]: translatedArtifacts }, 
+        sourceFiles: processedFiles 
     });
-    
-    setUploadedFiles(prev => prev.map(f => ({...f, status: 'processing', progress: 20})));
-    if(jobWithProgress) updateActiveJobDetails({sourceFiles: uploadedFiles.map(f => ({...f, status: 'processing', progress: 20}))});
-
-
-    await new Promise(resolve => setTimeout(resolve, 1500)); 
-    
-    setUploadedFiles(prev => prev.map(f => ({...f, status: 'processing', progress: 60})));
-    if(jobWithProgress) updateActiveJobDetails({sourceFiles: uploadedFiles.map(f => ({...f, status: 'processing', progress: 60}))});
-
-    await new Promise(resolve => setTimeout(resolve, 1500));
-
-    const finalFiles = uploadedFiles.map(f => ({...f, status: 'completed', progress: 100} as UploadedFile));
-    setUploadedFiles(finalFiles);
-    
-    const mockTranslatedFiles: Record<string, TranslatedFileArtifact[]> = {
-      [targetLang]: finalFiles.map(f => ({
-        name: `translated_${f.originalName.split('.')[0]}_${targetLang}.${f.convertToDocx && f.type ==='application/pdf' ? 'docx' : f.originalName.split('.').pop() || 'txt'}`,
-        url: '#simulated-download', 
-        format: f.convertToDocx && f.type ==='application/pdf' ? 'docx' : f.originalName.split('.').pop() || 'txt'
-      }))
-    };
-
-    updateActiveJobDetails({ status: 'complete', translatedFilesByLanguage: mockTranslatedFiles, sourceFiles: finalFiles });
-    toast({ title: "Document Translation Complete (Simulated)", description: `Job "${jobTitle}" finished.` });
+    toast({ title: "Document Translation Job Complete (Simulated)", description: `Job "${jobTitle}" finished.` });
     setIsLoading(false);
+  };
+
+  const handleSelectedTranslatedFileToggle = (fileName: string) => {
+    setSelectedTranslatedFiles(prev => ({...prev, [fileName]: !prev[fileName]}));
+  };
+
+  const handleDownloadSelected = () => {
+    const filesToDownload = Object.entries(selectedTranslatedFiles)
+        .filter(([_,isSelected]) => isSelected)
+        .map(([fileName,_]) => fileName);
+    if (filesToDownload.length === 0) {
+        toast({title: "No files selected", description: "Please select files to download.", variant: "destructive"});
+        return;
+    }
+    toast({title: "Download Selected (Simulated)", description: `Simulating download of: ${filesToDownload.join(', ')}`});
+    // Actual download logic would go here
+  };
+
+  const handleDownloadAllZip = () => {
+    if (!activeJob || !activeJob.translatedFilesByLanguage?.[targetLang] || activeJob.translatedFilesByLanguage[targetLang].length === 0) {
+        toast({title: "No translated files", description: "There are no translated files to download.", variant: "destructive"});
+        return;
+    }
+    toast({title: "Download All as ZIP (Simulated)", description: `Simulating ZIP download for all ${activeJob.translatedFilesByLanguage[targetLang].length} files.`});
+    // Actual ZIP creation and download logic would go here
   };
 
 
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.name.toLowerCase().includes(historySearchTerm.toLowerCase());
+    const matchesSearch = historySearchTerm === '' || job.name.toLowerCase().includes(historySearchTerm.toLowerCase());
     const matchesType = historyFilterType === 'all' || job.type === historyFilterType;
     const matchesStatus = historyFilterStatus.length === 0 || historyFilterStatus.includes(job.status);
     const matchesArchive = showArchived ? job.status === 'archived' : job.status !== 'archived';
@@ -454,7 +553,6 @@ const TranslatePage = () => {
   const handleDeleteJob = (jobId: string) => {
     setJobs(prev => prev.filter(j => j.id !== jobId));
     if (activeJob?.id === jobId) {
-      setActiveJob(null);
       resetMainForm();
     }
     toast({ title: "Job Deleted" });
@@ -470,8 +568,7 @@ const TranslatePage = () => {
         
         if (activeJob?.id === jobId) {
              setActiveJob(prevActive => prevActive ? {...prevActive, ...updatedJobData, updatedAt: Date.now()} : null);
-             // Also update form fields if they depend on status directly, though loadJobToForm handles most
-             if (newStatus === 'archived') { /* disable form fields if needed */ }
+             if (newStatus === 'archived') { /* Potentially disable form fields if desired */ }
         }
         toast({ title: jobToUpdate.status === 'archived' ? "Job Unarchived" : "Job Archived" });
      }
@@ -490,7 +587,7 @@ const TranslatePage = () => {
   
   const getLanguageName = (code: string) => supportedLanguages.find(l => l.code === code)?.name || code;
 
-  const isEditingExistingJob = activeJob && jobs.some(j => j.id === activeJob.id && j.status !== 'draft');
+  const hasPdfFile = uploadedFiles.some(file => file.type === 'application/pdf');
 
   return (
     <TooltipProvider>
@@ -499,7 +596,7 @@ const TranslatePage = () => {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-2xl">
-                {activeJob ? (activeJob.name === 'Untitled Translation Job' && !isEditingExistingJob ? 'New Translation Job' : 'Edit Job') : 'New Translation Job'}
+                {activeJob ? (activeJob.name === 'Untitled Translation Job' && activeJob.status === 'draft' && !isFormDirty ? 'New Translation Job' : 'Edit Job') : 'New Translation Job'}
               </CardTitle>
               {activeJob && <JobStatusBadge status={activeJob.status} />}
             </div>
@@ -522,7 +619,7 @@ const TranslatePage = () => {
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value.slice(0, MAX_JOB_TITLE_LENGTH))}
                     maxLength={MAX_JOB_TITLE_LENGTH}
-                    disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed')}
+                    disabled={isLoading || activeJob.status === 'in-progress'}
                   />
                   <p className="text-xs text-muted-foreground text-right">{jobTitle.length}/{MAX_JOB_TITLE_LENGTH}</p>
                 </div>
@@ -533,7 +630,7 @@ const TranslatePage = () => {
                     <Select 
                         value={jobType} 
                         onValueChange={(v) => handleJobTypeChange(v as TranslationJobType)} 
-                        disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed' && activeJob.status !== 'archived')}
+                        disabled={isLoading || activeJob.status === 'in-progress'}
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -544,7 +641,7 @@ const TranslatePage = () => {
                   </div>
                    <div className="space-y-1">
                      <label className="text-sm font-medium">Source Language</label>
-                     <Select value={sourceLang} onValueChange={setSourceLang} disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed')}>
+                     <Select value={sourceLang} onValueChange={setSourceLang} disabled={isLoading || activeJob.status === 'in-progress'}>
                        <SelectTrigger><SelectValue placeholder="Select source language" /></SelectTrigger>
                        <SelectContent>
                          <SelectItem value="auto">Auto-detect</SelectItem>
@@ -556,7 +653,7 @@ const TranslatePage = () => {
                 
                 <div className="space-y-1">
                    <label className="text-sm font-medium">Target Language</label>
-                   <Select value={targetLang} onValueChange={setTargetLang} disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed')}>
+                   <Select value={targetLang} onValueChange={setTargetLang} disabled={isLoading || activeJob.status === 'in-progress'}>
                      <SelectTrigger><SelectValue placeholder="Select target language" /></SelectTrigger>
                      <SelectContent>
                        {supportedLanguages.map(l => <SelectItem key={l.code} value={l.code} disabled={l.code === sourceLang && sourceLang !== 'auto'}>{l.name}</SelectItem>)}
@@ -574,14 +671,14 @@ const TranslatePage = () => {
                         className="min-h-[150px] bg-input focus-visible:ring-1 focus-visible:ring-ring"
                         rows={6}
                         maxLength={MAX_TEXT_INPUT_LENGTH}
-                        disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed')}
+                        disabled={isLoading || activeJob.status === 'in-progress'}
                       />
                        <div className="flex justify-between items-center mt-1">
                           <p className="text-xs text-muted-foreground">{inputText.length}/{MAX_TEXT_INPUT_LENGTH} characters</p>
                           <div>
                             <Button variant="ghost" size="icon" onClick={() => handleCopy(inputText)} disabled={!inputText}><Copy size={16}/></Button>
                             <Button variant="ghost" size="icon" onClick={() => handleTTS(inputText)} disabled={!inputText}>
-                              {isSpeaking && inputText === (document.activeElement as HTMLTextAreaElement)?.value ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
+                              {isSpeaking && utterance?.text === inputText ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
                             </Button>
                           </div>
                        </div>
@@ -597,7 +694,7 @@ const TranslatePage = () => {
                       <div className="flex justify-end items-center mt-1">
                           <Button variant="ghost" size="icon" onClick={() => handleCopy(outputText)} disabled={!outputText}><Copy size={16}/></Button>
                           <Button variant="ghost" size="icon" onClick={() => handleTTS(outputText)} disabled={!outputText}>
-                           {isSpeaking && outputText === (document.activeElement as HTMLTextAreaElement)?.value ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
+                           {isSpeaking && utterance?.text === outputText ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
                           </Button>
                       </div>
                     </div>
@@ -610,7 +707,7 @@ const TranslatePage = () => {
                       <CardContent className="p-6 text-center">
                         <FileUp className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
                         <p className="mb-2 text-sm text-muted-foreground">Drag & drop files here or</p>
-                        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed')}>
+                        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isLoading || activeJob.status === 'in-progress'}>
                           Browse Files
                         </Button>
                         <input type="file" ref={fileInputRef} multiple onChange={handleFileSelect} className="hidden" accept={ALLOWED_DOC_EXTENSIONS.join(',')} />
@@ -621,59 +718,103 @@ const TranslatePage = () => {
                       </CardContent>
                     </Card>
                     {uploadedFiles.length > 0 && (
-                      <ScrollArea className="h-48 border rounded-md p-2">
+                      <ScrollArea className="max-h-60 border rounded-md p-2">
                         <p className="text-sm font-medium mb-2">Selected Files ({uploadedFiles.length}/{MAX_FILES_PER_JOB}):</p>
                         <ul className="space-y-2">
                           {uploadedFiles.map(file => (
                             <li key={file.id} className="flex items-center justify-between gap-2 p-2 rounded bg-muted/50 text-sm">
-                              <div className="flex items-center gap-2 min-w-0">
+                              <div className={cn("flex items-center gap-2 min-w-0", hasPdfFile ? "flex-grow-[2]" : "flex-grow")}>
                                 <FileText size={18} className="text-primary shrink-0" />
-                                <span className="truncate" title={file.originalName}>{file.originalName}</span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="truncate" title={file.originalName}>{file.originalName}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent><p>{file.originalName}</p></TooltipContent>
+                                </Tooltip>
                                 <span className="text-xs text-muted-foreground whitespace-nowrap">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
                               </div>
-                              <div className='flex items-center gap-1'>
-                                {file.type === 'application/pdf' && (
+                              {file.status === 'processing' && file.progress != null && (
+                                <div className="w-20 flex items-center gap-1">
+                                  <Progress value={file.progress} className="h-1.5 flex-1" />
+                                  <span className='text-xs'>{file.progress}%</span>
+                                </div>
+                              )}
+                              {file.status === 'completed' && <CheckCircleIcon size={16} className="text-accent-success shrink-0" />}
+                              {file.status === 'failed' && <XCircleIcon size={16} className="text-destructive shrink-0" />}
+                              
+                              <div className='flex items-center gap-1 shrink-0'>
+                                {hasPdfFile && file.type === 'application/pdf' && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button variant={file.convertToDocx ? "secondary" : "outline"} size="sm" className="h-7 px-2 text-xs" onClick={() => togglePdfToDocx(file.id)} disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed')}>
+                                      <Button variant={file.convertToDocx ? "secondary" : "outline"} size="sm" className="h-7 px-2 text-xs" onClick={() => togglePdfToDocx(file.id)} disabled={isLoading || activeJob.status === 'in-progress' || file.status === 'processing' || file.status === 'completed'}>
                                         <FileSliders size={14} className="mr-1"/> DOCX
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>Convert PDF to DOCX on translation</TooltipContent>
+                                    <TooltipContent><p>Convert PDF to DOCX on translation</p></TooltipContent>
                                   </Tooltip>
                                 )}
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeUploadedFile(file.id)} disabled={isLoading || (activeJob.status !== 'draft' && activeJob.status !== 'failed')}><XCircle size={16} /></Button>
+                                {hasPdfFile && file.type !== 'application/pdf' && <div className="w-[78px]"></div> /* Placeholder for alignment */}
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeUploadedFile(file.id)} disabled={isLoading || activeJob.status === 'in-progress' || file.status === 'processing' || file.status === 'completed'}><XCircleIcon size={16} /></Button>
                               </div>
                             </li>
                           ))}
                         </ul>
                       </ScrollArea>
                     )}
-                    {activeJob.status === 'complete' && activeJob.translatedFilesByLanguage?.[targetLang] && (
+                    {activeJob.status === 'complete' && activeJob.translatedFilesByLanguage?.[targetLang] && activeJob.translatedFilesByLanguage[targetLang].length > 0 && (
                        <div>
-                        <h4 className="text-md font-semibold mb-2">Translated Documents for {getLanguageName(targetLang)}:</h4>
-                         <ul className="space-y-2">
-                          {(activeJob.translatedFilesByLanguage[targetLang] || []).map(file => (
-                            <li key={file.name} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <FileText size={18} className="text-accent-success shrink-0" />
-                                <span className="truncate" title={file.name}>{file.name}</span>
-                              </div>
-                              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({title: "Download (Simulated)", description: `Would download ${file.name}`})}>
-                                <Download size={14} className="mr-1"/> Download
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
+                        <h4 className="text-md font-semibold mb-2 mt-4">Translated Documents for {getLanguageName(targetLang)}:</h4>
+                         <ScrollArea className="max-h-48 border rounded-md p-2">
+                            <ul className="space-y-2">
+                            {(activeJob.translatedFilesByLanguage[targetLang] || []).map(file => (
+                                <li key={file.name} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <Checkbox 
+                                      id={`cb-${file.name}`} 
+                                      checked={!!selectedTranslatedFiles[file.name]}
+                                      onCheckedChange={() => handleSelectedTranslatedFileToggle(file.name)}
+                                      className="mr-2"
+                                    />
+                                    <FileText size={18} className="text-accent-success shrink-0" />
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="truncate flex-1" title={file.name}>{file.name}</span>
+                                      </TooltipTrigger>
+                                      <TooltipContent><p>{file.name}</p></TooltipContent>
+                                    </Tooltip>
+                                </div>
+                                <Button variant="outline" size="sm" className="h-7 text-xs ml-2" onClick={() => toast({title: "Download (Simulated)", description: `Would download ${file.name}`})}>
+                                    <Download size={14} className="mr-1"/> Download
+                                </Button>
+                                </li>
+                            ))}
+                            </ul>
+                         </ScrollArea>
+                         <div className="flex gap-2 mt-2 justify-end">
+                            <Button variant="outline" size="sm" onClick={handleDownloadSelected} disabled={Object.values(selectedTranslatedFiles).every(v => !v)}>
+                                <Download className="mr-2 h-4 w-4" /> Download Selected (Simulated)
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleDownloadAllZip}>
+                                <Archive className="mr-2 h-4 w-4" /> Download All as ZIP (Simulated)
+                            </Button>
+                         </div>
                        </div>
                     )}
                     {activeJob.status === 'failed' && activeJob.errorMessage && (
-                        <Alert variant="destructive" className="mt-2">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertDescription>
+                        <Card className="mt-2 border-destructive bg-destructive/10">
+                            <CardHeader className="p-3">
+                                <div className="flex items-center gap-2 text-destructive">
+                                    <AlertTriangle className="h-5 w-5" />
+                                    <CardTitle className="text-base">Translation Failed</CardTitle>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-3 pt-0 text-sm text-destructive">
                                 {activeJob.errorMessage}
-                            </AlertDescription>
-                        </Alert>
+                                {uploadedFiles.filter(f => f.status === 'failed').map(f => (
+                                    <p key={f.id} className="mt-1">File {f.originalName}: {f.error || "Processing failed."}</p>
+                                ))}
+                            </CardContent>
+                        </Card>
                     )}
                   </div>
                 )}
@@ -682,21 +823,21 @@ const TranslatePage = () => {
           </CardContent>
           {activeJob && (
             <CardFooter className="border-t p-4 flex justify-end gap-2">
-              {(activeJob.status !== 'complete' && activeJob.status !== 'in-progress') && (
+              {activeJob.status !== 'in-progress' && (
                  <Button variant="outline" onClick={handleCancelJob} disabled={isLoading}>
-                   <XCircle className="mr-2 h-4 w-4" /> Cancel
+                   <XCircleIcon className="mr-2 h-4 w-4" /> Cancel
                  </Button>
               )}
 
-              {(activeJob.status === 'draft' || activeJob.status === 'failed') && (
-                <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading || !jobTitle.trim()}>
-                  <Save className="mr-2 h-4 w-4" /> Save Draft
+              {(activeJob.status === 'draft' || activeJob.status === 'failed' || activeJob.status === 'complete' || activeJob.status === 'archived') && activeJob.status !== 'in-progress' && (
+                <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading || !jobTitle.trim() || !isFormDirty}>
+                  <Save className="mr-2 h-4 w-4" /> {activeJob.status === 'complete' || activeJob.status === 'archived' ? 'Save Changes' : 'Save Draft'}
                 </Button>
               )}
               {(activeJob.status === 'draft' || activeJob.status === 'failed') && (
                 <Button
                   onClick={jobType === 'text' ? handleTranslateTextJob : handleTranslateDocumentJob}
-                  disabled={isLoading || (jobType === 'text' && !inputText.trim()) || (jobType === 'document' && uploadedFiles.length === 0) || !jobTitle.trim()}
+                  disabled={isLoading || (jobType === 'text' && !inputText.trim()) || (jobType === 'document' && uploadedFiles.filter(f => f.status !== 'completed').length === 0) || !jobTitle.trim()}
                   className="bg-primary-gradient text-primary-foreground hover:opacity-90"
                 >
                   {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
@@ -741,7 +882,7 @@ const TranslatePage = () => {
                   <DropdownMenuContent className="w-56">
                     <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {(['draft', 'in-progress', 'complete', 'failed'] as TranslationJobStatus[]).map(status => (
+                    {(['draft', 'in-progress', 'complete', 'archived', 'failed'] as TranslationJobStatus[]).map(status => (
                       <DropdownMenuCheckboxItem
                         key={status}
                         checked={historyFilterStatus.includes(status)}
@@ -767,7 +908,7 @@ const TranslatePage = () => {
           <ScrollArea className="flex-grow p-2">
             {filteredJobs.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                <Search className="mx-auto h-12 w-12 opacity-30 mb-2" />
+                <Info className="mx-auto h-12 w-12 opacity-30 mb-2" />
                 No jobs match your criteria.
               </div>
             ) : (
@@ -816,8 +957,8 @@ const TranslatePage = () => {
                                 <AlertDialogDescription>Are you sure you want to delete the job "{job.name}"? This action cannot be undone.</AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteJob(job.id)} className={buttonVariants({variant: "destructive"})}>Delete</AlertDialogAction>
+                                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={(e) => {e.stopPropagation(); handleDeleteJob(job.id);}} className={buttonVariants({variant: "destructive"})}>Delete</AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
@@ -831,9 +972,25 @@ const TranslatePage = () => {
           </ScrollArea>
         </Card>
       </div>
+      <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard Unsaved Changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to discard them and cancel editing this job?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowCancelConfirm(false)}>Keep Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancelJob} className={buttonVariants({variant: "destructive"})}>Discard & Cancel</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 };
 
 export default TranslatePage;
 
+
+    
