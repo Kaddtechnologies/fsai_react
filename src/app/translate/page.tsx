@@ -1,17 +1,26 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { ArrowRightLeft, Copy, Volume2, Trash2, LanguagesIcon } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  ArrowRightLeft, Copy, Volume2, Trash2, LanguagesIcon, PlusCircle, Search, Filter, Archive, CheckSquare, Square,
+  FileText, FileUp, Save, Play, XCircle, RotateCcw, Edit3, Download, Share2, Clock, ListFilter, X, FileSliders, AlertTriangle, Loader2
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { translateText } from '@/ai/flows/translate-text';
-import type { TranslationEntry } from '@/lib/types';
+import type { TranslationJob, TranslationJobType, TranslationJobStatus, UploadedFile } from '@/lib/types';
 import { useSpeechSynthesis } from '@/hooks/use-speech-synthesis';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 const supportedLanguages = [
   { code: 'en', name: 'English' },
@@ -21,71 +30,353 @@ const supportedLanguages = [
   { code: 'ja', name: 'Japanese' },
   { code: 'ko', name: 'Korean' },
   { code: 'zh', name: 'Chinese (Simplified)' },
-  // Add more languages as needed by the AI model
 ];
+
+const MAX_JOB_TITLE_LENGTH = 100;
+const MAX_TEXT_INPUT_LENGTH = 10000;
+const MAX_FILES_PER_JOB = 5;
+const MAX_TOTAL_UPLOAD_SIZE_MB = 100;
+const MAX_TOTAL_UPLOAD_SIZE_BYTES = MAX_TOTAL_UPLOAD_SIZE_MB * 1024 * 1024;
+const ALLOWED_DOC_EXTENSIONS = ['.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.pdf', '.txt'];
+const ALLOWED_DOC_MIMES: Record<string, string> = {
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "application/pdf": "pdf",
+  "text/plain": "txt",
+};
+
+
+const JobStatusBadge: React.FC<{ status: TranslationJobStatus }> = ({ status }) => {
+  const variant: "default" | "secondary" | "destructive" | "outline" =
+    status === 'complete' ? 'default' : // Green (primary is red by default, default is better for green)
+    status === 'in-progress' ? 'secondary' : // Blue (using secondary as blue indicator)
+    status === 'archived' ? 'destructive' : // Red
+    status === 'draft' ? 'outline' : // Gray
+    status === 'failed' ? 'destructive' :
+    'outline';
+  
+  const textClass = 
+    status === 'complete' ? 'text-accent-success' :
+    status === 'in-progress' ? 'text-accent-info' :
+    status === 'archived' ? 'text-destructive' :
+    status === 'draft' ? 'text-muted-foreground' :
+    status === 'failed' ? 'text-destructive' :
+    'text-muted-foreground';
+
+  const borderClass = 
+    status === 'complete' ? 'border-accent-success/50' :
+    status === 'in-progress' ? 'border-accent-info/50' :
+    status === 'archived' ? 'border-destructive/50' :
+    status === 'draft' ? 'border-border' :
+    status === 'failed' ? 'border-destructive/50' :
+    'border-border';
+
+  return (
+    <Badge variant={variant} className={`capitalize ${textClass} ${borderClass} border`}>
+      {status.replace('-', ' ')}
+    </Badge>
+  );
+};
+
 
 const TranslatePage = () => {
   const { toast } = useToast();
-  const [inputText, setInputText] = useState('');
-  const [outputText, setOutputText] = useState('');
-  const [sourceLang, setSourceLang] = useState('en');
-  const [targetLang, setTargetLang] = useState('es');
-  const [isLoading, setIsLoading] = useState(false);
-  const [history, setHistory] = useState<TranslationEntry[]>([]);
   const { speak, cancel, isSpeaking } = useSpeechSynthesis();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [jobs, setJobs] = useState<TranslationJob[]>([]);
+  const [activeJob, setActiveJob] = useState<TranslationJob | null>(null);
+  const [isLoading, setIsLoading] = useState(false); // For AI translation calls
+
+  // Main area form state (bound to activeJob)
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobType, setJobType] = useState<TranslationJobType>('text');
+  const [sourceLang, setSourceLang] = useState('auto');
+  const [targetLang, setTargetLang] = useState('es'); // Single target for now
+  const [inputText, setInputText] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [outputText, setOutputText] = useState(''); // For text jobs
+
+  // Job history panel state
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [historyFilterType, setHistoryFilterType] = useState<TranslationJobType | 'all'>('all');
+  const [historyFilterStatus, setHistoryFilterStatus] = useState<TranslationJobStatus[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Load jobs from localStorage
   useEffect(() => {
-    const storedHistory = localStorage.getItem('flowserveai-translation-history');
-    if (storedHistory) {
-      setHistory(JSON.parse(storedHistory));
+    const storedJobs = localStorage.getItem('flowserveai-translation-jobs');
+    if (storedJobs) {
+      setJobs(JSON.parse(storedJobs).sort((a:TranslationJob,b:TranslationJob) => b.updatedAt - a.updatedAt));
     }
   }, []);
 
+  // Save jobs to localStorage
   useEffect(() => {
-    localStorage.setItem('flowserveai-translation-history', JSON.stringify(history));
-  }, [history]);
+    if (jobs.length > 0 || localStorage.getItem('flowserveai-translation-jobs')) { // only write if there are jobs or if the item exists (to clear it)
+        localStorage.setItem('flowserveai-translation-jobs', JSON.stringify(jobs.sort((a,b) => b.updatedAt - a.updatedAt)));
+    }
+  }, [jobs]);
 
-  const handleTranslate = async () => {
-    if (!inputText.trim()) {
-      toast({ title: "Input empty", description: "Please enter text to translate.", variant: "destructive" });
+  const resetMainForm = () => {
+    setJobTitle('');
+    setJobType('text');
+    setSourceLang('auto');
+    setTargetLang('es');
+    setInputText('');
+    setUploadedFiles([]);
+    setOutputText('');
+  };
+
+  const handleNewJob = () => {
+    const newJobId = `job-${Date.now()}`;
+    const newJob: TranslationJob = {
+      id: newJobId,
+      name: 'Untitled Translation Job',
+      type: 'text',
+      status: 'draft',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      sourceLanguage: 'auto',
+      targetLanguages: ['es'],
+    };
+    setActiveJob(newJob);
+    setJobs(prev => [newJob, ...prev]);
+    // Populate form from new job
+    setJobTitle(newJob.name);
+    setJobType(newJob.type);
+    setSourceLang(newJob.sourceLanguage);
+    setTargetLang(newJob.targetLanguages[0]);
+    setInputText('');
+    setUploadedFiles([]);
+    setOutputText('');
+  };
+
+  const loadJobToForm = (job: TranslationJob) => {
+    setActiveJob(job);
+    setJobTitle(job.name);
+    setJobType(job.type);
+    setSourceLang(job.sourceLanguage);
+    setTargetLang(job.targetLanguages[0] || 'es');
+    setInputText(job.inputText || '');
+    setUploadedFiles(job.sourceFiles || []);
+    setOutputText(job.outputTextByLanguage?.[job.targetLanguages[0]] || '');
+  };
+
+  const handleSelectJobFromHistory = (jobId: string) => {
+    const jobToLoad = jobs.find(j => j.id === jobId);
+    if (jobToLoad) {
+      if (activeJob?.status === 'draft' && activeJob.id !== jobToLoad.id) {
+         // Consider asking to save current draft
+      }
+      loadJobToForm(jobToLoad);
+    }
+  };
+
+  const updateActiveJobDetails = (updates: Partial<TranslationJob>) => {
+    if (!activeJob) return null;
+    const updatedJob = { ...activeJob, ...updates, updatedAt: Date.now() };
+    setActiveJob(updatedJob);
+    setJobs(prevJobs => prevJobs.map(j => j.id === updatedJob.id ? updatedJob : j));
+    return updatedJob;
+  };
+
+  const handleSaveDraft = () => {
+    if (!activeJob) {
+      toast({ title: "No active job", description: "Create or select a job to save.", variant: "destructive" });
       return;
     }
+    if (!jobTitle.trim()) {
+      toast({ title: "Job title required", description: "Please enter a title for the job.", variant: "destructive" });
+      return;
+    }
+    const currentJobDetails: Partial<TranslationJob> = {
+      name: jobTitle,
+      type: jobType,
+      sourceLanguage: sourceLang,
+      targetLanguages: [targetLang], // Storing single target for now
+      status: 'draft', // Explicitly set to draft on save
+      inputText: jobType === 'text' ? inputText : undefined,
+      sourceFiles: jobType === 'document' ? uploadedFiles : undefined,
+      outputTextByLanguage: jobType === 'text' ? { [targetLang]: outputText } : activeJob.outputTextByLanguage,
+    };
+    updateActiveJobDetails(currentJobDetails);
+    toast({ title: "Draft Saved", description: `Job "${jobTitle}" saved as draft.` });
+  };
+
+  const handleTranslateTextJob = async () => {
+    if (!activeJob || jobType !== 'text' || !inputText.trim()) return;
+    if (!jobTitle.trim()) {
+        toast({ title: "Job title required", description: "Please enter a title for the job before translating.", variant: "destructive" });
+        return;
+    }
+
     setIsLoading(true);
     setOutputText('');
+    const jobWithProgress = updateActiveJobDetails({ status: 'in-progress', name: jobTitle, inputText, sourceLanguage: sourceLang, targetLanguages: [targetLang] });
+
     try {
       const result = await translateText({
         text: inputText,
-        sourceLanguage: sourceLang === 'auto' ? 'English' : supportedLanguages.find(l=>l.code === sourceLang)?.name || 'English', // AI flow needs language name, auto-detect is a placeholder
-        targetLanguage: supportedLanguages.find(l=>l.code === targetLang)?.name || 'Spanish',
+        sourceLanguage: sourceLang === 'auto' ? 'English' : supportedLanguages.find(l => l.code === sourceLang)?.name || 'English',
+        targetLanguage: supportedLanguages.find(l => l.code === targetLang)?.name || 'Spanish',
       });
       setOutputText(result.translatedText);
-      const newEntry: TranslationEntry = {
-        id: `trans-${Date.now()}`,
-        inputText,
-        outputText: result.translatedText,
-        sourceLanguage: sourceLang,
-        targetLanguage: targetLang,
-        timestamp: Date.now(),
-      };
-      setHistory(prev => [newEntry, ...prev.slice(0, 19)]); // Keep last 20 entries
+      updateActiveJobDetails({
+        status: 'complete',
+        outputTextByLanguage: { ...(jobWithProgress?.outputTextByLanguage || {}), [targetLang]: result.translatedText },
+      });
+      toast({ title: "Translation Complete", description: `Job "${jobTitle}" finished.` });
     } catch (error) {
       console.error("Translation failed:", error);
+      updateActiveJobDetails({ status: 'failed', errorMessage: "Translation API call failed." });
       toast({ title: "Translation Error", description: "Could not translate text.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSwapLanguages = () => {
-    if (sourceLang === 'auto') { // Cannot swap 'auto' to target
-        toast({title: "Cannot swap languages", description: "Auto-detect cannot be a target language.", variant: "destructive"});
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+    processFiles(Array.from(files));
+    if(fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
+  };
+
+  const processFiles = (filesToProcess: File[]) => {
+    if (!activeJob) {
+        toast({ title: "No active job", description: "Please create or select a document job first.", variant: "destructive" });
         return;
     }
-    const temp = sourceLang;
-    setSourceLang(targetLang);
-    setTargetLang(temp);
-    setInputText(outputText); // Optionally swap text as well
-    setOutputText(inputText);
+     if (activeJob.type !== 'document') {
+        toast({ title: "Job type mismatch", description: "Please change job type to 'document' to upload files.", variant: "destructive" });
+        return;
+    }
+
+    let currentTotalSize = uploadedFiles.reduce((acc, f) => acc + f.size, 0);
+    const newUploads: UploadedFile[] = [];
+
+    for (const file of filesToProcess) {
+      if (uploadedFiles.length + newUploads.length >= MAX_FILES_PER_JOB) {
+        toast({ title: "File limit reached", description: `Maximum ${MAX_FILES_PER_JOB} files per job.`, variant: "destructive" });
+        break;
+      }
+      if (!ALLOWED_DOC_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext)) && !ALLOWED_DOC_MIMES[file.type]) {
+        toast({ title: "Invalid file type", description: `${file.name} is not a supported document type.`, variant: "destructive" });
+        continue;
+      }
+      if (currentTotalSize + file.size > MAX_TOTAL_UPLOAD_SIZE_BYTES) {
+        toast({ title: "Size limit exceeded", description: `Total upload size cannot exceed ${MAX_TOTAL_UPLOAD_SIZE_MB}MB.`, variant: "destructive" });
+        break;
+      }
+
+      newUploads.push({
+        id: `file-${Date.now()}-${file.name}`,
+        originalName: file.name,
+        size: file.size,
+        type: file.type,
+        progress: 0,
+        status: 'queued',
+        fileObject: file,
+        convertToDocx: file.type === 'application/pdf' ? false : undefined,
+      });
+      currentTotalSize += file.size;
+    }
+
+    if (newUploads.length > 0) {
+      const updatedSourceFiles = [...uploadedFiles, ...newUploads];
+      setUploadedFiles(updatedSourceFiles);
+      updateActiveJobDetails({ sourceFiles: updatedSourceFiles, status: 'draft' }); // Keep as draft until translation starts
+      toast({ title: "Files Added", description: `${newUploads.length} file(s) added to the job.` });
+    }
+  };
+  
+  const removeUploadedFile = (fileId: string) => {
+    const updatedList = uploadedFiles.filter(f => f.id !== fileId);
+    setUploadedFiles(updatedList);
+    if(activeJob) updateActiveJobDetails({ sourceFiles: updatedList });
+  };
+
+  const togglePdfToDocx = (fileId: string) => {
+    const updatedList = uploadedFiles.map(f => f.id === fileId && f.type === 'application/pdf' ? {...f, convertToDocx: !f.convertToDocx} : f );
+    setUploadedFiles(updatedList);
+     if(activeJob) updateActiveJobDetails({ sourceFiles: updatedList });
+  };
+  
+  const handleTranslateDocumentJob = async () => {
+    if (!activeJob || jobType !== 'document' || uploadedFiles.length === 0) return;
+     if (!jobTitle.trim()) {
+        toast({ title: "Job title required", description: "Please enter a title for the job before translating.", variant: "destructive" });
+        return;
+    }
+    
+    setIsLoading(true);
+    updateActiveJobDetails({ status: 'in-progress', name: jobTitle, sourceLanguage: sourceLang, targetLanguages: [targetLang] });
+    
+    // Simulate document processing & translation
+    // In a real app, this would involve backend calls for each file.
+    setUploadedFiles(prev => prev.map(f => ({...f, status: 'processing', progress: 20})));
+
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing time
+    
+    setUploadedFiles(prev => prev.map(f => ({...f, status: 'processing', progress: 60})));
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    setUploadedFiles(prev => prev.map(f => ({...f, status: 'completed', progress: 100})));
+    
+    const mockTranslatedFiles: Record<string, TranslatedFileArtifact[]> = {
+      [targetLang]: uploadedFiles.map(f => ({
+        name: `translated_${f.originalName.split('.')[0]}_${targetLang}.${f.convertToDocx && f.type ==='application/pdf' ? 'docx' : f.originalName.split('.').pop() || 'txt'}`,
+        url: '#simulated-download',
+        format: f.convertToDocx && f.type ==='application/pdf' ? 'docx' : f.originalName.split('.').pop() || 'txt'
+      }))
+    };
+
+    updateActiveJobDetails({ status: 'complete', translatedFilesByLanguage: mockTranslatedFiles });
+    toast({ title: "Document Translation Complete (Simulated)", description: `Job "${jobTitle}" finished.` });
+    setIsLoading(false);
+  };
+
+
+  const filteredJobs = jobs.filter(job => {
+    const matchesSearch = job.name.toLowerCase().includes(historySearchTerm.toLowerCase());
+    const matchesType = historyFilterType === 'all' || job.type === historyFilterType;
+    const matchesStatus = historyFilterStatus.length === 0 || historyFilterStatus.includes(job.status);
+    const matchesArchive = showArchived ? job.status === 'archived' : job.status !== 'archived';
+    return matchesSearch && matchesType && matchesStatus && matchesArchive;
+  });
+
+  const toggleHistoryFilterStatus = (status: TranslationJobStatus) => {
+    setHistoryFilterStatus(prev =>
+      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+    );
+  };
+  
+  const handleDeleteJob = (jobId: string) => {
+    setJobs(prev => prev.filter(j => j.id !== jobId));
+    if (activeJob?.id === jobId) {
+      setActiveJob(null);
+      resetMainForm();
+    }
+    toast({ title: "Job Deleted" });
+  };
+
+  const handleArchiveJob = (jobId: string) => {
+     const jobToUpdate = jobs.find(j => j.id === jobId);
+     if (jobToUpdate) {
+        const newStatus = jobToUpdate.status === 'archived' ? 'draft' : 'archived'; // or original status
+        const updatedJob = {...jobToUpdate, status: newStatus, updatedAt: Date.now()};
+        setJobs(prev => prev.map(j => j.id === jobId ? updatedJob : j));
+        if (activeJob?.id === jobId) {
+            setActiveJob(updatedJob); // Update active job if it's the one being archived/unarchived
+        }
+        toast({ title: jobToUpdate.status === 'archived' ? "Job Unarchived" : "Job Archived" });
+     }
   };
 
   const handleCopy = (text: string) => {
@@ -96,125 +387,352 @@ const TranslatePage = () => {
 
   const handleTTS = (text: string) => {
     if(!text) return;
-    if (isSpeaking) {
-      cancel();
-    } else {
-      speak(text);
-    }
+    if (isSpeaking) cancel(); else speak(text);
   };
   
-  const deleteHistoryEntry = (id: string) => {
-    setHistory(prev => prev.filter(entry => entry.id !== id));
-    toast({ title: "Translation removed from history" });
-  };
+  const getLanguageName = (code: string) => supportedLanguages.find(l => l.code === code)?.name || code;
+
+  const isEditingExistingJob = activeJob && jobs.some(j => j.id === activeJob.id && j.status !== 'draft');
 
   return (
-    <div className="container mx-auto py-8">
-      <Card className="max-w-4xl mx-auto shadow-2xl">
-        <CardHeader className="text-center">
-          <LanguagesIcon className="w-12 h-12 mx-auto text-primary mb-2" />
-          <CardTitle className="text-3xl font-bold">Translation Module</CardTitle>
-          <CardDescription>Translate text between multiple languages with ease.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
-            <div className="space-y-2">
-              <LabelWithSelect lang={sourceLang} setLang={setSourceLang} title="From" isSource={true} />
-              <Textarea
-                placeholder="Enter text to translate..."
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className="min-h-[150px] bg-input focus-visible:ring-1 focus-visible:ring-ring"
-                rows={6}
-              />
-              <div className="flex gap-2">
-                <Button variant="ghost" size="icon" onClick={() => handleCopy(inputText)} disabled={!inputText}><Copy size={16}/></Button>
-                <Button variant="ghost" size="icon" onClick={() => handleTTS(inputText)} disabled={!inputText}>
-                 {isSpeaking && inputText === (document.activeElement as HTMLTextAreaElement)?.value ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
-                </Button>
-              </div>
+    <TooltipProvider>
+      <div className="flex h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4 p-1"> {/* Adjust header height var if needed */}
+        {/* Main Translation Area */}
+        <Card className="flex-grow-[3] basis-0 shadow-xl flex flex-col overflow-hidden"> {/* 60% width approx */}
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-2xl">
+                {activeJob ? 'Edit Job' : 'New Translation Job'}
+              </CardTitle>
+              {activeJob && <JobStatusBadge status={activeJob.status} />}
             </div>
-
-            <Button variant="outline" size="icon" onClick={handleSwapLanguages} className="mx-auto self-center hidden md:flex">
-              <ArrowRightLeft />
-            </Button>
-             <Button variant="outline" onClick={handleSwapLanguages} className="w-full md:hidden">
-              <ArrowRightLeft className="mr-2"/> Swap Languages
-            </Button>
-
-
-            <div className="space-y-2">
-              <LabelWithSelect lang={targetLang} setLang={setTargetLang} title="To" />
-              <Textarea
-                placeholder="Translation will appear here..."
-                value={outputText}
-                readOnly
-                className="min-h-[150px] bg-muted text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
-                rows={6}
-              />
-               <div className="flex gap-2">
-                <Button variant="ghost" size="icon" onClick={() => handleCopy(outputText)} disabled={!outputText}><Copy size={16}/></Button>
-                <Button variant="ghost" size="icon" onClick={() => handleTTS(outputText)} disabled={!outputText}>
-                 {isSpeaking && outputText === (document.activeElement as HTMLTextAreaElement)?.value ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
-                </Button>
+             {activeJob && <CardDescription>ID: {activeJob.id}</CardDescription>}
+          </CardHeader>
+          <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
+            {!activeJob ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <LanguagesIcon className="w-16 h-16 mb-4 text-primary opacity-50" />
+                <p className="text-muted-foreground mb-4">No active job. Create a new job or select one from the history.</p>
+                <Button onClick={handleNewJob}><PlusCircle className="mr-2 h-4 w-4" /> Create New Job</Button>
               </div>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <label htmlFor="jobTitle" className="text-sm font-medium">Job Title <span className="text-destructive">*</span></label>
+                  <Input
+                    id="jobTitle"
+                    placeholder="Enter job title (e.g., Marketing Brochure Q3)"
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value.slice(0, MAX_JOB_TITLE_LENGTH))}
+                    maxLength={MAX_JOB_TITLE_LENGTH}
+                    disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}
+                  />
+                  <p className="text-xs text-muted-foreground text-right">{jobTitle.length}/{MAX_JOB_TITLE_LENGTH}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Job Type</label>
+                    <Select value={jobType} onValueChange={(v) => setJobType(v as TranslationJobType)} disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text Translation</SelectItem>
+                        <SelectItem value="document">Document Translation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                   <div className="space-y-1">
+                     <label className="text-sm font-medium">Source Language</label>
+                     <Select value={sourceLang} onValueChange={setSourceLang} disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}>
+                       <SelectTrigger><SelectValue placeholder="Select source language" /></SelectTrigger>
+                       <SelectContent>
+                         <SelectItem value="auto">Auto-detect</SelectItem>
+                         {supportedLanguages.map(l => <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>)}
+                       </SelectContent>
+                     </Select>
+                   </div>
+                </div>
+                
+                <div className="space-y-1">
+                   <label className="text-sm font-medium">Target Language</label>
+                   <Select value={targetLang} onValueChange={setTargetLang} disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}>
+                     <SelectTrigger><SelectValue placeholder="Select target language" /></SelectTrigger>
+                     <SelectContent>
+                       {supportedLanguages.map(l => <SelectItem key={l.code} value={l.code} disabled={l.code === sourceLang && sourceLang !== 'auto'}>{l.name}</SelectItem>)}
+                     </SelectContent>
+                   </Select>
+                 </div>
+
+                {jobType === 'text' && (
+                  <div className="space-y-4">
+                    <div>
+                      <Textarea
+                        placeholder="Enter text to translate..."
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value.slice(0, MAX_TEXT_INPUT_LENGTH))}
+                        className="min-h-[150px] bg-input focus-visible:ring-1 focus-visible:ring-ring"
+                        rows={6}
+                        maxLength={MAX_TEXT_INPUT_LENGTH}
+                        disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}
+                      />
+                       <div className="flex justify-between items-center mt-1">
+                          <p className="text-xs text-muted-foreground">{inputText.length}/{MAX_TEXT_INPUT_LENGTH} characters</p>
+                          <div>
+                            <Button variant="ghost" size="icon" onClick={() => handleCopy(inputText)} disabled={!inputText}><Copy size={16}/></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleTTS(inputText)} disabled={!inputText}>
+                              {isSpeaking && inputText === (document.activeElement as HTMLTextAreaElement)?.value ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
+                            </Button>
+                          </div>
+                       </div>
+                    </div>
+                    <div>
+                      <Textarea
+                        placeholder="Translation will appear here..."
+                        value={outputText}
+                        readOnly
+                        className="min-h-[150px] bg-muted text-muted-foreground"
+                        rows={6}
+                      />
+                      <div className="flex justify-end items-center mt-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleCopy(outputText)} disabled={!outputText}><Copy size={16}/></Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleTTS(outputText)} disabled={!outputText}>
+                           {isSpeaking && outputText === (document.activeElement as HTMLTextAreaElement)?.value ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
+                          </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {jobType === 'document' && (
+                  <div className="space-y-4">
+                    <Card className="border-dashed border-2 hover:border-primary transition-colors">
+                      <CardContent className="p-6 text-center">
+                        <FileUp className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+                        <p className="mb-2 text-sm text-muted-foreground">Drag & drop files here or</p>
+                        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}>
+                          Browse Files
+                        </Button>
+                        <input type="file" ref={fileInputRef} multiple onChange={handleFileSelect} className="hidden" accept={ALLOWED_DOC_EXTENSIONS.join(',')} />
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          Max {MAX_FILES_PER_JOB} files. Max {MAX_TOTAL_UPLOAD_SIZE_MB}MB total.
+                          Supported: {ALLOWED_DOC_EXTENSIONS.join(', ')}
+                        </p>
+                      </CardContent>
+                    </Card>
+                    {uploadedFiles.length > 0 && (
+                      <ScrollArea className="h-48 border rounded-md p-2">
+                        <p className="text-sm font-medium mb-2">Selected Files ({uploadedFiles.length}/{MAX_FILES_PER_JOB}):</p>
+                        <ul className="space-y-2">
+                          {uploadedFiles.map(file => (
+                            <li key={file.id} className="flex items-center justify-between gap-2 p-2 rounded bg-muted/50 text-sm">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileText size={18} className="text-primary shrink-0" />
+                                <span className="truncate" title={file.originalName}>{file.originalName}</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                              </div>
+                              <div className='flex items-center gap-1'>
+                                {file.type === 'application/pdf' && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button variant={file.convertToDocx ? "secondary" : "outline"} size="sm" className="h-7 px-2 text-xs" onClick={() => togglePdfToDocx(file.id)} disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}>
+                                        <FileSliders size={14} className="mr-1"/> DOCX
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Convert PDF to DOCX on translation</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeUploadedFile(file.id)} disabled={isLoading || (isEditingExistingJob && activeJob.status !== 'draft')}><XCircle size={16} /></Button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </ScrollArea>
+                    )}
+                    {activeJob.status === 'complete' && activeJob.translatedFilesByLanguage?.[targetLang] && (
+                       <div>
+                        <h4 className="text-md font-semibold mb-2">Translated Documents for {getLanguageName(targetLang)}:</h4>
+                         <ul className="space-y-2">
+                          {(activeJob.translatedFilesByLanguage[targetLang] || []).map(file => (
+                            <li key={file.name} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileText size={18} className="text-accent-success shrink-0" />
+                                <span className="truncate" title={file.name}>{file.name}</span>
+                              </div>
+                              <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => toast({title: "Download (Simulated)", description: `Would download ${file.name}`})}>
+                                <Download size={14} className="mr-1"/> Download
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                       </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+          {activeJob && (
+            <CardFooter className="border-t p-4 flex justify-end gap-2">
+              {(activeJob.status === 'draft' || activeJob.status === 'failed') && (
+                <Button variant="outline" onClick={handleSaveDraft} disabled={isLoading || !jobTitle.trim()}>
+                  <Save className="mr-2 h-4 w-4" /> Save Draft
+                </Button>
+              )}
+              {(activeJob.status === 'draft' || activeJob.status === 'failed') && (
+                <Button
+                  onClick={jobType === 'text' ? handleTranslateTextJob : handleTranslateDocumentJob}
+                  disabled={isLoading || (jobType === 'text' && !inputText.trim()) || (jobType === 'document' && uploadedFiles.length === 0) || !jobTitle.trim()}
+                  className="bg-primary-gradient text-primary-foreground hover:opacity-90"
+                >
+                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                  Translate
+                </Button>
+              )}
+              {activeJob.status === 'in-progress' && <Button disabled variant="secondary"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Translating...</Button>}
+              {activeJob.status === 'complete' && <Button variant="default" disabled className="bg-accent-success hover:bg-accent-success/90"><CheckSquare className="mr-2 h-4 w-4" /> Completed</Button>}
+            </CardFooter>
+          )}
+        </Card>
+
+        {/* Job History Panel */}
+        <Card className="flex-grow-[2] basis-0 shadow-xl flex flex-col overflow-hidden"> {/* 40% width approx */}
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-xl">Job History</CardTitle>
+               <Button variant="outline" size="sm" onClick={handleNewJob}><PlusCircle className="mr-2 h-4 w-4" /> New Job</Button>
             </div>
-          </div>
-
-          <Button onClick={handleTranslate} disabled={isLoading || !inputText.trim()} className="w-full bg-primary-gradient text-primary-foreground hover:opacity-90">
-            {isLoading ? 'Translating...' : 'Translate Text'}
-          </Button>
-
-          {history.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold mb-3">Translation History</h3>
-              <ScrollArea className="h-[300px] border rounded-md p-3 bg-muted/30">
-                <div className="space-y-3">
-                {history.map(entry => (
-                  <Card key={entry.id} className="bg-card shadow-md">
-                    <CardContent className="p-3 text-sm relative">
-                       <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => deleteHistoryEntry(entry.id)}>
-                        <Trash2 size={14} className="text-muted-foreground hover:text-destructive"/>
+            <div className="mt-2 space-y-2">
+              <Input
+                placeholder="Search job names..."
+                value={historySearchTerm}
+                onChange={(e) => setHistorySearchTerm(e.target.value)}
+                className="h-9"
+                prependIcon={<Search size={16} className="text-muted-foreground" />}
+              />
+              <div className="flex gap-2 items-center">
+                <Select value={historyFilterType} onValueChange={(v) => setHistoryFilterType(v as any)}>
+                  <SelectTrigger className="h-9 text-xs flex-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="text">Text Jobs</SelectItem>
+                    <SelectItem value="document">Document Jobs</SelectItem>
+                  </SelectContent>
+                </Select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="h-9 text-xs flex-1">
+                      <ListFilter className="mr-2 h-4 w-4" /> Status ({historyFilterStatus.length > 0 ? historyFilterStatus.length : 'All'})
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {(['draft', 'in-progress', 'complete', 'failed'] as TranslationJobStatus[]).map(status => (
+                      <DropdownMenuCheckboxItem
+                        key={status}
+                        checked={historyFilterStatus.includes(status)}
+                        onCheckedChange={() => toggleHistoryFilterStatus(status)}
+                        className="capitalize"
+                      >
+                        {status.replace('-', ' ')}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                 <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant={showArchived ? "secondary" : "outline"} size="icon" className="h-9 w-9" onClick={() => setShowArchived(!showArchived)}>
+                        <Archive size={16} />
                       </Button>
-                      <p className="font-medium truncate">
-                        <span className="text-muted-foreground">{supportedLanguages.find(l=>l.code === entry.sourceLanguage)?.name || entry.sourceLanguage}</span>
-                        <ArrowRightLeft size={12} className="inline mx-1" />
-                        <span className="text-muted-foreground">{supportedLanguages.find(l=>l.code === entry.targetLanguage)?.name || entry.targetLanguage}</span>
-                      </p>
-                      <p className="text-foreground mt-1 line-clamp-2"><strong>Original:</strong> {entry.inputText}</p>
-                      <p className="text-accent-foreground mt-1 line-clamp-2"><strong>Translated:</strong> {entry.outputText}</p>
-                      <p className="text-xs text-muted-foreground mt-1.5">{new Date(entry.timestamp).toLocaleString()}</p>
+                    </TooltipTrigger>
+                    <TooltipContent>{showArchived ? "Hide Archived" : "Show Archived"}</TooltipContent>
+                  </Tooltip>
+              </div>
+            </div>
+          </CardHeader>
+          <ScrollArea className="flex-grow p-2">
+            {filteredJobs.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                <Search className="mx-auto h-12 w-12 opacity-30 mb-2" />
+                No jobs match your criteria.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredJobs.map(job => (
+                  <Card
+                    key={job.id}
+                    className={cn(
+                        "hover:shadow-md transition-shadow cursor-pointer",
+                        activeJob?.id === job.id && "ring-2 ring-primary border-primary"
+                    )}
+                    onClick={() => handleSelectJobFromHistory(job.id)}
+                  >
+                    <CardContent className="p-3 text-sm">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-grow min-w-0">
+                           <p className="font-semibold truncate text-base" title={job.name}>{job.name}</p>
+                           <p className="text-xs text-muted-foreground">Type: <span className="capitalize">{job.type}</span></p>
+                        </div>
+                        <JobStatusBadge status={job.status} />
+                      </div>
+                      <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
+                         <span><Clock size={12} className="inline mr-1" /> {format(new Date(job.updatedAt), "MMM d, HH:mm")}</span>
+                        <div className="flex gap-1">
+                           <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleArchiveJob(job.id); }}>
+                                <Archive size={14} className={job.status === 'archived' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}/>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{job.status === 'archived' ? "Unarchive" : "Archive"}</TooltipContent>
+                          </Tooltip>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => e.stopPropagation()}>
+                                    <Trash2 size={14} className="text-muted-foreground hover:text-destructive"/>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Delete Job</TooltipContent>
+                              </Tooltip>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Delete Job?</AlertDialogTitle>
+                                <AlertDialogDescription>Are you sure you want to delete the job "{job.name}"? This action cannot be undone.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteJob(job.id)} className={buttonVariants({variant: "destructive"})}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              </div>
+            )}
+          </ScrollArea>
+        </Card>
+      </div>
+    </TooltipProvider>
   );
 };
 
-const LabelWithSelect = ({ lang, setLang, title, isSource = false }: { lang: string, setLang: (value: string) => void, title: string, isSource?: boolean }) => (
-  <div className="flex justify-between items-center mb-1">
-    <label className="text-sm font-medium text-muted-foreground">{title}:</label>
-    <Select value={lang} onValueChange={setLang}>
-      <SelectTrigger className="w-[180px] h-8 text-xs bg-card">
-        <SelectValue placeholder="Select language" />
-      </SelectTrigger>
-      <SelectContent>
-        {isSource && <SelectItem value="auto" className="text-xs">Auto-detect</SelectItem>}
-        {supportedLanguages.map(l => (
-          <SelectItem key={l.code} value={l.code} className="text-xs">{l.name}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
+// Helper components that might be needed from ui folder (simplified here if not directly available)
+const DropdownMenu: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => <div className="relative inline-block text-left">{children}</div>;
+const DropdownMenuTrigger: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => <>{children}</>;
+const DropdownMenuContent: React.FC<React.PropsWithChildren<{className?: string, style?: React.CSSProperties}>> = ({ children, className, style }) => <div className={cn("origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-10 p-1", className)} style={style}>{children}</div>;
+const DropdownMenuLabel: React.FC<React.PropsWithChildren<{className?: string}>> = ({ children, className }) => <div className={cn("px-2 py-1.5 text-sm font-semibold", className)}>{children}</div>;
+const DropdownMenuSeparator: React.FC = () => <div className="-mx-1 my-1 h-px bg-muted" />;
+const DropdownMenuCheckboxItem: React.FC<React.PropsWithChildren<{checked: boolean, onCheckedChange: (checked: boolean) => void, className?: string}>> = ({ children, checked, onCheckedChange, className }) => (
+  <label className={cn("flex items-center px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm", className)}>
+    <input type="checkbox" checked={checked} onChange={(e) => onCheckedChange(e.target.checked)} className="mr-2 h-4 w-4 text-primary border-muted-foreground rounded focus:ring-primary" />
+    {children}
+  </label>
 );
 
+
 export default TranslatePage;
-
-
-    
