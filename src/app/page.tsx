@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { MOCK_PRODUCTS, searchMockProducts } from '@/data/products';
 import { useSpeechSynthesis } from '@/hooks/use-speech-synthesis';
+import ReactMarkdown from 'react-markdown';
 
 // Mock user
 const MOCK_USER = {
@@ -420,7 +421,7 @@ const ChatPage = () => {
           const summaryResponse = await summarizeDocument({ documentDataUri: dataUri });
           const finalDocUpdate: Partial<Document> = { summary: summaryResponse.summary, status: 'completed', progress: 100 };
           updateMessageInData(uploadMessageId,
-            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: `Successfully processed ${file.name}. Summary (Markdown) is available.` },
+            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: `Successfully processed ${file.name}. Summary is available.` },
             finalDocUpdate
           );
           toast({ title: "File processed", description: `${file.name} uploaded and summarized.` });
@@ -604,6 +605,7 @@ const ChatPage = () => {
                                 </details>
                               )}
                             </CardContent>
+                            {/* CardFooter removed here as it's not typically used for product cards like this */}
                           </Card>
                         ))}
                       </div>
@@ -671,12 +673,12 @@ const ChatPage = () => {
           <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{modalSummaryContent.title}</DialogTitle>
-              <DialogDescriptionComponent className="text-sm text-muted-foreground">Raw Markdown Preview. This shows the exact Markdown text; it is not rendered into formatted HTML.</DialogDescriptionComponent>
+              <DialogDescriptionComponent className="text-sm text-muted-foreground">Rendered Markdown Preview.</DialogDescriptionComponent>
             </DialogHeader>
             <ScrollArea className="flex-1 min-h-0 py-2 pr-3 -mr-2">
-              <pre className="block w-full text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
-                {modalSummaryContent.content}
-              </pre>
+              <div className="prose dark:prose-invert max-w-none p-1">
+                <ReactMarkdown>{modalSummaryContent.content}</ReactMarkdown>
+              </div>
             </ScrollArea>
             <DialogClose asChild>
               <Button type="button" variant="outline" className="mt-4">Close</Button>
