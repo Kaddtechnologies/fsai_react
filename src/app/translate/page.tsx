@@ -108,6 +108,12 @@ const TranslatePage = () => {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [jobIdPendingDeletion, setJobIdPendingDeletion] = useState<string | null>(null);
+  
+  // History panel states
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [historyFilterType, setHistoryFilterType] = useState<'all' | TranslationJobType>('all');
+  const [historyFilterStatus, setHistoryFilterStatus] = useState<TranslationJobStatus[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
 
 
   // Load jobs from localStorage
@@ -135,16 +141,14 @@ const TranslatePage = () => {
   // Update isFormDirty state
   useEffect(() => {
     if (!activeJob) {
-      // If no active job, form is dirty if any field has a non-default value
-      const isDirty = jobTitle !== '' || jobType !== 'text' || sourceLang !== 'auto' || targetLang !== 'es' || inputText !== '' || uploadedFiles.length > 0;
-      setIsFormDirty(isDirty);
+      setIsFormDirty(false); // No active job, no form to be dirty
       return;
     }
-    // If there is an active job, compare form fields to activeJob's persisted state
+    
     const titleDirty = jobTitle !== activeJob.name;
     const typeDirty = jobType !== activeJob.type;
     const sourceLangDirty = sourceLang !== activeJob.sourceLanguage;
-    const targetLangDirty = targetLang !== (activeJob.targetLanguages[0] || 'es'); // Assuming single target lang for now
+    const targetLangDirty = targetLang !== (activeJob.targetLanguages[0] || 'es'); 
     const inputTextDirty = jobType === 'text' && inputText !== (activeJob.inputText || '');
     
     const filesDirty = jobType === 'document' && (
@@ -158,7 +162,7 @@ const TranslatePage = () => {
   }, [jobTitle, jobType, sourceLang, targetLang, inputText, uploadedFiles, activeJob]);
 
 
-  const resetMainFormToEmpty = () => {
+  const resetMainFormToEmpty = (fromCancel: boolean = false) => {
     setActiveJob(null);
     setJobTitle('');
     setJobType('text');
@@ -168,7 +172,8 @@ const TranslatePage = () => {
     setUploadedFiles([]);
     setOutputText('');
     setSelectedTranslatedFiles({});
-    setTimeout(() => setIsFormDirty(false),0); // Ensure dirty check runs after state updates
+    if(fromCancel) setIsFormDirty(false); // Explicitly set false for cancel.
+    else setTimeout(() => setIsFormDirty(false),0); // Ensure dirty check runs after state updates for other resets
   };
   
   const createNewJobObject = (type: TranslationJobType = 'text'): TranslationJob => {
@@ -193,7 +198,7 @@ const TranslatePage = () => {
       resetMainFormToEmpty();
       return;
     }
-    setActiveJob(job); // The job object itself
+    setActiveJob(job); 
     setJobTitle(job.name);
     setJobType(job.type);
     setSourceLang(job.sourceLanguage);
@@ -202,23 +207,21 @@ const TranslatePage = () => {
     setUploadedFiles(job.sourceFiles || []);
     setOutputText(job.outputTextByLanguage?.[job.targetLanguages[0]] || '');
     setSelectedTranslatedFiles({});
-    setTimeout(() => setIsFormDirty(false), 0); // Reset dirty state after loading
+    setTimeout(() => setIsFormDirty(false), 0); 
   };
 
   // Core function to update an active job, or add it if it's new
   const persistActiveJobDetails = useCallback((updates: Partial<TranslationJob>, newStatus?: TranslationJobStatus): TranslationJob | null => {
-    if (!activeJob) return null; // Should not happen if called correctly
+    if (!activeJob) return null; 
 
     let currentJobData = { ...activeJob };
 
-    // Apply form field values to currentJobData before persisting
     currentJobData.name = jobTitle.trim() || 'Untitled Translation Job';
     currentJobData.type = jobType;
     currentJobData.sourceLanguage = sourceLang;
-    currentJobData.targetLanguages = [targetLang]; // Assuming single target for now
+    currentJobData.targetLanguages = [targetLang]; 
     if (jobType === 'text') {
         currentJobData.inputText = inputText;
-        // Preserve existing output for other languages if multi-target is implemented later
         currentJobData.outputTextByLanguage = { ...(currentJobData.outputTextByLanguage || {}), [targetLang]: outputText };
     } else {
         currentJobData.sourceFiles = uploadedFiles;
@@ -226,7 +229,7 @@ const TranslatePage = () => {
     
     const finalJobToPersist: TranslationJob = {
       ...currentJobData,
-      ...updates, // Apply specific updates passed to the function
+      ...updates, 
       status: newStatus || updates.status || currentJobData.status,
       updatedAt: Date.now(),
     };
@@ -236,29 +239,35 @@ const TranslatePage = () => {
       if (jobExistsInList) {
         return prevJobs.map(j => (j.id === finalJobToPersist.id ? finalJobToPersist : j)).sort((a, b) => b.updatedAt - a.updatedAt);
       }
+      // This path is for brand new jobs that are now being persisted (e.g., on first save/translate)
       return [finalJobToPersist, ...prevJobs].sort((a, b) => b.updatedAt - a.updatedAt);
     });
 
-    setActiveJob(finalJobToPersist); // Update activeJob to the fully persisted version
-    setTimeout(() => setIsFormDirty(false), 0); // Reset dirty after persistence
+    setActiveJob(finalJobToPersist); 
+    setTimeout(() => setIsFormDirty(false), 0); 
     return finalJobToPersist;
   }, [activeJob, jobTitle, jobType, sourceLang, targetLang, inputText, outputText, uploadedFiles, setJobs, setActiveJob, setIsFormDirty]);
 
 
   const handleNewJob = (type: TranslationJobType = 'text') => {
+    if (isFormDirty) {
+        setShowCancelConfirm(true); // Prompt to save/discard if current form is dirty
+        // If user confirms discard, performCancelAction will eventually call handleNewJob again without dirty form
+        return; 
+    }
     const newJobTemplate = createNewJobObject(type);
-    setActiveJob(newJobTemplate); // Set as temporary active job
-    loadJobToForm(newJobTemplate); // Populate form
-    // Do NOT add to `jobs` list yet
+    setActiveJob(newJobTemplate); // This is a temporary active job, not yet in the `jobs` list
+    loadJobToForm(newJobTemplate); // Populate form based on this template
   };
 
   const handleSelectJobFromHistory = (jobId: string) => {
+    if (isFormDirty && activeJob && activeJob.id !== jobId) { // If form is dirty and trying to switch to a DIFFERENT job
+        setShowCancelConfirm(true); 
+        // TODO: Consider saving the jobIdToLoad and loading it if performCancelAction is chosen
+        return;
+    }
     const jobToLoad = jobs.find(j => j.id === jobId);
     if (jobToLoad) {
-      // If current activeJob is a new, unsaved "Untitled" job, don't persist it before switching
-      if (activeJob && activeJob.name === 'Untitled Translation Job' && activeJob.status === 'draft' && !jobs.some(j => j.id === activeJob.id)) {
-         // This was a temporary new job, just discard it
-      }
       loadJobToForm(jobToLoad);
     }
   };
@@ -277,24 +286,42 @@ const TranslatePage = () => {
         updatedAt: Date.now(),
       };
       
-      // Update the temporary activeJob's properties. It will be persisted on save/translate.
       setActiveJob(prev => prev ? { ...prev, ...updatedFieldsForTypeSwitch } : null);
 
-      // Update UI input fields based on the new type
       if (newType === 'text') {
         setUploadedFiles([]); 
+        setOutputText(''); // Also clear output for new type
       } else { 
         setInputText(''); 
         setOutputText('');
       }
-      toast({ title: "Job Type Switched", description: `Switched to ${newType} translation. Save or translate to confirm.`, variant: "default" });
+      // toast({ title: "Job Type Switched", description: `Switched to ${newType} translation. Save or translate to confirm.`, variant: "default" });
     } else {
       // No active job, so set up a new temporary one with the selected type
-      const newJobTemplate = createNewJobObject(newType);
-      setActiveJob(newJobTemplate);
-      loadJobToForm(newJobTemplate);
+      handleNewJob(newType);
     }
   };
+
+  const ensureActiveJobIsPersisted = () => {
+    if (!activeJob) return null;
+    
+    let jobToPersist = { ...activeJob };
+    jobToPersist.name = jobTitle.trim() || 'Untitled Translation Job';
+    jobToPersist.type = jobType;
+    jobToPersist.sourceLanguage = sourceLang;
+    jobToPersist.targetLanguages = [targetLang];
+    if (jobType === 'text') jobToPersist.inputText = inputText;
+    else jobToPersist.sourceFiles = uploadedFiles;
+
+    if (!jobs.some(j => j.id === jobToPersist.id)) {
+        // This is a new job, add it to the list
+        setJobs(prevJobs => [jobToPersist, ...prevJobs].sort((a, b) => b.updatedAt - a.updatedAt));
+        setActiveJob(jobToPersist); // Ensure activeJob state is the one in the list
+        return jobToPersist;
+    }
+    return activeJob; // Already exists, no need to re-add, just ensure current form values are used
+  };
+
 
   const handleSaveDraft = () => {
     if (!activeJob) {
@@ -306,8 +333,11 @@ const TranslatePage = () => {
       return;
     }
 
+    const jobAfterEnsuringPersistence = ensureActiveJobIsPersisted();
+    if (!jobAfterEnsuringPersistence) return; // Should not happen if activeJob exists
+
     const savedJob = persistActiveJobDetails(
-        { status: activeJob.status === 'in-progress' ? 'in-progress' : (activeJob.status === 'complete' ? 'complete' : 'draft') } // Preserve in-progress/complete, otherwise draft
+        { status: jobAfterEnsuringPersistence.status === 'in-progress' ? 'in-progress' : (jobAfterEnsuringPersistence.status === 'complete' ? 'complete' : 'draft') }
     );
     
     if (savedJob) {
@@ -324,18 +354,8 @@ const TranslatePage = () => {
   };
 
   const performCancelAction = () => {
-    // If it was a temporary new job (not yet in `jobs` list), just reset.
-    if (activeJob && !jobs.some(j => j.id === activeJob.id)) {
-      resetMainFormToEmpty();
-      toast({ title: "New Job Cancelled", description: "No changes were saved." });
-    } else if (activeJob) {
-      // If it was an existing job, reload it from `jobs` to discard changes.
-      const originalJob = jobs.find(j => j.id === activeJob.id);
-      loadJobToForm(originalJob || null); // Fallback to reset if somehow not found
-      toast({ title: "Changes Discarded", description: "Reverted to last saved state." });
-    } else {
-        resetMainFormToEmpty(); // Should not happen if cancel is only available with activeJob
-    }
+    resetMainFormToEmpty(true); // true to signal it's from cancel, resets dirty flag immediately
+    toast({ title: "Action Cancelled", description: "Current operation was cancelled." });
     setShowCancelConfirm(false);
   };
 
@@ -355,14 +375,16 @@ const TranslatePage = () => {
     setIsLoading(true);
     setOutputText(''); 
     
-    // Persist job details (will add to `jobs` if new) and set status to 'in-progress'
-    const jobWithProgress = persistActiveJobDetails({}, 'in-progress');
-
-    if (!jobWithProgress) { 
+    const jobWithProgress = ensureActiveJobIsPersisted();
+    if(!jobWithProgress) {
       setIsLoading(false);
       toast({ title: "Error", description: "Could not start translation. Active job not found.", variant: "destructive" });
       return;
     }
+    
+    // Set status to 'in-progress' before API call
+    persistActiveJobDetails({}, 'in-progress');
+
 
     try {
       const result = await translateText({
@@ -370,11 +392,11 @@ const TranslatePage = () => {
         sourceLanguage: sourceLang === 'auto' ? 'English' : supportedLanguages.find(l => l.code === sourceLang)?.name || 'English', 
         targetLanguage: supportedLanguages.find(l => l.code === targetLang)?.name || 'Spanish',
       });
-      setOutputText(result.translatedText); // Update UI state for output text
-      persistActiveJobDetails({ // Persist the result and set status to 'complete'
-        outputTextByLanguage: { ...(jobWithProgress.outputTextByLanguage || {}), [targetLang]: result.translatedText },
+      setOutputText(result.translatedText); 
+      persistActiveJobDetails({ 
+        outputTextByLanguage: { ...(activeJob?.outputTextByLanguage || {}), [targetLang]: result.translatedText },
       }, 'complete');
-      toast({ title: "Translation Complete", description: `Job "${jobWithProgress.name}" finished.` });
+      toast({ title: "Translation Complete", description: `Job "${jobTitle}" finished.` });
     } catch (error) {
       console.error("Translation failed:", error);
       persistActiveJobDetails({ errorMessage: "Translation API call failed." }, 'failed');
@@ -384,26 +406,22 @@ const TranslatePage = () => {
     }
   };
 
-  const processSingleFileForJob = async (file: UploadedFile, job: TranslationJob, targetLangCode: string): Promise<UploadedFile> => {
+  const processSingleFileForJob = async (file: UploadedFile, currentJob: TranslationJob, targetLangCode: string): Promise<UploadedFile> => {
     let currentFileState = { ...file, status: 'processing' as UploadedFile['status'], progress: 10 };
     
+    // Update UI for this specific file
     setUploadedFiles(prev => prev.map(f => f.id === currentFileState.id ? currentFileState : f));
-    persistActiveJobDetails({ sourceFiles: uploadedFiles.map(f => f.id === currentFileState.id ? currentFileState : f) });
     
-    await new Promise(resolve => setTimeout(resolve, 700 + Math.random() * 500));
+    await new Promise(resolve => setTimeout(resolve, 700 + Math.random() * 500)); // Simulate upload
     currentFileState = { ...currentFileState, progress: 30 };
     setUploadedFiles(prev => prev.map(f => f.id === currentFileState.id ? currentFileState : f));
-    persistActiveJobDetails({ sourceFiles: uploadedFiles.map(f => f.id === currentFileState.id ? currentFileState : f) });
 
-
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 800));
+    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 800)); // Simulate processing
     currentFileState = { ...currentFileState, progress: 70 };
     setUploadedFiles(prev => prev.map(f => f.id === currentFileState.id ? currentFileState : f));
-    persistActiveJobDetails({ sourceFiles: uploadedFiles.map(f => f.id === currentFileState.id ? currentFileState : f) });
-
 
     console.log(`Simulating translation for ${file.originalName} to ${targetLangCode}`);
-    await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 1000));
+    await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 1000)); // Simulate translation
     
     const success = Math.random() > 0.1; 
     if (success) {
@@ -414,7 +432,6 @@ const TranslatePage = () => {
       toast({ title: "File Failed", description: `${currentFileState.originalName} failed to translate (simulated).`, variant: "destructive" });
     }
     setUploadedFiles(prev => prev.map(f => f.id === currentFileState.id ? currentFileState : f));
-    // Don't call persistActiveJobDetails here, it will be called after all files in the loop
     return currentFileState;
   };
 
@@ -422,32 +439,34 @@ const TranslatePage = () => {
     const files = event.target.files;
     if (!files) return;
     
-    let currentJobForUpload = activeJob;
+    let jobContext = activeJob;
 
-    if (!currentJobForUpload) { 
+    if (!jobContext) { 
       const newJobTemplate = createNewJobObject('document');
-      setActiveJob(newJobTemplate);
-      loadJobToForm(newJobTemplate);
-      currentJobForUpload = newJobTemplate; 
-      setJobType('document');
-    } else if (currentJobForUpload.type !== 'document') { 
+      setActiveJob(newJobTemplate); // Set as temp active job
+      setJobType('document'); // Ensure UI state matches
+      jobContext = newJobTemplate;
+      // Don't loadToForm yet, processFiles will update `uploadedFiles` and then form fields derive from `activeJob`
+    } else if (jobContext.type !== 'document') { 
       setJobType('document'); // Update UI select
       const updatedFieldsForTypeSwitch: Partial<TranslationJob> = {
-        type: 'document', status: 'draft', inputText: '', outputTextByLanguage: {},
+        type: 'document', status: 'draft', inputText: '', sourceFiles: [], outputTextByLanguage: {},
       };
-      currentJobForUpload = { ...currentJobForUpload, ...updatedFieldsForTypeSwitch };
-      setActiveJob(currentJobForUpload);
-      loadJobToForm(currentJobForUpload); // Reload form to reflect type change & clear text fields
+      const switchedJob = { ...jobContext, ...updatedFieldsForTypeSwitch };
+      setActiveJob(switchedJob);
+      jobContext = switchedJob;
+      setInputText(''); // Clear text fields explicitly
+      setOutputText('');
       toast({ title: "Job type switched", description: "Switched to Document Translation mode."});
     }
     
-    processFiles(Array.from(files), currentJobForUpload);
+    processFiles(Array.from(files), jobContext); // Pass the current jobContext
     
     if(fileInputRef.current) fileInputRef.current.value = ""; 
   };
 
-  const processFiles = (filesToProcess: File[], jobContext: TranslationJob) => {
-     let currentSourceFiles = [...(jobContext.sourceFiles || [])];
+  const processFiles = (filesToProcess: File[], currentJobContext: TranslationJob) => {
+     let currentSourceFiles = [...(currentJobContext.sourceFiles || [])];
      let currentTotalSize = currentSourceFiles.reduce((acc, f) => acc + f.size, 0);
      const newUploads: UploadedFile[] = [];
 
@@ -481,11 +500,10 @@ const TranslatePage = () => {
       const updatedSourceFilesList = [...currentSourceFiles, ...newUploads];
       setUploadedFiles(updatedSourceFilesList); // Update UI state for file list
       
-      // Update the temporary activeJob with these new files. It will be persisted on save/translate.
-      if (activeJob) {
-        setActiveJob(prev => prev ? { ...prev, sourceFiles: updatedSourceFilesList, status: 'draft' } : null);
-      }
-      toast({ title: "Files Added", description: `${newUploads.length} file(s) added to the job. Save or translate to confirm.` });
+      // Update the temporary activeJob with these new files. 
+      // It will be persisted on save/translate if it's a new job.
+      setActiveJob(prev => prev ? { ...prev, sourceFiles: updatedSourceFilesList, type: 'document', status: 'draft' } : null);
+      // toast({ title: "Files Added", description: `${newUploads.length} file(s) added to the job. Save or translate to confirm.` });
     }
   };
   
@@ -516,17 +534,20 @@ const TranslatePage = () => {
     }
     
     setIsLoading(true);
-    // Persist job (will add to `jobs` if new) and set status to 'in-progress'
-    let jobForTranslation = persistActiveJobDetails({}, 'in-progress');
-
+    
+    const jobForTranslation = ensureActiveJobIsPersisted();
     if (!jobForTranslation) {
       setIsLoading(false);
       toast({ title: "Error", description: "Could not start translation. Active job not found.", variant: "destructive" });
       return;
     }
+    
+    // Set job status to in-progress before processing files
+    persistActiveJobDetails({}, 'in-progress');
+
 
     let currentSourceFilesState = [...(jobForTranslation.sourceFiles || [])]; 
-    const newTranslatedArtifactsForJob: TranslatedFileArtifact[] = jobForTranslation.translatedFilesByLanguage?.[targetLang] || [];
+    let newTranslatedArtifactsForJob: TranslatedFileArtifact[] = jobForTranslation.translatedFilesByLanguage?.[targetLang] || [];
     let allFilesSucceeded = true;
 
     for (let i = 0; i < currentSourceFilesState.length; i++) {
@@ -549,30 +570,27 @@ const TranslatePage = () => {
         } else if (processedFile.status === 'failed') {
             allFilesSucceeded = false;
         }
-        // Update job with the latest source files state after each file
-        // persistActiveJobDetails is called inside processSingleFileForJob implicitly by updating uploadedFiles state
-        // So, ensure the overall job's status is correct based on all files
-        jobForTranslation = persistActiveJobDetails({ 
+        
+        // Update the overall job with the latest source files and translated artifacts list
+        const updatedJob = persistActiveJobDetails({ 
           sourceFiles: [...currentSourceFilesState],
-          translatedFilesByLanguage: { ...(jobForTranslation?.translatedFilesByLanguage || {}), [targetLang]: newTranslatedArtifactsForJob }
-        }, 'in-progress'); // Keep 'in-progress' while loop runs
+          translatedFilesByLanguage: { ...(activeJob?.translatedFilesByLanguage || {}), [targetLang]: newTranslatedArtifactsForJob }
+        }, 'in-progress'); 
 
-        if(!jobForTranslation) break; // Safety break if job somehow became null
+        if(!updatedJob) break; 
     }
     
-    // After loop, set final job status
     const finalStatus = allFilesSucceeded && currentSourceFilesState.every(f => f.status === 'completed') 
         ? 'complete' 
-        : (currentSourceFilesState.some(f=> f.status === 'failed') ? 'failed' : 'in-progress'); // if some still processing, keep in-progress
+        : (currentSourceFilesState.some(f=> f.status === 'failed') ? 'failed' : 'in-progress');
     
-    persistActiveJobDetails({ status: finalStatus });
+    persistActiveJobDetails({ status: finalStatus }); // Persist final job status
     
     if (finalStatus === 'complete') {
       toast({ title: "Document Translation Job Complete", description: `Job "${jobTitle}" finished processing all files.` });
     } else if (finalStatus === 'failed') {
       toast({ title: "Document Translation Job Issues", description: `Job "${jobTitle}" completed with some errors.`, variant: "destructive" });
     } else if (finalStatus === 'in-progress' && !currentSourceFilesState.some(f => f.status === 'processing' || f.status === 'queued')) {
-      // Edge case: if all processed but not all 'complete' and none 'failed' or 'processing', it means something is inconsistent
       toast({ title: "Job Update", description: `Job "${jobTitle}" status updated.`});
     }
     setIsLoading(false);
@@ -625,7 +643,7 @@ const TranslatePage = () => {
     if (!jobIdPendingDeletion) return;
     setJobs(prev => prev.filter(j => j.id !== jobIdPendingDeletion));
     if (activeJob?.id === jobIdPendingDeletion) {
-      resetMainFormToEmpty();
+      resetMainFormToEmpty(true);
     }
     toast({ title: "Job Deleted" });
     setShowDeleteConfirmModal(false);
@@ -642,11 +660,11 @@ const TranslatePage = () => {
         
         if (activeJob?.id === jobId) {
              const reloadedJob = {...activeJob, ...updatedJobData };
-             setActiveJob(reloadedJob);
+             setActiveJob(reloadedJob); // Update active job with new status
              if (newStatus === 'archived' && !showArchived) { 
-                 resetMainFormToEmpty();
+                 resetMainFormToEmpty(true); // Clear form if archived and not showing archived
              } else {
-                 loadJobToForm(reloadedJob);
+                 loadJobToForm(reloadedJob); // Reload to reflect status change in form
              }
         }
         toast({ title: jobToUpdate.status === 'archived' ? "Job Unarchived" : "Job Archived" });
@@ -668,15 +686,15 @@ const TranslatePage = () => {
   const hasAnyPdfFileInUploads = uploadedFiles.some(file => file.type === 'application/pdf');
 
   useEffect(() => {
+    // This effect will correctly populate the form if activeJob is set by `handleNewJob`
+    // or by selecting from history.
     if (activeJob) {
-        // When activeJob changes (e.g. selected from history), load its details into the form.
-        // This is different from persisting form changes back to activeJob.
         loadJobToForm(activeJob);
     } else {
         resetMainFormToEmpty();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeJob?.id]); // Only re-run if activeJob *instance* changes (by ID)
+  }, [activeJob?.id]); // Only re-run if activeJob *instance* changes (by ID), or if activeJob becomes null
 
   return (
     <TooltipProvider>
@@ -950,12 +968,12 @@ const TranslatePage = () => {
                   <Button 
                       variant="outline" 
                       onClick={handleSaveDraft} 
-                      disabled={isLoading || !jobTitle.trim() || (!isFormDirty && activeJob.status !== 'complete' && activeJob.status !== 'archived')}
+                      disabled={isLoading || !jobTitle.trim() || (!isFormDirty && activeJob.status !== 'complete' && activeJob.status !== 'archived' && activeJob.status !== 'failed')}
                       size="sm"
                   >
                     <Save className="mr-2 h-4 w-4" /> 
-                    { (activeJob.status === 'complete' || activeJob.status === 'archived') && isFormDirty ? 'Save Changes' : 
-                      (activeJob.status === 'complete' || activeJob.status === 'archived') && !isFormDirty ? 'Saved' : 'Save Draft' }
+                    { (activeJob.status === 'complete' || activeJob.status === 'archived' || activeJob.status === 'failed') && isFormDirty ? 'Save Changes' : 
+                      (activeJob.status === 'complete' || activeJob.status === 'archived' || activeJob.status === 'failed') && !isFormDirty ? 'Saved' : 'Save Draft' }
                   </Button>
                 )}
 
@@ -1132,3 +1150,5 @@ const TranslatePage = () => {
 
 export default TranslatePage;
 
+
+    
