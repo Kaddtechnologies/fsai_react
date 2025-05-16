@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogClose } from "@/components/ui/dialog";
 import type { Conversation, Document } from '@/lib/types';
 import { format } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
+// Removed: import ReactMarkdown from 'react-markdown';
 
 const FileTypeIcon = ({ type, size = 20 }: { type: Document['type'], size?: number }) => {
   switch (type) {
@@ -145,7 +145,7 @@ const DocumentsPage = () => {
                                    <p className="text-xs mt-1 p-1.5 bg-muted rounded whitespace-pre-wrap max-h-20 overflow-y-auto">{doc.summary}</p>
                                </details>
                                <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-0.5" onClick={() => handleShowFullSummary(doc.name, doc.summary || '')}>
-                                   <Eye size={12} className="mr-1" /> View Full Markdown Summary
+                                   <Eye size={12} className="mr-1" /> View Full Raw Markdown Summary
                                </Button>
                            </div>
                         )}
@@ -172,12 +172,12 @@ const DocumentsPage = () => {
           <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{modalSummaryContent.title}</DialogTitle>
-              <DialogDescriptionComponent className="text-sm text-muted-foreground">Rendered Markdown Preview.</DialogDescriptionComponent>
+              <DialogDescriptionComponent className="text-sm text-muted-foreground">Raw Markdown Preview. Install 'react-markdown' for styled rendering.</DialogDescriptionComponent>
             </DialogHeader>
             <ScrollArea className="flex-1 min-h-0 py-2 pr-3 -mr-2">
-              <div className="prose dark:prose-invert max-w-none p-1">
-                <ReactMarkdown>{modalSummaryContent.content}</ReactMarkdown>
-              </div>
+              <pre className="block w-full text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
+                {modalSummaryContent.content}
+              </pre>
             </ScrollArea>
             <DialogClose asChild>
               <Button type="button" variant="outline" className="mt-4">Close</Button>
@@ -190,4 +190,6 @@ const DocumentsPage = () => {
 };
 
 export default DocumentsPage;
+    
+
     

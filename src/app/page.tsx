@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { MOCK_PRODUCTS, searchMockProducts } from '@/data/products';
 import { useSpeechSynthesis } from '@/hooks/use-speech-synthesis';
-import ReactMarkdown from 'react-markdown';
+// Removed: import ReactMarkdown from 'react-markdown';
 
 // Mock user
 const MOCK_USER = {
@@ -563,7 +563,7 @@ const ChatPage = () => {
                                     <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p>
                                 </details>
                                 <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-1" onClick={() => handleShowFullSummary(message.data?.fileName || 'Document', message.data?.summary || '')}>
-                                    <Eye size={12} className="mr-1" /> View Full Markdown Summary
+                                    <Eye size={12} className="mr-1" /> View Full Raw Markdown Summary
                                 </Button>
                             </div>
                         )}
@@ -673,12 +673,12 @@ const ChatPage = () => {
           <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{modalSummaryContent.title}</DialogTitle>
-              <DialogDescriptionComponent className="text-sm text-muted-foreground">Rendered Markdown Preview.</DialogDescriptionComponent>
+              <DialogDescriptionComponent className="text-sm text-muted-foreground">Raw Markdown Preview. Install 'react-markdown' for styled rendering.</DialogDescriptionComponent>
             </DialogHeader>
             <ScrollArea className="flex-1 min-h-0 py-2 pr-3 -mr-2">
-              <div className="prose dark:prose-invert max-w-none p-1">
-                <ReactMarkdown>{modalSummaryContent.content}</ReactMarkdown>
-              </div>
+              <pre className="block w-full text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
+                {modalSummaryContent.content}
+              </pre>
             </ScrollArea>
             <DialogClose asChild>
               <Button type="button" variant="outline" className="mt-4">Close</Button>
