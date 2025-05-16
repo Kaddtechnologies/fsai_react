@@ -6,10 +6,10 @@ import {
   ArrowRightLeft, Copy, Volume2, Trash2, LanguagesIcon, PlusCircle, Search, Filter, Archive, CheckSquare, Square,
   FileText, FileUp, Save, Play, XCircle, RotateCcw, Edit3, Download, Share2, Clock, ListFilter, X, FileSliders, AlertTriangle, Loader2
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -722,6 +722,7 @@ const TranslatePage = () => {
 };
 
 // Helper components that might be needed from ui folder (simplified here if not directly available)
+// These are simplified versions. For full functionality, ensure proper imports from @/components/ui/dropdown-menu
 const DropdownMenu: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => <div className="relative inline-block text-left">{children}</div>;
 const DropdownMenuTrigger: React.FC<React.PropsWithChildren<unknown>> = ({ children }) => <>{children}</>;
 const DropdownMenuContent: React.FC<React.PropsWithChildren<{className?: string, style?: React.CSSProperties}>> = ({ children, className, style }) => <div className={cn("origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-popover ring-1 ring-black ring-opacity-5 focus:outline-none z-10 p-1", className)} style={style}>{children}</div>;
@@ -736,3 +737,4 @@ const DropdownMenuCheckboxItem: React.FC<React.PropsWithChildren<{checked: boole
 
 
 export default TranslatePage;
+
