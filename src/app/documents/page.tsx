@@ -4,11 +4,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FileText, FileSpreadsheet, FileType as FileTypeLucideIcon, FileSearch, MessageSquarePlus, AlertTriangle, FolderOpen } from 'lucide-react';
+import { FileText, FileSpreadsheet, FileType as FileTypeLucideIcon, FileSearch, MessageSquarePlus, AlertTriangle, FolderOpen, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { Conversation, Document, Message } from '@/lib/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import type { Conversation, Document } from '@/lib/types';
 import { format } from 'date-fns';
 
 const FileTypeIcon = ({ type, size = 20 }: { type: Document['type'], size?: number }) => {
@@ -32,6 +33,9 @@ const DocumentsPage = () => {
   const router = useRouter();
   const [allDocuments, setAllDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFullSummaryModal, setShowFullSummaryModal] = useState(false);
+  const [modalSummaryContent, setModalSummaryContent] = useState<{title: string, content: string} | null>(null);
+
 
   useEffect(() => {
     const storedConversations = localStorage.getItem('flowserveai-conversations');
@@ -62,11 +66,10 @@ const DocumentsPage = () => {
   }, []);
 
   const handleChatAboutDocument = (docId: string) => {
-    // For simplicity, we'll create a new chat. A more complex flow could let user choose an existing chat.
     const newConversationId = `conv-${Date.now()}`;
     const newConversation: Conversation = {
       id: newConversationId,
-      title: `Chat about ${allDocuments.find(d => d.id === docId)?.name || 'Document'}`,
+      title: `Chat about ${allDocuments.find(d => (d.backendId || d.id) === docId)?.name || 'Document'}`,
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -83,6 +86,12 @@ const DocumentsPage = () => {
     
     router.push(`/?chatId=${newConversationId}&documentIdToDiscuss=${docId}`);
   };
+  
+  const handleShowFullSummary = (docName: string, summary: string) => {
+    setModalSummaryContent({ title: `Full Summary: ${docName}`, content: summary });
+    setShowFullSummaryModal(true);
+  };
+
 
   if (isLoading) {
     return (
@@ -129,17 +138,22 @@ const DocumentsPage = () => {
                           Uploaded: {format(new Date(doc.uploadedAt), "MMM d, yyyy HH:mm")} | Size: {(doc.size / (1024 * 1024)).toFixed(2)} MB
                         </p>
                         {doc.summary && (
-                           <details className="mt-1">
-                                <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary</summary>
-                                <p className="text-xs mt-1 p-1.5 bg-muted rounded whitespace-pre-wrap max-h-20 overflow-y-auto">{doc.summary}</p>
-                            </details>
+                           <div className="mt-1">
+                               <details>
+                                   <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary Snippet</summary>
+                                   <p className="text-xs mt-1 p-1.5 bg-muted rounded whitespace-pre-wrap max-h-20 overflow-y-auto">{doc.summary}</p>
+                               </details>
+                               <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-0.5" onClick={() => handleShowFullSummary(doc.name, doc.summary || '')}>
+                                   <Eye size={12} className="mr-1" /> View Full Markdown Summary
+                               </Button>
+                           </div>
                         )}
                       </div>
                     </div>
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => handleChatAboutDocument(doc.id)}
+                      onClick={() => handleChatAboutDocument(doc.backendId || doc.id)}
                       className="shrink-0"
                     >
                       <MessageSquarePlus size={16} className="mr-2" />
@@ -152,6 +166,24 @@ const DocumentsPage = () => {
           </ScrollArea>
         </CardContent>
       </Card>
+       {modalSummaryContent && (
+        <Dialog open={showFullSummaryModal} onOpenChange={setShowFullSummaryModal}>
+          <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{modalSummaryContent.title}</DialogTitle>
+               <p className="text-sm text-muted-foreground">Markdown Content Preview</p>
+            </DialogHeader>
+            <ScrollArea className="flex-1 py-2 pr-3 -mr-2">
+              <pre className="text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
+                {modalSummaryContent.content}
+              </pre>
+            </ScrollArea>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" className="mt-4">Close</Button>
+            </DialogClose>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
@@ -162,4 +194,3 @@ export default DocumentsPage;
 const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
 );
-

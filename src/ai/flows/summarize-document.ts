@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A document summarization AI agent.
@@ -20,7 +21,7 @@ const SummarizeDocumentInputSchema = z.object({
 export type SummarizeDocumentInput = z.infer<typeof SummarizeDocumentInputSchema>;
 
 const SummarizeDocumentOutputSchema = z.object({
-  summary: z.string().describe('The summary of the document.'),
+  summary: z.string().describe('The summary of the document, in Markdown format.'),
 });
 export type SummarizeDocumentOutput = z.infer<typeof SummarizeDocumentOutputSchema>;
 
@@ -33,9 +34,8 @@ const prompt = ai.definePrompt({
   input: {schema: SummarizeDocumentInputSchema},
   output: {schema: SummarizeDocumentOutputSchema},
   prompt: `You are an expert at summarizing documents.
-
-You will be provided a document, and your goal is to summarize it so that a user can quickly understand it without reading the entire document.
-
+Your goal is to summarize the provided document so that a user can quickly understand it without reading the entire document.
+The summary **MUST** be in well-formatted Markdown. Use elements like headings, lists, bold text, and italics where appropriate to enhance readability.
 Document: {{media url=documentDataUri}}`,
 });
 

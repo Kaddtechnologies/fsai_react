@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType as FileTypeLucideIcon, MessageCircleWarning, FolderOpen, Package, Brain } from 'lucide-react';
+import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType as FileTypeLucideIcon, MessageCircleWarning, FolderOpen, Package, Brain, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import type { Message, Conversation, Document, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -118,6 +119,9 @@ const ChatPage = () => {
   const [editValue, setEditValue] = useState('');
   const [isChatPageLoading, setIsChatPageLoading] = useState(true);
   const [currentPlaceholder, setCurrentPlaceholder] = useState("Chat with AI, or ask about documents and products...");
+  
+  const [showFullSummaryModal, setShowFullSummaryModal] = useState(false);
+  const [modalSummaryContent, setModalSummaryContent] = useState<{title: string, content: string} | null>(null);
 
 
   const { speak, cancel, isSpeaking } = useSpeechSynthesis();
@@ -161,7 +165,7 @@ const ChatPage = () => {
   }, [chatIdFromUrl, pathname]); 
 
   useEffect(() => {
-    if (conversations.length > 0) { 
+    if (conversations.length > 0 || localStorage.getItem('flowserveai-conversations')) { 
       localStorage.setItem('flowserveai-conversations', JSON.stringify(conversations));
     }
   }, [conversations]);
@@ -296,7 +300,7 @@ const ChatPage = () => {
           role: msg.sender as 'user' | 'ai',
           content: msg.content + 
                    (msg.attachments && msg.attachments.length > 0 && msg.attachments[0].status === 'completed' ? 
-                      ` (User attached a document: ${msg.attachments[0].name}. Its summary is: ${msg.attachments[0].summary || 'Summary not available.'})` 
+                      ` (User attached a document: ${msg.attachments[0].name}. Its summary, in Markdown format, is: ${msg.attachments[0].summary || 'Summary not available.'})` 
                       : '')
         }));
 
@@ -416,7 +420,7 @@ const ChatPage = () => {
           const summaryResponse = await summarizeDocument({ documentDataUri: dataUri });
           const finalDocUpdate: Partial<Document> = { summary: summaryResponse.summary, status: 'completed', progress: 100 };
           updateMessageInData(uploadMessageId,
-            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: `Successfully processed ${file.name}. Summary is available.` },
+            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: `Successfully processed ${file.name}. Summary (Markdown) is available.` },
             finalDocUpdate
           );
           toast({ title: "File processed", description: `${file.name} uploaded and summarized.` });
@@ -468,6 +472,11 @@ const ChatPage = () => {
     toast({ title: "Message edited" });
   };
   
+  const handleShowFullSummary = (docName: string, summary: string) => {
+    setModalSummaryContent({ title: `Full Summary: ${docName}`, content: summary });
+    setShowFullSummaryModal(true);
+  };
+
   if (isChatPageLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -547,7 +556,15 @@ const ChatPage = () => {
                           <Progress value={message.data.progress} className="h-1.5 w-full mb-2" />
                         )}
                         {message.data.status === 'completed' && message.data.summary && (
-                            <details className="mt-2"> <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary</summary> <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p> </details>
+                            <div className="mt-2">
+                                <details>
+                                    <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary Snippet</summary>
+                                    <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p>
+                                </details>
+                                <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-1" onClick={() => handleShowFullSummary(message.data?.fileName || 'Document', message.data?.summary || '')}>
+                                    <Eye size={12} className="mr-1" /> View Full Markdown Summary
+                                </Button>
+                            </div>
                         )}
                          {message.data.status === 'failed' && message.data.error && ( <p className="text-xs mt-1 p-2 bg-destructive/10 text-destructive rounded">{message.data.error}</p> )}
                       </div>
@@ -648,11 +665,27 @@ const ChatPage = () => {
         </div>
         <p className="text-xs text-muted-foreground text-center mt-2 px-4">Flowserve AI can make mistakes. Please validate important information.</p>
       </div>
+
+      {modalSummaryContent && (
+        <Dialog open={showFullSummaryModal} onOpenChange={setShowFullSummaryModal}>
+          <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{modalSummaryContent.title}</DialogTitle>
+              <p className="text-sm text-muted-foreground">Markdown Content Preview</p>
+            </DialogHeader>
+            <ScrollArea className="flex-1 py-2 pr-3 -mr-2">
+              <pre className="text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
+                {modalSummaryContent.content}
+              </pre>
+            </ScrollArea>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" className="mt-4">Close</Button>
+            </DialogClose>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
 
 export default ChatPage;
-
-
-    
