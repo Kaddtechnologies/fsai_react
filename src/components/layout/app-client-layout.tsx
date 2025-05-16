@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
-  SidebarProvider,
+  SidebarProvider, // Reverted alias
   Sidebar,
   SidebarHeader,
   SidebarContent,
@@ -286,7 +286,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
   };
 
   const checkHasDocuments = (messages: Message[]): boolean => {
-    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed' && (att as Document).fileUrl));
+    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed'));
   };
 
 
@@ -349,10 +349,10 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                             {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'},
                             "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
                         )}
-                         tooltip={{
-                            children: <div className="max-w-xs break-words p-1" title={displayTitle}>{displayTitle}</div>,
-                            hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
-                          }}
+                        tooltip={{
+                          children: <div className="max-w-xs break-words p-1" title={displayTitle}>{displayTitle}</div>,
+                           hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
+                        }}
                       >
                         <div>
                           <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center" title={displayTitle}>
