@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { FC } from 'react';
@@ -64,7 +63,7 @@ const ChartNodeDisplay: FC<{ node: ChartNode; level?: number }> = ({ node, level
         
         {/* Children nodes */}
         {node.children && node.children.length > 0 && (
-          <div className="mt-6 flex flex-col md:flex-row justify-center items-start gap-4 md:gap-8">
+          <div className="mt-6 flex flex-col md:flex-row justify-center items-center md:items-start gap-4 md:gap-8">
             {node.children.map((child, index) => (
               <div key={child.id} className="relative flex flex-col items-center">
                 {/* Horizontal line before node (for all except first) */}
@@ -72,7 +71,7 @@ const ChartNodeDisplay: FC<{ node: ChartNode; level?: number }> = ({ node, level
                   <div className="absolute left-[-2rem] top-3 h-0.5 w-4 bg-muted-foreground/30 hidden md:block" />
                 )}
                 {/* Horizontal line after node (for all except last) */}
-                {index < node.children?.length - 1 && level === 0 && (
+                {index < (node.children?.length || 0) - 1 && level === 0 && (
                   <div className="absolute right-[-2rem] top-3 h-0.5 w-4 bg-muted-foreground/30 hidden md:block" />
                 )}
                 <Badge variant="secondary" className="py-1 px-3 text-sm">
@@ -215,14 +214,16 @@ const WelcomeDialog: FC<WelcomeDialogProps> = ({ open, onOpenChange }) => {
                    <FlowChartDisplay steps={TranslationFlow} />
                 </div>
                 <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">Video Tutorial (Placeholder)</p>
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center border border-border">
-                    <div className="text-center text-muted-foreground">
-                      <PlayCircle size={48} className="mx-auto mb-2 opacity-50" />
-                      <p>Video tutorial coming soon.</p>
-                    </div>
-                    {/* Replace with actual video player when available */}
-                    {/* <Image src="https://placehold.co/1280x720.png" alt="Video Tutorial Placeholder" width={1280} height={720} className="rounded-lg object-cover" data-ai-hint="tutorial video"/> */}
+                  <p className="text-sm font-medium mb-2">Video Tutorial</p>
+                  <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border">
+                    <video 
+                      controls
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                    >
+                      <source src="/assets/videos/Translation_app_demo 1.mp4" type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
                   </div>
                 </div>
               </CardContent>

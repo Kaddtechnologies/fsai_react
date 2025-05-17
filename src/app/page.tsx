@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -124,13 +123,47 @@ const ChatPage = () => {
   const [showFullSummaryModal, setShowFullSummaryModal] = useState(false);
   const [modalSummaryContent, setModalSummaryContent] = useState<{title: string, content: string} | null>(null);
 
-
   const { speak, cancel, isSpeaking } = useSpeechSynthesis();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const activeConversation = conversations.find(conv => conv.id === activeConversationId);
 
+  // Update placeholder based on conversation content and screen size
+  useEffect(() => {
+    const updatePlaceholder = () => {
+      // Only show placeholder if there are no user/AI messages
+      const hasUserOrAIMessages = activeConversation?.messages?.some(
+        msg => msg.sender === 'user' || msg.sender === 'ai'
+      ) || false;
+      
+      if (window.innerWidth < 640) { // sm breakpoint
+        setCurrentPlaceholder(hasUserOrAIMessages ? "" : "Let's Chat");
+      } else {
+        setCurrentPlaceholder(hasUserOrAIMessages ? "" : "Chat with AI, or ask about documents and products...");
+      }
+    };
+
+    updatePlaceholder();
+    window.addEventListener('resize', updatePlaceholder);
+    return () => window.removeEventListener('resize', updatePlaceholder);
+  }, [activeConversation?.messages]);
+
+  // Auto-resize textarea based on content
+  const autoResizeTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    textarea.style.height = 'auto';
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 52), 250); // Min 52px, max 250px (~10 rows)
+    textarea.style.height = `${newHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    autoResizeTextarea();
+  }, [inputValue, autoResizeTextarea]);
+  
   useEffect(() => {
     setIsChatPageLoading(true);
     const storedConversationsJSON = localStorage.getItem('flowserveai-conversations');
@@ -210,7 +243,7 @@ const ChatPage = () => {
   }, [documentIdToDiscuss, activeConversationId, conversations, router, isChatPageLoading]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    textareaRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(scrollToBottom, [activeConversation?.messages]);
@@ -284,7 +317,10 @@ const ChatPage = () => {
     updateConversation(updatedMessages); 
 
     let conversationTitle = activeConversation.title;
-    if (activeConversation.messages.length === 0 && currentInputValue.trim() && (activeConversation.title === 'New Chat' || activeConversation.title.startsWith('Chat about '))) {
+    // Check if this is the first text message from user (regardless of document uploads)
+    const isFirstUserTextMessage = !activeConversation.messages.some(msg => msg.sender === 'user' && msg.type !== 'document_upload_status');
+    
+    if ((isFirstUserTextMessage || activeConversation.title === 'New Chat' || activeConversation.title.startsWith('Chat about ')) && currentInputValue.trim()) {
       try {
         const titleResponse = await generateChatTitle({ firstMessage: currentInputValue });
         conversationTitle = titleResponse.title;
@@ -362,13 +398,13 @@ const ChatPage = () => {
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
       toast({ title: "File too large", description: `File size cannot exceed ${MAX_FILE_SIZE_MB}MB.`, variant: "destructive" });
-      if (fileInputRef.current) fileInputRef.current.value = ""; return;
+      if (textareaRef.current) textareaRef.current.value = ""; return;
     }
 
     const docType = getDocumentTypeFromMime(file.type, file.name);
     if (!docType) {
       toast({ title: "Invalid file type", description: `Allowed: ${ALLOWED_EXTENSIONS_STRING}. Images are not supported.`, variant: "destructive" });
-      if (fileInputRef.current) fileInputRef.current.value = ""; return;
+      if (textareaRef.current) textareaRef.current.value = ""; return;
     }
 
     const clientDocumentId = `doc-client-${Date.now()}-${file.name}`;
@@ -456,7 +492,7 @@ const ChatPage = () => {
       toast({ title: "Upload Failed", description: errorMsg, variant: "destructive" });
     }
 
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (textareaRef.current) textareaRef.current.value = "";
   };
 
   const handleCopy = (text: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied to clipboard" }); };
@@ -512,158 +548,179 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background rounded-lg shadow-xl">
-      <ScrollArea className="flex-1 p-4 pr-2">
-        <div className="space-y-6">
-          {activeConversation.messages.map((message) => (
-            <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? "justify-end" : "justify-start")}>
-              {message.sender === 'ai' && (
-                <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
-              )}
-              <div className={cn("max-w-[70%] p-3 rounded-xl shadow", 
-                message.sender === 'user' ? "bg-primary text-primary-foreground rounded-tr-none" : 
-                message.sender === 'ai' ? "bg-card text-card-foreground rounded-tl-none" :
-                message.type === 'document_upload_status' ? "bg-card border border-border w-full max-w-[85%]" :
-                "bg-muted text-muted-foreground w-full text-sm text-center"
-              )}>
-                {editingMessage?.id === message.id && message.sender === 'user' ? (
-                  <div className="space-y-2">
-                    <Textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="min-h-[60px] bg-background text-foreground"
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); }}} />
-                    <div className="flex gap-2 justify-end"> <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button> <Button size="sm" onClick={submitEdit}>Save</Button> </div>
-                  </div>
-                ) : (
-                  <>
-                    {message.type !== 'document_upload_status' && <p className="whitespace-pre-wrap text-sm">{message.content}</p>}
-                    {message.originalContent && <p className="text-xs text-muted-foreground/70 mt-1">(edited)</p>}
-                    
-                    {message.type === 'document_upload_status' && message.data && message.attachments && message.attachments.length > 0 && (
-                      <div className="w-full">
-                        <div className="flex items-center gap-3 mb-2">
-                          <FileTypeIcon type={message.data.documentType!} size={32} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate" title={message.data.fileName}>{message.data.fileName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {message.data.status === 'pending_upload' && 'Waiting for upload...'}
-                              {message.data.status === 'uploading_to_backend' && `Uploading... (${message.data.progress?.toFixed(0) || 0}%)`}
-                              {message.data.status === 'pending_ai_processing' && 'Processing with AI...'}
-                              {message.data.status === 'ai_processing' && `Processing with AI... (${message.data.progress?.toFixed(0) || 50}%)`}
-                              {message.data.status === 'completed' && <span className="text-accent-success flex items-center gap-1"><CheckCircle size={14}/>Completed</span>}
-                              {message.data.status === 'failed' && <span className="text-destructive flex items-center gap-1"><XCircle size={14}/>Failed: {message.data.error || "Unknown error"}</span>}
-                            </p>
-                          </div>
-                        </div>
-                        {(message.data.status === 'uploading_to_backend' || message.data.status === 'ai_processing' || message.data.status === 'pending_ai_processing') && typeof message.data.progress === 'number' && message.data.status !== 'completed' && message.data.status !== 'failed' && (
-                          <Progress value={message.data.progress} className="h-1.5 w-full mb-2" />
-                        )}
-                        {message.data.status === 'completed' && message.data.summary && (
-                            <div className="mt-2">
-                                <details>
-                                    <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary Snippet</summary>
-                                    <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p>
-                                </details>
-                                <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-1" onClick={() => handleShowFullSummary(message.data?.fileName || 'Document', message.data?.summary || '')}>
-                                    <Eye size={12} className="mr-1" /> View Full Raw Markdown Summary
-                                </Button>
-                            </div>
-                        )}
-                         {message.data.status === 'failed' && message.data.error && ( <p className="text-xs mt-1 p-2 bg-destructive/10 text-destructive rounded">{message.data.error}</p> )}
-                      </div>
-                    )}
-
-                    {message.type === 'product_card' && message.data?.products && Array.isArray(message.data.products) && (
-                      <div className="mt-2 space-y-3">
-                        {(message.data.products as Product[]).map(product => (
-                          <Card key={product.id} className="bg-card/70 border-border overflow-hidden shadow-md">
-                            <CardHeader className="p-3 flex flex-row items-start gap-3">
-                              {product.imageUrl && (
-                                <Image 
-                                  src={product.imageUrl} 
-                                  alt={product.name} 
-                                  width={60} height={60} 
-                                  className="rounded-md object-cover aspect-square" 
-                                  data-ai-hint={product.name.split(' ').slice(0,2).join(' ').toLowerCase()}
-                                />
-                              )}
-                              <div className="flex-1">
-                                <CardTitle className="text-base font-semibold">{product.name}</CardTitle>
-                                <CardDescription className="text-xs mt-0.5">SKU: {product.sku}</CardDescription>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="p-3 pt-0 text-xs space-y-1">
-                              <p className="line-clamp-3">{product.description}</p>
-                              <p><strong className="text-muted-foreground">Availability:</strong> <span className={cn(product.availability === 'In Stock' ? 'text-accent-success' : product.availability === 'Low Stock' ? 'text-accent-warning' : 'text-destructive')}>{product.availability}</span></p>
-                              {product.price && <p><strong className="text-muted-foreground">Price:</strong> {product.price}</p>}
-                              {Object.entries(product.specifications || {}).length > 0 && (
-                                <details className="mt-1.5">
-                                  <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Specifications</summary>
-                                  <div className="mt-1 p-2 bg-muted/50 rounded text-xs space-y-0.5 max-h-32 overflow-y-auto">
-                                    {Object.entries(product.specifications).map(([key, value]) => (
-                                      <p key={key}><strong className="text-muted-foreground">{key}:</strong> {Array.isArray(value) ? value.join(', ') : value}</p>
-                                    ))}
-                                  </div>
-                                </details>
-                              )}
-                            </CardContent>
-                            {/* CardFooter removed here as it's not typically used for product cards like this */}
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                    {message.type === 'error' && <p className="text-xs text-destructive mt-1">Error: Could not process request.</p>}
-                    
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      {message.sender === 'ai' && message.type !== 'error' && message.type !== 'document_upload_status' && (
-                        <>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(message.content)}><Copy size={14}/></Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleTTS(message.content)}> {isSpeaking ? <Volume2 size={14} className="text-secondary-gradient"/> : <Volume2 size={14}/>} </Button>
-                          <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'liked' ? 'text-accent-success' : 'text-muted-foreground hover:text-accent-success'}`} onClick={() => handleFeedback(message.id, 'liked')}><ThumbsUp size={14}/></Button>
-                          <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'disliked' ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'}`} onClick={() => handleFeedback(message.id, 'disliked')}><ThumbsDown size={14}/></Button>
-                        </>
-                      )}
-                      {message.sender === 'user' && !editingMessage && ( <Button variant="ghost" size="icon" className="h-6 w-6 text-primary-foreground/70 hover:text-primary-foreground" onClick={() => startEdit(message)}><Edit size={14}/></Button> )}
+    <div className="flex flex-col h-full bg-background rounded-lg shadow-xl overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <ScrollArea className="max-h-[68vh] sm:max-h-[70vh] md:max-h-[71vh] lg:max-h-[72vh] w-full">
+          <div className="space-y-6 p-4 pr-2">
+            {activeConversation.messages.map((message) => (
+              <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? "justify-end" : "justify-start")}>
+                {message.sender === 'ai' && (
+                  <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
+                )}
+                <div className={cn("max-w-[70%] p-3 rounded-xl shadow", 
+                  message.sender === 'user' ? "bg-primary text-primary-foreground rounded-tr-none" : 
+                  message.sender === 'ai' ? "bg-card text-card-foreground rounded-tl-none" :
+                  message.type === 'document_upload_status' ? "bg-card border border-border w-full max-w-[85%]" :
+                  "bg-muted text-muted-foreground w-full text-sm text-center"
+                )}>
+                  {editingMessage?.id === message.id && message.sender === 'user' ? (
+                    <div className="space-y-2">
+                      <Textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="min-h-[60px] bg-background text-foreground"
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); }}} />
+                      <div className="flex gap-2 justify-end"> <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button> <Button size="sm" onClick={submitEdit}>Save</Button> </div>
                     </div>
-                  </>
+                  ) : (
+                    <>
+                      {message.type !== 'document_upload_status' && <p className="whitespace-pre-wrap text-sm">{message.content}</p>}
+                      {message.originalContent && <p className="text-xs text-muted-foreground/70 mt-1">(edited)</p>}
+                      
+                      {message.type === 'document_upload_status' && message.data && message.attachments && message.attachments.length > 0 && (
+                        <div className="w-full">
+                          <div className="flex items-center gap-3 mb-2">
+                            <FileTypeIcon type={message.data.documentType!} size={32} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate" title={message.data.fileName}>{message.data.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {message.data.status === 'pending_upload' && 'Waiting for upload...'}
+                                {message.data.status === 'uploading_to_backend' && `Uploading... (${message.data.progress?.toFixed(0) || 0}%)`}
+                                {message.data.status === 'pending_ai_processing' && 'Processing with AI...'}
+                                {message.data.status === 'ai_processing' && `Processing with AI... (${message.data.progress?.toFixed(0) || 50}%)`}
+                                {message.data.status === 'completed' && <span className="text-accent-success flex items-center gap-1"><CheckCircle size={14}/>Completed</span>}
+                                {message.data.status === 'failed' && <span className="text-destructive flex items-center gap-1"><XCircle size={14}/>Failed: {message.data.error || "Unknown error"}</span>}
+                              </p>
+                            </div>
+                          </div>
+                          {(message.data.status === 'uploading_to_backend' || message.data.status === 'ai_processing' || message.data.status === 'pending_ai_processing') && typeof message.data.progress === 'number' && (
+                            <Progress value={message.data.progress} className="h-1.5 w-full mb-2" />
+                          )}
+                          {message.data.status === 'completed' && message.data.summary && (
+                              <div className="mt-2">
+                                  <details>
+                                      <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary Snippet</summary>
+                                      <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p>
+                                  </details>
+                                  <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-1" onClick={() => handleShowFullSummary(message.data?.fileName || 'Document', message.data?.summary || '')}>
+                                      <Eye size={12} className="mr-1" /> View Full Raw Markdown Summary
+                                  </Button>
+                              </div>
+                          )}
+                           {message.data.status === 'failed' && message.data.error && ( <p className="text-xs mt-1 p-2 bg-destructive/10 text-destructive rounded">{message.data.error}</p> )}
+                        </div>
+                      )}
+
+                      {message.type === 'product_card' && message.data?.products && Array.isArray(message.data.products) && (
+                        <div className="mt-2 space-y-3">
+                          {(message.data.products as Product[]).map(product => (
+                            <Card key={product.id} className="bg-card/70 border-border overflow-hidden shadow-md">
+                              <CardHeader className="p-3 flex flex-row items-start gap-3">
+                                {product.imageUrl && (
+                                  <Image 
+                                    src={product.imageUrl} 
+                                    alt={product.name} 
+                                    width={60} height={60} 
+                                    className="rounded-md object-cover aspect-square" 
+                                    data-ai-hint={product.name.split(' ').slice(0,2).join(' ').toLowerCase()}
+                                  />
+                                )}
+                                <div className="flex-1">
+                                  <CardTitle className="text-base font-semibold">{product.name}</CardTitle>
+                                  <CardDescription className="text-xs mt-0.5">SKU: {product.sku}</CardDescription>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="p-3 pt-0 text-xs space-y-1">
+                                <p className="line-clamp-3">{product.description}</p>
+                                <p><strong className="text-muted-foreground">Availability:</strong> <span className={cn(product.availability === 'In Stock' ? 'text-accent-success' : product.availability === 'Low Stock' ? 'text-accent-warning' : 'text-destructive')}>{product.availability}</span></p>
+                                {product.price && <p><strong className="text-muted-foreground">Price:</strong> {product.price}</p>}
+                                {Object.entries(product.specifications || {}).length > 0 && (
+                                  <details className="mt-1.5">
+                                    <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Specifications</summary>
+                                    <div className="mt-1 p-2 bg-muted/50 rounded text-xs space-y-0.5 max-h-32 overflow-y-auto">
+                                      {Object.entries(product.specifications).map(([key, value]) => (
+                                        <p key={key}><strong className="text-muted-foreground">{key}:</strong> {Array.isArray(value) ? value.join(', ') : value}</p>
+                                      ))}
+                                    </div>
+                                  </details>
+                                )}
+                              </CardContent>
+                              {/* CardFooter removed here as it's not typically used for product cards like this */}
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                      {message.type === 'error' && <p className="text-xs text-destructive mt-1">Error: Could not process request.</p>}
+                      
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        {message.sender === 'ai' && message.type !== 'error' && message.type !== 'document_upload_status' && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(message.content)}><Copy size={14}/></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleTTS(message.content)}> {isSpeaking ? <Volume2 size={14} className="text-secondary-gradient"/> : <Volume2 size={14}/>} </Button>
+                            <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'liked' ? 'text-accent-success' : 'text-muted-foreground hover:text-accent-success'}`} onClick={() => handleFeedback(message.id, 'liked')}><ThumbsUp size={14}/></Button>
+                            <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'disliked' ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'}`} onClick={() => handleFeedback(message.id, 'disliked')}><ThumbsDown size={14}/></Button>
+                          </>
+                        )}
+                        {message.sender === 'user' && !editingMessage && ( <Button variant="ghost" size="icon" className="h-6 w-6 text-primary-foreground/70 hover:text-primary-foreground" onClick={() => startEdit(message)}><Edit size={14}/></Button> )}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {message.sender === 'user' && (
+                  <Avatar className="h-8 w-8"> <AvatarImage src={MOCK_USER.avatarUrl} alt={MOCK_USER.name} data-ai-hint="profile avatar"/> <AvatarFallback>{MOCK_USER.name.substring(0,1)}</AvatarFallback> </Avatar>
                 )}
               </div>
-              {message.sender === 'user' && (
-                <Avatar className="h-8 w-8"> <AvatarImage src={MOCK_USER.avatarUrl} alt={MOCK_USER.name} data-ai-hint="profile avatar"/> <AvatarFallback>{MOCK_USER.name.substring(0,1)}</AvatarFallback> </Avatar>
-              )}
-            </div>
-          ))}
-          {isLoadingAIResponse && (
-            <div className="flex items-start gap-3 justify-start">
-               <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
-              <div className="max-w-[70%] p-3 rounded-xl shadow bg-card text-card-foreground rounded-tl-none">
-                <div className="flex items-center space-x-1"> <span className="typing-dot"></span> <span className="typing-dot"></span> <span className="typing-dot"></span> </div>
+            ))}
+            {isLoadingAIResponse && (
+              <div className="flex items-start gap-3 justify-start">
+                <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
+                <div className="max-w-[70%] p-3 rounded-xl shadow bg-card text-card-foreground rounded-tl-none">
+                  <div className="flex items-center space-x-1"> <span className="typing-dot"></span> <span className="typing-dot"></span> <span className="typing-dot"></span> </div>
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      <div className="border-t border-border p-4">
-        <div className="flex items-center gap-2 mb-2 px-1">
-            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><Brain size={12} className="mr-1.5"/> AI</Badge>
-            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><FileText size={12} className="mr-1.5"/> Documents</Badge>
-            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><Package size={12} className="mr-1.5"/> Products</Badge>
-        </div>
-        <div className="relative">
-          <Textarea
-            value={inputValue} onChange={(e) => setInputValue(e.target.value)}
-            placeholder={currentPlaceholder}
-            className="pr-28 pl-24 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}} rows={1} />
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}> <Paperclip /> <span className="sr-only">Attach file</span> </Button>
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept={ALLOWED_EXTENSIONS_STRING} />
-            <Button variant="ghost" size="icon" disabled> <Mic /> <span className="sr-only">Use microphone</span> </Button>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-          <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary-gradient text-primary-foreground hover:opacity-90" 
-            onClick={handleSendMessage} disabled={isLoadingAIResponse || !inputValue.trim()}>
-            {isLoadingAIResponse ? <Loader2 className="animate-spin" /> : <SendHorizonal />} <span className="sr-only">Send message</span>
-          </Button>
+        </ScrollArea>
+      </div>
+
+      <div className="border-t border-border p-4 bg-background">      
+        <div className="rounded-xl border border-input bg-muted/30 overflow-hidden flex flex-col">
+          <div className="max-h-[250px] overflow-y-auto">
+            <Textarea
+              ref={textareaRef}
+              value={inputValue} 
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={currentPlaceholder}
+              className="border-0 min-h-[52px] pt-3 pl-3 resize-none bg-transparent text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 w-full"
+              onKeyDown={(e) => { 
+                if (e.key === 'Enter' && !e.shiftKey) { 
+                  e.preventDefault(); 
+                  handleSendMessage(); 
+                }
+              }} 
+            />
+          </div>
+          <div className="flex items-center px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => textareaRef.current?.click()}>
+                <Paperclip size={20} />
+                <span className="sr-only">Attach file</span>
+              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" disabled>
+                <Mic size={20} />
+                <span className="sr-only">Use microphone</span>
+              </Button>
+            </div>
+            <div className="flex-1"></div>
+            <Button 
+              type="submit" 
+              size="icon" 
+              className="h-9 w-9 rounded-full bg-primary-gradient text-primary-foreground hover:opacity-90" 
+              onClick={handleSendMessage} 
+              disabled={isLoadingAIResponse || !inputValue.trim()}
+            >
+              {isLoadingAIResponse ? <Loader2 className="animate-spin" /> : <SendHorizonal size={18} />}
+              <span className="sr-only">Send message</span>
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground text-center mt-2 px-4">Flowserve AI can make mistakes. Please validate important information.</p>
       </div>

@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {  
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark overflow-hidden">
       <body className={`${roboto.variable} ${robotoMono.variable} font-sans antialiased`}>
         <Suspense fallback={
           <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground">

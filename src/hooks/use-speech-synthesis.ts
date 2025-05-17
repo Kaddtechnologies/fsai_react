@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,6 +7,7 @@ interface UseSpeechSynthesisReturn {
   cancel: () => void;
   isSpeaking: boolean;
   supportedVoices: SpeechSynthesisVoice[];
+  utterance: SpeechSynthesisUtterance | null;
 }
 
 export const useSpeechSynthesis = (): UseSpeechSynthesisReturn => {
@@ -79,7 +79,7 @@ export const useSpeechSynthesis = (): UseSpeechSynthesisReturn => {
     setIsSpeaking(false);
   }, []);
 
-  return { speak, cancel, isSpeaking, supportedVoices };
+  return { speak, cancel, isSpeaking, supportedVoices, utterance };
 };
 
     

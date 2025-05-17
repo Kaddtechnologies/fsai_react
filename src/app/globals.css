@@ -136,20 +136,24 @@ body {
 /* Primary Red Gradient */
 .bg-primary-gradient {
   background-image: linear-gradient(to right, #ce3939, #210000);
+  border-color: inherit;
 }
 
 /* Secondary Blue Gradient */
 .bg-secondary-gradient {
   background-image: linear-gradient(to right, #3B82F6, #2563EB);
+  border-color: inherit;
 }
 .text-secondary-gradient {
   background-image: linear-gradient(to right, #3B82F6, #2563EB);
+  border-color: inherit;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 .text-primary-gradient {
   background-image: linear-gradient(to right, #ce3939, #8b2323); /* Adjusted end color for better visibility on dark */
+  border-color: inherit;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
