@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from 'react';
@@ -285,7 +286,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
   };
 
   const checkHasDocuments = (messages: Message[]): boolean => {
-    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed'));
+    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed' && (att as Document).fileUrl));
   };
 
 
@@ -295,7 +296,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
 
   return (
     <TooltipProvider>
-      <SidebarProvider defaultOpen={true}>
+      <SidebarProvider>
         <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border">
           <SidebarHeader className="p-4 items-center">
             <Link href="/" className="flex items-center gap-2" onClick={() => {
@@ -334,9 +335,9 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                     return (
                     <SidebarMenuItem
                       key={conv.id}
-                      className="flex items-center justify-between border-b border-sidebar-border/20 last:border-b-0 py-1.5 px-1"
+                      className="flex items-center justify-between border-b border-sidebar-border/20 last:border-b-0 py-1.5 px-0.5"
                     >
-                      <Link
+                       <Link
                           href={`/?chatId=${conv.id}`}
                           className="flex-grow min-w-0"
                           onClick={() => setActiveConversationId(conv.id)}
@@ -345,22 +346,22 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                           asChild
                           isActive={activeConversationId === conv.id && pathname === '/'}
                           className={cn(
-                              "w-full h-auto flex-col items-start p-2.5",
+                              "w-full h-auto flex-col items-start p-2",
                               {"bg-sidebar-accent/80 hover:bg-sidebar-accent": activeConversationId === conv.id && pathname === '/'},
                               "group-data-[collapsible=icon]:flex-row group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:h-12"
                           )}
-                          tooltip={{
+                           tooltip={{
                             children: <div className="max-w-xs break-words p-1" title={displayTitle}>{displayTitle}</div>,
                             hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
                           }}
                         >
                           <div>
-                            <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center" title={displayTitle}>
+                            <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center">
                               <ConversationTypeIcon type={convType} />
-                              <span
+                              <span 
                                 className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0"
-                                style={{maxWidth: '160px'}}
-                                title={displayTitle}
+                                style={{maxWidth: '160px'}} 
+                                title={displayTitle} 
                               >
                                 {displayTitle}
                               </span>
@@ -369,7 +370,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                                 "text-xs text-sidebar-foreground/80 mt-1.5 flex items-center justify-between w-full",
                                 "group-data-[collapsible=icon]:hidden"
                             )}>
-                              <span className="flex items-center gap-1 cursor-default">
+                              <span className="flex items-center gap-1">
                                 {hasDocuments && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -393,8 +394,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                       <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1">
                           <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                  <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-sidebar-foreground/70 hover:text-sidebar-foreground">
+                                  <ChevronDown className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent side="right" align="start">
@@ -463,6 +464,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                 <DropdownMenuLabel>My Account</DropdownMenuLabel> <DropdownMenuSeparator />
                 <DropdownMenuItem disabled><Users className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
                 <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled> <LogOut className="mr-2 h-4 w-4" /> Log out </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -480,12 +482,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                   'FlowserveAI'}
               </h2>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="relative group-data-[collapsible=icon]:hidden">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input type="search" placeholder="Search everything..." className="w-full rounded-lg bg-muted pl-8 md:w-[200px] lg:w-[300px]" disabled />
-              </div>
-            </div>
+            {/* Removed Search Input Area */}
           </header>
           <main className="flex-1 overflow-auto p-4 sm:p-6">
             {children}
