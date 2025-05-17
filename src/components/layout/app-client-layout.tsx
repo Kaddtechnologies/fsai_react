@@ -31,7 +31,7 @@ import {
   Settings,
   Trash2,
   Edit3,
-  MoreVertical,
+  ChevronDown, // Reverted to ChevronDown
   ChevronRight,
   LogOut,
   Users,
@@ -285,7 +285,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
   };
 
   const checkHasDocuments = (messages: Message[]): boolean => {
-    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed'));
+    return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed' && (att as Document).fileUrl));
   };
 
 
@@ -353,11 +353,12 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                            hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
                         }}
                       >
-                        <div>
+                        <div> {/* This div was the fix for "Invalid prop data-sidebar supplied to React.Fragment" */}
                           <div className="flex items-center w-full group-data-[collapsible=icon]:justify-center" title={displayTitle}>
                             <ConversationTypeIcon type={convType} />
                             <span
                               className="ml-2 group-data-[collapsible=icon]:hidden truncate flex-1 min-w-0"
+                              style={{maxWidth: '160px'}} // Reverted to fixed max-width for title
                               title={displayTitle}
                             >
                               {displayTitle}
@@ -391,8 +392,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                     <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                               <Button variant="ghost" size="icon" className="h-7 w-7 text-sidebar-foreground/70 hover:text-sidebar-foreground">
-                                <MoreVertical className="h-4 w-4" />
+                               <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
@@ -478,7 +479,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                  'FlowserveAI'}
              </h2>
           </div>
-          {/* Removed Search Input Area */}
+          {/* Search Input Area Removed */}
         </header>
         <main className="flex-1 overflow-auto p-4 sm:p-6">
           {children}
