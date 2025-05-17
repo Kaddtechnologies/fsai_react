@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { ReactNode } from 'react';
@@ -18,6 +17,7 @@ import {
   SidebarTrigger,
   SidebarGroup,
   SidebarGroupLabel,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,7 @@ import {
   Package,
   FileQuestion,
   Brain,
+  EllipsisVertical,
 } from 'lucide-react';
 import type { Conversation, Message, ConversationType, Document } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -123,15 +124,35 @@ const ConversationTypeIcon = ({ type }: { type: ConversationType }) => {
   }
 };
 
-export default function AppClientLayout({ children }: AppClientLayoutProps): JSX.Element {
+// We need to create a wrapper component that handles loading before using SidebarProvider
+function AppWrapper({ children }: AppClientLayoutProps): JSX.Element {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  
+  if (!isMounted) {
+    return <div className="flex h-screen w-screen items-center justify-center bg-background"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
+  }
+  
+  return (
+    <SidebarProvider defaultOpen={true}>
+      {children}
+    </SidebarProvider>
+  );
+}
+
+function AppContent({ children }: { children: ReactNode }): JSX.Element
+  {
   const { toast } = useToast();
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const sidebarContext = useSidebar();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingConvId, setDeletingConvId] = useState<string | null>(null);
   const [isWelcomeDialogOpen, setIsWelcomeDialogOpen] = useState(false);
@@ -180,7 +201,6 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
 
 
   useEffect(() => {
-    setIsMounted(true);
     loadStateFromLocalStorage();
 
     const handleStorageUpdate = (event: StorageEvent | CustomEvent) => {
@@ -207,22 +227,22 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
 
 
   useEffect(() => {
-    if (isMounted && conversations.length > 0) {
+    if (conversations.length > 0) {
       const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
       localStorage.setItem('flowserveai-conversations', JSON.stringify(sortedConversations));
-    } else if (isMounted && conversations.length === 0) {
+    } else if (conversations.length === 0) {
       localStorage.removeItem('flowserveai-conversations');
       localStorage.removeItem('flowserveai-activeConversationId');
     }
-  }, [conversations, isMounted]);
+  }, [conversations]);
 
   useEffect(() => {
-    if (isMounted && activeConversationId) {
+    if (activeConversationId) {
       localStorage.setItem('flowserveai-activeConversationId', activeConversationId);
-    } else if (isMounted && !activeConversationId && conversations.length === 0) {
+    } else if (!activeConversationId && conversations.length === 0) {
        localStorage.removeItem('flowserveai-activeConversationId');
     }
-  }, [activeConversationId, isMounted, conversations.length]);
+  }, [activeConversationId, conversations.length]);
 
 
   const createNewChat = async () => {
@@ -288,13 +308,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
     return messages.some(msg => msg.attachments && msg.attachments.some(att => att.status === 'completed' && (att as Document).fileUrl));
   };
 
-
-  if (!isMounted) {
-    return <div className="flex h-screen w-screen items-center justify-center bg-background"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
-  }
-
   return (
-    <SidebarProvider>
+    <>
       <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border">
         <SidebarHeader className="p-4 items-center">
           <Link href="/" className="flex items-center gap-2" onClick={() => {
@@ -350,7 +365,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                         )}
                         tooltip={{
                           children: <div className="max-w-xs break-words p-1" title={displayTitle}>{displayTitle}</div>,
-                           hidden: !(isMounted && (typeof window !== 'undefined' && window.innerWidth >= 768) && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
+                           hidden: !(typeof window !== 'undefined' && window.innerWidth >= 768 && document.querySelector('[data-sidebar="sidebar"]')?.getAttribute('data-state') === 'collapsed' && (pathname === '/' || pathname.startsWith('/?chatId'))),
                         }}
                       >
                         <div> {/* This div was the fix for "Invalid prop data-sidebar supplied to React.Fragment" */}
@@ -362,6 +377,18 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                               title={displayTitle}
                             >
                               {displayTitle}
+                            </span>
+                            <span className="flex items-center gap-1">
+                            <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="flex items-center cursor-default">
+                                      <Paperclip size={12} className="shrink-0 text-sidebar-primary" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="p-1.5 text-xs bg-popover text-popover-foreground">
+                                    <p>Contains documents</p>
+                                  </TooltipContent>
+                                </Tooltip>
                             </span>
                           </div>
                           <div className={cn(
@@ -393,7 +420,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
+                                <EllipsisVertical className="h-4 w-4 text-sidebar-foreground/70" />
                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
@@ -461,7 +488,8 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel> <DropdownMenuSeparator />
               <DropdownMenuItem disabled><Users className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-              <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuSeparator />
+              <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled> <LogOut className="mr-2 h-4 w-4" /> Log out </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -500,6 +528,14 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
         </AlertDialogContent>
       </AlertDialog>
       <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
-    </SidebarProvider>
+    </>
+  );
+}
+
+export default function AppClientLayout({ children }: AppClientLayoutProps): JSX.Element {
+  return (
+    <AppWrapper>
+      <AppContent>{children}</AppContent>
+    </AppWrapper>
   );
 }

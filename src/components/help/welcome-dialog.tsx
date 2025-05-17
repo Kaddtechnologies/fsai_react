@@ -45,18 +45,74 @@ const supportedTranslationLanguages = ['English', 'Spanish', 'French', 'German',
 const supportedDocTypes = ['Word', 'PowerPoint', 'Excel', 'PDF'];
 
 
-const ChartNodeDisplay: FC<{ node: ChartNode; level?: number }> = ({ node, level = 0 }) => (
-  <div className={cn('mb-2', level > 0 && `ml-${level * 4}`)}>
-    <Badge variant={level === 0 ? "default" : "secondary"} className={cn("py-1 px-3 text-sm", level === 0 && "bg-primary-gradient text-primary-foreground")}>
-      {node.label}
-    </Badge>
-    {node.children && (
-      <div className={cn("mt-2 pl-4 border-l-2 border-muted-foreground/30", level > 0 && `ml-${level * 2}` )}>
-        {node.children.map(child => <ChartNodeDisplay key={child.id} node={child} level={level + 1} />)}
+const ChartNodeDisplay: FC<{ node: ChartNode; level?: number }> = ({ node, level = 0 }) => {
+  // For the root node
+  if (level === 0) {
+    return (
+      <div className="relative">
+        {/* Root node */}
+        <div className="mb-4 flex justify-center">
+          <Badge variant="default" className="py-1.5 px-4 text-sm bg-primary-gradient text-primary-foreground">
+            {node.label}
+          </Badge>
+        </div>
+        
+        {/* Vertical line connecting root to children */}
+        {node.children && node.children.length > 0 && (
+          <div className="absolute left-1/2 top-8 h-6 w-0.5 -translate-x-1/2 bg-muted-foreground/30" />
+        )}
+        
+        {/* Children nodes */}
+        {node.children && node.children.length > 0 && (
+          <div className="mt-6 flex flex-col md:flex-row justify-center items-start gap-4 md:gap-8">
+            {node.children.map((child, index) => (
+              <div key={child.id} className="relative flex flex-col items-center">
+                {/* Horizontal line before node (for all except first) */}
+                {index > 0 && level === 0 && (
+                  <div className="absolute left-[-2rem] top-3 h-0.5 w-4 bg-muted-foreground/30 hidden md:block" />
+                )}
+                {/* Horizontal line after node (for all except last) */}
+                {index < node.children?.length - 1 && level === 0 && (
+                  <div className="absolute right-[-2rem] top-3 h-0.5 w-4 bg-muted-foreground/30 hidden md:block" />
+                )}
+                <Badge variant="secondary" className="py-1 px-3 text-sm">
+                  {child.label}
+                </Badge>
+                
+                {/* Render child's children if any */}
+                {child.children && child.children.length > 0 && (
+                  <div className="mt-4 border-l-2 border-muted-foreground/30 pl-4">
+                    {child.children.map(grandchild => (
+                      <div key={grandchild.id} className="mb-2">
+                        <Badge variant="secondary" className="py-1 px-3 text-xs">
+                          {grandchild.label}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    )}
-  </div>
-);
+    );
+  }
+  
+  // For child nodes (these won't be used for level 0 because we handle that above)
+  return (
+    <div className={`mb-2 ${level > 0 ? `ml-${level * 4}` : ''}`}>
+      <Badge variant={level === 0 ? "default" : "secondary"} className={`py-1 px-3 text-sm ${level === 0 ? "bg-primary-gradient text-primary-foreground" : ""}`}>
+        {node.label}
+      </Badge>
+      {node.children && (
+        <div className={`mt-2 pl-4 border-l-2 border-muted-foreground/30 ${level > 0 ? `ml-${level * 2}` : ''}`}>
+          {node.children.map(child => <ChartNodeDisplay key={child.id} node={child} level={level + 1} />)}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const FlowChartDisplay: FC<{ steps: FlowStep[] }> = ({ steps }) => (
   <div className="flex flex-col md:flex-row items-stretch justify-between space-y-4 md:space-y-0 md:space-x-2 mt-3">
@@ -67,9 +123,7 @@ const FlowChartDisplay: FC<{ steps: FlowStep[] }> = ({ steps }) => (
         </div>
         <p className="font-semibold text-sm mb-0.5">{step.title}</p>
         <p className="text-xs text-muted-foreground">{step.description}</p>
-        {index < steps.length - 1 && (
-          <ChevronRight size={20} className="hidden md:block absolute top-1/2 right-[-10px] transform -translate-y-1/2 text-muted-foreground/50" />
-        )}
+       
       </div>
     ))}
   </div>
@@ -84,15 +138,7 @@ const WelcomeDialog: FC<WelcomeDialogProps> = ({ open, onOpenChange }) => {
           <DialogTitle className="text-2xl font-bold text-center text-primary-gradient">Welcome to Flowserve AI</DialogTitle>
           <DialogDescription className="text-center text-muted-foreground mt-1">
             Your unified platform for intelligent assistance, document analysis, and product knowledge.
-          </DialogDescription>
-          <DialogClose asChild className="absolute top-3 right-3">
-             <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full"> <X size={20} /> </Button>
-                </TooltipTrigger>
-                <TooltipContent> <p>Hide</p> </TooltipContent>
-             </Tooltip>
-          </DialogClose>
+          </DialogDescription>       
         </DialogHeader>
         
         <ScrollArea className="h-[70vh] max-h-[70vh]">

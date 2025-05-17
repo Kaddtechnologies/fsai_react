@@ -41,7 +41,8 @@ import {
   Package,
   FileQuestion,
   Brain,
-  Paperclip, // Added
+  Paperclip,
+  EllipsisVertical, // Added
 } from 'lucide-react';
 import type { Conversation, Message, ConversationType, Document } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -394,7 +395,7 @@ export default function AppClientLayout({ children }: AppClientLayoutProps): JSX
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70 hover:text-sidebar-foreground" />
+                                <EllipsisVertical className="h-4 w-4 text-sidebar-foreground/70"  />
                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
