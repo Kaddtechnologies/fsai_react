@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import React, { Suspense } from 'react';
 import { roboto, robotoMono } from '@/lib/fonts';
@@ -9,6 +8,12 @@ import AppClientLayout from '@/components/layout/app-client-layout';
 export const metadata: Metadata = {
   title: 'FlowserveAI',
   description: 'Unified AI-powered workspace for documents, products, and chat.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    viewportFit: 'cover',
+  },
 };
 
 export default function RootLayout({
@@ -17,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {  
   return (
-    <html lang="en" className="dark">
-      <body className={`${roboto.variable} ${robotoMono.variable} font-sans antialiased`}>
+    <html lang="en" className="dark overflow-visible md:overflow-hidden" suppressHydrationWarning >
+      <body className={`${roboto.variable} ${robotoMono.variable} font-sans antialiased`} suppressHydrationWarning >
         <Suspense fallback={
           <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground">
             {/* Simple text loader to avoid complex imports in root layout for this fix */}

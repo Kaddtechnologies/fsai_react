@@ -1,16 +1,16 @@
-
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType as FileTypeLucideIcon, MessageCircleWarning, FolderOpen, Package, Brain } from 'lucide-react';
+import { SendHorizonal, Paperclip, Mic, Copy, Volume2, ThumbsUp, ThumbsDown, Edit, FileText, BotMessageSquare, User, AlertTriangle, Loader2, CheckCircle, XCircle, FileSpreadsheet, FileType as FileTypeLucideIcon, MessageCircleWarning, FolderOpen, Package, Brain, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogClose } from "@/components/ui/dialog";
 import type { Message, Conversation, Document, Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateChatTitle } from '@/ai/flows/generate-chat-title';
@@ -20,13 +20,12 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { MOCK_PRODUCTS, searchMockProducts } from '@/data/products';
 import { useSpeechSynthesis } from '@/hooks/use-speech-synthesis';
+import { MOCK_USER } from './utils/constants';
+import { formatRelative } from 'date-fns';
+import { enUS } from 'date-fns/locale';
+import useTranslation from '@/app/hooks/useTranslation';
+// Removed: import ReactMarkdown from 'react-markdown';
 
-// Mock user
-const MOCK_USER = {
-  id: "user-123",
-  name: "Flowserve User",
-  avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "profile avatar"
-};
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -101,6 +100,13 @@ async function uploadFileToBackend(file: File, onProgress: (percentage: number) 
   });
 }
 
+const translateWithParams = (t: (key: string) => string, key: string, params: Record<string, string | number>) => {
+  let translated = t(key);
+  Object.entries(params).forEach(([paramKey, paramValue]) => {
+    translated = translated.replace(`{${paramKey}}`, String(paramValue));
+  });
+  return translated;
+};
 
 const ChatPage = () => {
   const { toast } = useToast();
@@ -109,6 +115,7 @@ const ChatPage = () => {
   const pathname = usePathname();
   const chatIdFromUrl = searchParams.get('chatId');
   const documentIdToDiscuss = searchParams.get('documentIdToDiscuss');
+  const { t } = useTranslation();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -117,15 +124,52 @@ const ChatPage = () => {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isChatPageLoading, setIsChatPageLoading] = useState(true);
-  const [currentPlaceholder, setCurrentPlaceholder] = useState("Chat with AI, or ask about documents and products...");
-
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(t('chat.placeholder'));
+  
+  const [showFullSummaryModal, setShowFullSummaryModal] = useState(false);
+  const [modalSummaryContent, setModalSummaryContent] = useState<{title: string, content: string} | null>(null);
 
   const { speak, cancel, isSpeaking } = useSpeechSynthesis();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const activeConversation = conversations.find(conv => conv.id === activeConversationId);
 
+  // Update placeholder based on conversation content and screen size
+  useEffect(() => {
+    const updatePlaceholder = () => {
+      // Only show placeholder if there are no user/AI messages
+      const hasUserOrAIMessages = activeConversation?.messages?.some(
+        msg => msg.sender === 'user' || msg.sender === 'ai'
+      ) || false;
+      
+      if (window.innerWidth < 640) { // sm breakpoint
+        setCurrentPlaceholder(hasUserOrAIMessages ? "" : t('chat.placeholderMobile'));
+      } else {
+        setCurrentPlaceholder(hasUserOrAIMessages ? "" : t('chat.placeholder'));
+      }
+    };
+
+    updatePlaceholder();
+    window.addEventListener('resize', updatePlaceholder);
+    return () => window.removeEventListener('resize', updatePlaceholder);
+  }, [activeConversation?.messages, t]);
+
+  // Auto-resize textarea based on content
+  const autoResizeTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    textarea.style.height = 'auto';
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 52), 250); // Min 52px, max 250px (~10 rows)
+    textarea.style.height = `${newHeight}px`;
+  }, []);
+
+  useEffect(() => {
+    autoResizeTextarea();
+  }, [inputValue, autoResizeTextarea]);
+  
   useEffect(() => {
     setIsChatPageLoading(true);
     const storedConversationsJSON = localStorage.getItem('flowserveai-conversations');
@@ -161,7 +205,7 @@ const ChatPage = () => {
   }, [chatIdFromUrl, pathname]); 
 
   useEffect(() => {
-    if (conversations.length > 0) { 
+    if (conversations.length > 0 || localStorage.getItem('flowserveai-conversations')) { 
       localStorage.setItem('flowserveai-conversations', JSON.stringify(conversations));
     }
   }, [conversations]);
@@ -205,7 +249,7 @@ const ChatPage = () => {
   }, [documentIdToDiscuss, activeConversationId, conversations, router, isChatPageLoading]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    textareaRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(scrollToBottom, [activeConversation?.messages]);
@@ -279,7 +323,10 @@ const ChatPage = () => {
     updateConversation(updatedMessages); 
 
     let conversationTitle = activeConversation.title;
-    if (activeConversation.messages.length === 0 && currentInputValue.trim() && (activeConversation.title === 'New Chat' || activeConversation.title.startsWith('Chat about '))) {
+    // Check if this is the first text message from user (regardless of document uploads)
+    const isFirstUserTextMessage = !activeConversation.messages.some(msg => msg.sender === 'user' && msg.type !== 'document_upload_status');
+    
+    if ((isFirstUserTextMessage || activeConversation.title === 'New Chat' || activeConversation.title.startsWith('Chat about ')) && currentInputValue.trim()) {
       try {
         const titleResponse = await generateChatTitle({ firstMessage: currentInputValue });
         conversationTitle = titleResponse.title;
@@ -296,7 +343,7 @@ const ChatPage = () => {
           role: msg.sender as 'user' | 'ai',
           content: msg.content + 
                    (msg.attachments && msg.attachments.length > 0 && msg.attachments[0].status === 'completed' ? 
-                      ` (User attached a document: ${msg.attachments[0].name}. Its summary is: ${msg.attachments[0].summary || 'Summary not available.'})` 
+                      ` (User attached a document: ${msg.attachments[0].name}. Its summary, in Markdown format, is: ${msg.attachments[0].summary || 'Summary not available.'})` 
                       : '')
         }));
 
@@ -356,14 +403,22 @@ const ChatPage = () => {
     const file = files[0];
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast({ title: "File too large", description: `File size cannot exceed ${MAX_FILE_SIZE_MB}MB.`, variant: "destructive" });
-      if (fileInputRef.current) fileInputRef.current.value = ""; return;
+      toast({ 
+        title: t('uploads.fileTooLarge.title'), 
+        description: translateWithParams(t, 'uploads.fileTooLarge.description', { maxSize: MAX_FILE_SIZE_MB }), 
+        variant: "destructive" 
+      });
+      if (textareaRef.current) textareaRef.current.value = ""; return;
     }
 
     const docType = getDocumentTypeFromMime(file.type, file.name);
     if (!docType) {
-      toast({ title: "Invalid file type", description: `Allowed: ${ALLOWED_EXTENSIONS_STRING}. Images are not supported.`, variant: "destructive" });
-      if (fileInputRef.current) fileInputRef.current.value = ""; return;
+      toast({ 
+        title: t('uploads.invalidType.title'), 
+        description: translateWithParams(t, 'uploads.invalidType.description', { allowed: ALLOWED_EXTENSIONS_STRING }), 
+        variant: "destructive" 
+      });
+      if (textareaRef.current) textareaRef.current.value = ""; return;
     }
 
     const clientDocumentId = `doc-client-${Date.now()}-${file.name}`;
@@ -375,7 +430,8 @@ const ChatPage = () => {
     const uploadMessageId = `msg-upload-${clientDocumentId}`;
     const uploadStatusMessage: Message = {
       id: uploadMessageId, conversationId: activeConversationId,
-      content: `Preparing to upload ${file.name}...`, sender: 'system', timestamp: Date.now(),
+      content: translateWithParams(t, 'uploads.preparing', { fileName: file.name }), 
+      sender: 'system', timestamp: Date.now(),
       type: 'document_upload_status', attachments: [initialDocument],
       data: { fileName: file.name, documentType: docType, progress: 0, status: 'pending_upload', clientDocId: clientDocumentId }
     };
@@ -399,7 +455,7 @@ const ChatPage = () => {
       
       const backendUploadedDoc: Partial<Document> = { backendId: backendResult.backendId, fileUrl: backendResult.fileUrl, status: 'pending_ai_processing', progress: 50 };
       updateMessageInData(uploadMessageId, 
-        { status: 'pending_ai_processing', progress: 50, content: `Uploaded ${file.name}. Processing with AI...` },
+        { status: 'pending_ai_processing', progress: 50, content: translateWithParams(t, 'uploads.processingAi', { fileName: file.name }) },
         backendUploadedDoc
       );
 
@@ -416,25 +472,25 @@ const ChatPage = () => {
           const summaryResponse = await summarizeDocument({ documentDataUri: dataUri });
           const finalDocUpdate: Partial<Document> = { summary: summaryResponse.summary, status: 'completed', progress: 100 };
           updateMessageInData(uploadMessageId,
-            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: `Successfully processed ${file.name}. Summary is available.` },
+            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: translateWithParams(t, 'uploads.processingComplete', { fileName: file.name }) },
             finalDocUpdate
           );
-          toast({ title: "File processed", description: `${file.name} uploaded and summarized.` });
+          toast({ title: t('uploads.fileProcessed'), description: translateWithParams(t, 'uploads.fileProcessedSummary', { fileName: file.name }) });
         } catch (aiError) {
           console.error("AI processing error:", aiError);
           const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: "AI processing failed." };
           updateMessageInData(uploadMessageId,
-            { status: 'failed', progress: 100, error: "AI processing failed.", content: `Failed to process ${file.name} with AI.` },
+            { status: 'failed', progress: 100, error: "AI processing failed.", content: translateWithParams(t, 'uploads.processingFailed', { fileName: file.name }) },
             finalDocUpdate
           );
-          toast({ title: "AI Error", description: `Could not process ${file.name}.`, variant: "destructive" });
+          toast({ title: t('uploads.aiError'), description: translateWithParams(t, 'uploads.couldNotProcess', { fileName: file.name }), variant: "destructive" });
         }
       };
       reader.onerror = () => {
         const errorMsg = "Failed to read file for AI processing.";
         const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: errorMsg };
         updateMessageInData(uploadMessageId,
-            { status: 'failed', progress: 100, error: errorMsg, content: `Error reading ${file.name}.` },
+            { status: 'failed', progress: 100, error: errorMsg, content: translateWithParams(t, 'uploads.readingFailed', { fileName: file.name }) },
             finalDocUpdate
         );
         toast({ title: "File Read Error", description: errorMsg, variant: "destructive" });
@@ -445,209 +501,326 @@ const ChatPage = () => {
       const errorMsg = uploadError.message || "An unknown error occurred during upload.";
       const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: errorMsg };
       updateMessageInData(uploadMessageId,
-        { status: 'failed', progress: 100, error: errorMsg, content: `Failed to upload ${file.name}.` },
+        { status: 'failed', progress: 100, error: errorMsg, content: translateWithParams(t, 'uploads.uploadFailed', { fileName: file.name }) },
         finalDocUpdate
       );
       toast({ title: "Upload Failed", description: errorMsg, variant: "destructive" });
     }
 
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (textareaRef.current) textareaRef.current.value = "";
   };
 
-  const handleCopy = (text: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied to clipboard" }); };
-  const handleTTS = (text: string) => { if (isSpeaking) cancel(); else speak(text); };
-  const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => { updateConversation((activeConversation?.messages || []).map(msg => msg.id === messageId ? { ...msg, feedback } : msg)); };
-  const startEdit = (message: Message) => { setEditingMessage(message); setEditValue(message.content); };
-  const cancelEdit = () => { setEditingMessage(null); setEditValue(''); };
+  const handleCopy = (text: string) => { 
+    navigator.clipboard.writeText(text); 
+    toast({ title: t('actions.copiedToClipboard') }); 
+  };
+
+  const handleTTS = (text: string) => { 
+    if (isSpeaking) cancel(); 
+    else speak(text); 
+  };
+
+  const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => { 
+    updateConversation((activeConversation?.messages || []).map(msg => 
+      msg.id === messageId ? { ...msg, feedback } : msg
+    )); 
+  };
+
+  const startEdit = (message: Message) => { 
+    setEditingMessage(message); 
+    setEditValue(message.content); 
+  };
+
+  const cancelEdit = () => { 
+    setEditingMessage(null); 
+    setEditValue(''); 
+  };
+
   const submitEdit = () => {
     if (!editingMessage || !editValue.trim()) return;
     updateConversation((activeConversation?.messages || []).map(msg =>
       msg.id === editingMessage.id ? { ...msg, content: editValue, originalContent: msg.content, timestamp: Date.now(), feedback: undefined } : msg
     ));
     cancelEdit();
-    toast({ title: "Message edited" });
+    toast({ title: t('chat.messageEdited') });
   };
   
+  const handleShowFullSummary = (docName: string, summary: string) => {
+    setModalSummaryContent({ 
+      title: translateWithParams(t, 'document.fullSummaryTitle', { docName }), 
+      content: summary 
+    });
+    setShowFullSummaryModal(true);
+  };
+
   if (isChatPageLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
         <Loader2 className="w-16 h-16 mb-4 text-primary animate-spin" />
-        <p className="text-muted-foreground">Loading chat...</p>
+        <p className="text-muted-foreground">{t('chat.loading')}</p>
       </div>
     );
   }
 
-  if (!activeConversationId && conversations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <BotMessageSquare className="w-24 h-24 mb-6 text-primary opacity-50" />
-        <h2 className="text-2xl font-semibold mb-2 text-foreground">Welcome to FlowserveAI</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">Start a new conversation by typing below or select one from the sidebar.</p>
-      </div>
-    );
-  }
+if (!activeConversationId && conversations.length === 0) {
+  const startNewChat = () => {
+    const newConversationId = `conv-${Date.now()}`;
+    const newConversation: Conversation = {
+      id: newConversationId,
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    
+    setConversations([newConversation]);
+    setActiveConversationId(newConversationId);
+    router.replace(`/?chatId=${newConversationId}`, { scroll: false });
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+      <img 
+        src="/assets/images/flowserve_logo_transparent.svg" 
+        alt="Flowserve Logo" 
+        className=" h-20 mb-6"
+      />
+      <h2 className="text-2xl font-semibold mb-2 text-foreground">{t('chat.welcome')}</h2>
+      <p className="text-muted-foreground mb-6 max-w-md">{t('chat.welcomeSubtitle')}</p>
+      <Button 
+        onClick={startNewChat}
+        className="bg-primary-gradient hover:opacity-90 text-primary-foreground px-6"
+      >
+        <BotMessageSquare className="mr-2 h-5 w-5" />
+        {t('chat.newChat')}
+      </Button>
+    </div>
+  );
+}
   
   if (!activeConversation) {
      const message = activeConversationId 
-        ? `Chat with ID ${activeConversationId.substring(0,10)}... not found.`
-        : "No active chat session.";
+        ? translateWithParams(t, 'chat.notFound', { id: activeConversationId.substring(0,10) })
+        : t('chat.noActiveSession');
      return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
         <MessageCircleWarning className="w-24 h-24 mb-6 text-accent-warning opacity-70" />
         <h2 className="text-2xl font-semibold mb-2 text-foreground">{message}</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">Please select an existing conversation from the sidebar or start a new one.</p>
-         <Button onClick={() => router.push('/')}>Go to Chats</Button>
+        <p className="text-muted-foreground mb-6 max-w-md">{t('chat.selectOrStartNew')}</p>
+         <Button onClick={() => router.push('/')}>{t('actions.goToChats')}</Button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-background rounded-lg shadow-xl">
-      <ScrollArea className="flex-1 p-4 pr-2">
-        <div className="space-y-6">
-          {activeConversation.messages.map((message) => (
-            <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? "justify-end" : "justify-start")}>
-              {message.sender === 'ai' && (
-                <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
-              )}
-              <div className={cn("max-w-[70%] p-3 rounded-xl shadow", 
-                message.sender === 'user' ? "bg-primary text-primary-foreground rounded-tr-none" : 
-                message.sender === 'ai' ? "bg-card text-card-foreground rounded-tl-none" :
-                message.type === 'document_upload_status' ? "bg-card border border-border w-full max-w-[85%]" :
-                "bg-muted text-muted-foreground w-full text-sm text-center"
-              )}>
-                {editingMessage?.id === message.id && message.sender === 'user' ? (
-                  <div className="space-y-2">
-                    <Textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="min-h-[60px] bg-background text-foreground"
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); }}} />
-                    <div className="flex gap-2 justify-end"> <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button> <Button size="sm" onClick={submitEdit}>Save</Button> </div>
-                  </div>
-                ) : (
-                  <>
-                    {message.type !== 'document_upload_status' && <p className="whitespace-pre-wrap text-sm">{message.content}</p>}
-                    {message.originalContent && <p className="text-xs text-muted-foreground/70 mt-1">(edited)</p>}
-                    
-                    {message.type === 'document_upload_status' && message.data && message.attachments && message.attachments.length > 0 && (
-                      <div className="w-full">
-                        <div className="flex items-center gap-3 mb-2">
-                          <FileTypeIcon type={message.data.documentType!} size={32} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate" title={message.data.fileName}>{message.data.fileName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {message.data.status === 'pending_upload' && 'Waiting for upload...'}
-                              {message.data.status === 'uploading_to_backend' && `Uploading... (${message.data.progress?.toFixed(0) || 0}%)`}
-                              {message.data.status === 'pending_ai_processing' && 'Processing with AI...'}
-                              {message.data.status === 'ai_processing' && `Processing with AI... (${message.data.progress?.toFixed(0) || 50}%)`}
-                              {message.data.status === 'completed' && <span className="text-accent-success flex items-center gap-1"><CheckCircle size={14}/>Completed</span>}
-                              {message.data.status === 'failed' && <span className="text-destructive flex items-center gap-1"><XCircle size={14}/>Failed: {message.data.error || "Unknown error"}</span>}
-                            </p>
-                          </div>
-                        </div>
-                        {(message.data.status === 'uploading_to_backend' || message.data.status === 'ai_processing' || message.data.status === 'pending_ai_processing') && typeof message.data.progress === 'number' && message.data.status !== 'completed' && message.data.status !== 'failed' && (
-                          <Progress value={message.data.progress} className="h-1.5 w-full mb-2" />
-                        )}
-                        {message.data.status === 'completed' && message.data.summary && (
-                            <details className="mt-2"> <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary</summary> <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p> </details>
-                        )}
-                         {message.data.status === 'failed' && message.data.error && ( <p className="text-xs mt-1 p-2 bg-destructive/10 text-destructive rounded">{message.data.error}</p> )}
-                      </div>
-                    )}
-
-                    {message.type === 'product_card' && message.data?.products && Array.isArray(message.data.products) && (
-                      <div className="mt-2 space-y-3">
-                        {(message.data.products as Product[]).map(product => (
-                          <Card key={product.id} className="bg-card/70 border-border overflow-hidden shadow-md">
-                            <CardHeader className="p-3 flex flex-row items-start gap-3">
-                              {product.imageUrl && (
-                                <Image 
-                                  src={product.imageUrl} 
-                                  alt={product.name} 
-                                  width={60} height={60} 
-                                  className="rounded-md object-cover aspect-square" 
-                                  data-ai-hint={product.name.split(' ').slice(0,2).join(' ').toLowerCase()}
-                                />
-                              )}
-                              <div className="flex-1">
-                                <CardTitle className="text-base font-semibold">{product.name}</CardTitle>
-                                <CardDescription className="text-xs mt-0.5">SKU: {product.sku}</CardDescription>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="p-3 pt-0 text-xs space-y-1">
-                              <p className="line-clamp-3">{product.description}</p>
-                              <p><strong className="text-muted-foreground">Availability:</strong> <span className={cn(product.availability === 'In Stock' ? 'text-accent-success' : product.availability === 'Low Stock' ? 'text-accent-warning' : 'text-destructive')}>{product.availability}</span></p>
-                              {product.price && <p><strong className="text-muted-foreground">Price:</strong> {product.price}</p>}
-                              {Object.entries(product.specifications || {}).length > 0 && (
-                                <details className="mt-1.5">
-                                  <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Specifications</summary>
-                                  <div className="mt-1 p-2 bg-muted/50 rounded text-xs space-y-0.5 max-h-32 overflow-y-auto">
-                                    {Object.entries(product.specifications).map(([key, value]) => (
-                                      <p key={key}><strong className="text-muted-foreground">{key}:</strong> {Array.isArray(value) ? value.join(', ') : value}</p>
-                                    ))}
-                                  </div>
-                                </details>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                    {message.type === 'error' && <p className="text-xs text-destructive mt-1">Error: Could not process request.</p>}
-                    
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      {message.sender === 'ai' && message.type !== 'error' && message.type !== 'document_upload_status' && (
-                        <>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(message.content)}><Copy size={14}/></Button>
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleTTS(message.content)}> {isSpeaking ? <Volume2 size={14} className="text-secondary-gradient"/> : <Volume2 size={14}/>} </Button>
-                          <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'liked' ? 'text-accent-success' : 'text-muted-foreground hover:text-accent-success'}`} onClick={() => handleFeedback(message.id, 'liked')}><ThumbsUp size={14}/></Button>
-                          <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'disliked' ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'}`} onClick={() => handleFeedback(message.id, 'disliked')}><ThumbsDown size={14}/></Button>
-                        </>
-                      )}
-                      {message.sender === 'user' && !editingMessage && ( <Button variant="ghost" size="icon" className="h-6 w-6 text-primary-foreground/70 hover:text-primary-foreground" onClick={() => startEdit(message)}><Edit size={14}/></Button> )}
+    <div className="flex flex-col h-full bg-background rounded-lg shadow-xl overflow-hidden">
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <ScrollArea className="max-h-[68vh] sm:max-h-[70vh] md:max-h-[71vh] lg:max-h-[72vh] w-full">
+          <div className="space-y-6 p-4 pr-2">
+            {activeConversation.messages.map((message) => (
+              <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? "justify-end" : "justify-start")}>
+                {message.sender === 'ai' && (
+                  <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> 
+                    <AvatarImage src="/assets/images/flowserve_logo_transparent.svg" alt="Flowserve AI" />
+                    <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> 
+                  </Avatar>
+                )}
+                <div className={cn("max-w-[70%] p-3 rounded-xl shadow", 
+                  message.sender === 'user' ? "bg-primary text-primary-foreground rounded-tr-none" : 
+                  message.sender === 'ai' ? "bg-card text-card-foreground rounded-tl-none" :
+                  message.type === 'document_upload_status' ? "bg-card border border-border w-full max-w-[85%]" :
+                  "bg-muted text-muted-foreground w-full text-sm text-center"
+                )}>
+                  {editingMessage?.id === message.id && message.sender === 'user' ? (
+                    <div className="space-y-2">
+                      <Textarea value={editValue} onChange={(e) => setEditValue(e.target.value)} className="min-h-[60px] bg-background text-foreground"
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitEdit(); }}} />
+                      <div className="flex gap-2 justify-end"> <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button> <Button size="sm" onClick={submitEdit}>Save</Button> </div>
                     </div>
-                  </>
+                  ) : (
+                    <>
+                      {message.type !== 'document_upload_status' && <p className="whitespace-pre-wrap text-sm">{message.content}</p>}
+                      {message.originalContent && <p className="text-xs text-muted-foreground/70 mt-1">(edited)</p>}
+                      
+                      {message.type === 'document_upload_status' && message.data && message.attachments && message.attachments.length > 0 && (
+                        <div className="w-full">
+                          <div className="flex items-center gap-3 mb-2">
+                            <FileTypeIcon type={message.data.documentType!} size={32} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate" title={message.data.fileName}>{message.data.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {message.data.status === 'pending_upload' && t('uploads.status.pendingUpload')}
+                                {message.data.status === 'uploading_to_backend' && translateWithParams(t, 'uploads.status.uploading', { progress: message.data.progress?.toFixed(0) || 0 })}
+                                {message.data.status === 'pending_ai_processing' && t('uploads.status.pendingProcessing')}
+                                {message.data.status === 'ai_processing' && translateWithParams(t, 'uploads.status.processing', { progress: message.data.progress?.toFixed(0) || 50 })}
+                                {message.data.status === 'completed' && <span className="text-accent-success flex items-center gap-1"><CheckCircle size={14}/>{t('uploads.status.completed')}</span>}
+                                {message.data.status === 'failed' && <span className="text-destructive flex items-center gap-1"><XCircle size={14}/>{t('uploads.status.failed')}: {message.data.error || t('common.unknownError')}</span>}
+                              </p>
+                            </div>
+                          </div>
+                          {(message.data.status === 'uploading_to_backend' || message.data.status === 'ai_processing' || message.data.status === 'pending_ai_processing') && typeof message.data.progress === 'number' && (
+                            <Progress value={message.data.progress} className="h-1.5 w-full mb-2" />
+                          )}
+                          {message.data.status === 'completed' && message.data.summary && (
+                              <div className="mt-2">
+                                  <details>
+                                      <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">{t('document.viewSummarySnippet')}</summary>
+                                      <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p>
+                                  </details>
+                                  <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-1" onClick={() => handleShowFullSummary(message.data?.fileName || t('document.defaultName'), message.data?.summary || '')}>
+                                      <Eye size={12} className="mr-1" /> {t('document.viewFullSummary')}
+                                  </Button>
+                              </div>
+                          )}
+                           {message.data.status === 'failed' && message.data.error && ( <p className="text-xs mt-1 p-2 bg-destructive/10 text-destructive rounded">{message.data.error}</p> )}
+                        </div>
+                      )}
+
+                      {message.type === 'product_card' && message.data?.products && Array.isArray(message.data.products) && (
+                        <div className="mt-2 space-y-3">
+                          {(message.data.products as Product[]).map(product => (
+                            <Card key={product.id} className="bg-card/70 border-border overflow-hidden shadow-md">
+                              <CardHeader className="p-3 flex flex-row items-start gap-3">
+                                {product.imageUrl && (
+                                  <Image 
+                                    src={product.imageUrl} 
+                                    alt={product.name} 
+                                    width={60} height={60} 
+                                    className="rounded-md object-cover aspect-square" 
+                                    data-ai-hint={product.name.split(' ').slice(0,2).join(' ').toLowerCase()}
+                                  />
+                                )}
+                                <div className="flex-1">
+                                  <CardTitle className="text-base font-semibold">{product.name}</CardTitle>
+                                  <CardDescription className="text-xs mt-0.5">SKU: {product.sku}</CardDescription>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="p-3 pt-0 text-xs space-y-1">
+                                <p className="line-clamp-3">{product.description}</p>
+                                <p><strong className="text-muted-foreground">Availability:</strong> <span className={cn(product.availability === 'In Stock' ? 'text-accent-success' : product.availability === 'Low Stock' ? 'text-accent-warning' : 'text-destructive')}>{product.availability}</span></p>
+                                {product.price && <p><strong className="text-muted-foreground">Price:</strong> {product.price}</p>}
+                                {Object.entries(product.specifications || {}).length > 0 && (
+                                  <details className="mt-1.5">
+                                    <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Specifications</summary>
+                                    <div className="mt-1 p-2 bg-muted/50 rounded text-xs space-y-0.5 max-h-32 overflow-y-auto">
+                                      {Object.entries(product.specifications).map(([key, value]) => (
+                                        <p key={key}><strong className="text-muted-foreground">{key}:</strong> {Array.isArray(value) ? value.join(', ') : value}</p>
+                                      ))}
+                                    </div>
+                                  </details>
+                                )}
+                              </CardContent>
+                              {/* CardFooter removed here as it's not typically used for product cards like this */}
+                            </Card>
+                          ))}
+                        </div>
+                      )}
+                      {message.type === 'error' && <p className="text-xs text-destructive mt-1">Error: Could not process request.</p>}
+                      
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        {message.sender === 'ai' && message.type !== 'error' && message.type !== 'document_upload_status' && (
+                          <>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleCopy(message.content)}><Copy size={14}/></Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => handleTTS(message.content)}> {isSpeaking ? <Volume2 size={14} className="text-secondary-gradient"/> : <Volume2 size={14}/>} </Button>
+                            <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'liked' ? 'text-accent-success' : 'text-muted-foreground hover:text-accent-success'}`} onClick={() => handleFeedback(message.id, 'liked')}><ThumbsUp size={14}/></Button>
+                            <Button variant="ghost" size="icon" className={`h-6 w-6 ${message.feedback === 'disliked' ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'}`} onClick={() => handleFeedback(message.id, 'disliked')}><ThumbsDown size={14}/></Button>
+                          </>
+                        )}
+                        {message.sender === 'user' && !editingMessage && ( <Button variant="ghost" size="icon" className="h-6 w-6 text-primary-foreground/70 hover:text-primary-foreground" onClick={() => startEdit(message)}><Edit size={14}/></Button> )}
+                      </div>
+                    </>
+                  )}
+                </div>
+                {message.sender === 'user' && (
+                  <Avatar className="h-8 w-8"> <AvatarImage src={MOCK_USER.avatarUrl} alt={MOCK_USER.name} data-ai-hint="profile avatar"/> <AvatarFallback>{MOCK_USER.name.substring(0,1)}</AvatarFallback> </Avatar>
                 )}
               </div>
-              {message.sender === 'user' && (
-                <Avatar className="h-8 w-8"> <AvatarImage src={MOCK_USER.avatarUrl} alt={MOCK_USER.name} data-ai-hint="profile avatar"/> <AvatarFallback>{MOCK_USER.name.substring(0,1)}</AvatarFallback> </Avatar>
-              )}
-            </div>
-          ))}
-          {isLoadingAIResponse && (
-            <div className="flex items-start gap-3 justify-start">
-               <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
-              <div className="max-w-[70%] p-3 rounded-xl shadow bg-card text-card-foreground rounded-tl-none">
-                <div className="flex items-center space-x-1"> <span className="typing-dot"></span> <span className="typing-dot"></span> <span className="typing-dot"></span> </div>
+            ))}
+            {isLoadingAIResponse && (
+              <div className="flex items-start gap-3 justify-start">
+                <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> 
+                  <AvatarImage src="/assets/images/flowserve_logo_transparent.svg" alt="Flowserve AI" />
+                  <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> 
+                </Avatar>
+                <div className="max-w-[70%] p-3 rounded-xl shadow bg-card text-card-foreground rounded-tl-none">
+                  <div className="flex items-center space-x-1"> <span className="typing-dot"></span> <span className="typing-dot"></span> <span className="typing-dot"></span> </div>
+                </div>
               </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </ScrollArea>
-
-      <div className="border-t border-border p-4">
-        <div className="flex items-center gap-2 mb-2 px-1">
-            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><Brain size={12} className="mr-1.5"/> AI</Badge>
-            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><FileText size={12} className="mr-1.5"/> Documents</Badge>
-            <Badge variant="secondary" className="py-1 px-2 text-xs cursor-default"><Package size={12} className="mr-1.5"/> Products</Badge>
-        </div>
-        <div className="relative">
-          <Textarea
-            value={inputValue} onChange={(e) => setInputValue(e.target.value)}
-            placeholder={currentPlaceholder}
-            className="pr-28 pl-24 min-h-[52px] resize-none bg-input text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}} rows={1} />
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}> <Paperclip /> <span className="sr-only">Attach file</span> </Button>
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept={ALLOWED_EXTENSIONS_STRING} />
-            <Button variant="ghost" size="icon" disabled> <Mic /> <span className="sr-only">Use microphone</span> </Button>
+            )}
+            <div ref={messagesEndRef} />
           </div>
-          <Button type="submit" size="icon" className="absolute right-3 top-1/2 -translate-y-1/2 bg-primary-gradient text-primary-foreground hover:opacity-90" 
-            onClick={handleSendMessage} disabled={isLoadingAIResponse || !inputValue.trim()}>
-            {isLoadingAIResponse ? <Loader2 className="animate-spin" /> : <SendHorizonal />} <span className="sr-only">Send message</span>
-          </Button>
-        </div>
-        <p className="text-xs text-muted-foreground text-center mt-2 px-4">Flowserve AI can make mistakes. Please validate important information.</p>
+        </ScrollArea>
       </div>
+
+      <div className="border-t border-border p-4 bg-background">      
+        <div className="rounded-xl border border-input bg-muted/30 overflow-hidden flex flex-col">
+          <div className="max-h-[250px] overflow-y-auto">
+            <Textarea
+              ref={textareaRef}
+              value={inputValue} 
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={currentPlaceholder}
+              className="border-0 min-h-[52px] pt-3 pl-3 resize-none bg-transparent text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 w-full"
+              onKeyDown={(e) => { 
+                if (e.key === 'Enter' && !e.shiftKey) { 
+                  e.preventDefault(); 
+                  handleSendMessage(); 
+                }
+              }} 
+            />
+          </div>
+          <div className="flex items-center px-3 py-2">
+            <div className="flex items-center gap-1.5">
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => fileInputRef.current?.click()}>
+                <Paperclip size={20} />
+                <span className="sr-only">Attach file</span>
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept={ALLOWED_EXTENSIONS_STRING}
+                onChange={handleFileUpload}
+              />
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" disabled>
+                <Mic size={20} />
+                <span className="sr-only">Use microphone</span>
+              </Button>
+            </div>
+            <div className="flex-1"></div>
+            <Button 
+              type="submit" 
+              size="icon" 
+              className="h-9 w-9 rounded-full bg-primary-gradient text-primary-foreground hover:opacity-90" 
+              onClick={handleSendMessage} 
+              disabled={isLoadingAIResponse || !inputValue.trim()}
+            >
+              {isLoadingAIResponse ? <Loader2 className="animate-spin" /> : <SendHorizonal size={18} />}
+              <span className="sr-only">Send message</span>
+            </Button>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-2 px-4">{t('chat.aiDisclaimer')}</p>
+      </div>
+
+      {modalSummaryContent && (
+        <Dialog open={showFullSummaryModal} onOpenChange={setShowFullSummaryModal}>
+          <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{modalSummaryContent.title}</DialogTitle>
+              <DialogDescriptionComponent className="text-sm text-muted-foreground">{t('document.rawMarkdownPreview')}</DialogDescriptionComponent>
+            </DialogHeader>
+            <ScrollArea className="flex-1 min-h-0 py-2 pr-3 -mr-2">
+              <pre className="block w-full text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
+                {modalSummaryContent.content}
+              </pre>
+            </ScrollArea>
+            <DialogClose asChild>
+              <Button type="button" variant="outline" className="mt-4">{t('actions.close')}</Button>
+            </DialogClose>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

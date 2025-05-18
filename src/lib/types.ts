@@ -17,7 +17,7 @@ export interface Message {
     summary?: string;
     error?: string;
     // For product_card (can be an array or single object)
-    products?: Product[] | Product; 
+    products?: Product[] | Product;
     // For other data types as needed
     [key: string]: any;
   };
@@ -34,7 +34,7 @@ export interface Conversation {
   createdAt: number;
   updatedAt: number;
   // Optional: could be computed on the fly or stored if performance becomes an issue
-  type?: ConversationType; 
+  type?: ConversationType;
 }
 
 export interface Product {
@@ -56,13 +56,6 @@ export interface Document {
   type: 'pdf' | 'excel' | 'word' | 'powerpoint' | 'text';
   uploadedAt: number;
   size: number; // in bytes
-  // Status reflects the entire lifecycle:
-  // pending_upload: File selected, not yet sent to backend
-  // uploading_to_backend: File is being sent to your backend
-  // pending_ai_processing: Backend upload complete, awaiting AI summarization/vectorization
-  // ai_processing: AI is working on the document
-  // completed: All steps finished, document ready
-  // failed: Any step failed
   status: 'pending_upload' | 'uploading_to_backend' | 'pending_ai_processing' | 'ai_processing' | 'completed' | 'failed';
   progress: number; // Overall progress (0-100), can be mapped from different stages
   summary?: string;
@@ -70,6 +63,7 @@ export interface Document {
   error?: string; // Store error message if any step fails
 }
 
+// Deprecated: Replaced by TranslationJob
 export interface TranslationEntry {
   id: string;
   inputText: string;
@@ -78,6 +72,55 @@ export interface TranslationEntry {
   targetLanguage: string;
   timestamp: number;
 }
+
+
+// New types for the enhanced Translation Module
+
+export type TranslationJobType = 'text' | 'document';
+export type TranslationJobStatus = 'draft' | 'in-progress' | 'complete' | 'archived' | 'failed';
+
+export interface UploadedFile {
+  id: string; // client-generated unique ID for the file instance in a job
+  originalName: string;
+  size: number; // bytes
+  type: string; // MIME type
+  progress: number; // 0-100 for upload/processing
+  status: 'queued' | 'uploading' | 'processing' | 'completed' | 'failed';
+  error?: string;
+  dataUri?: string; // for client-side processing or preview
+  convertToDocx?: boolean; // for PDF files
+  fileObject?: File; // Store the actual file object temporarily for upload
+}
+
+export interface TranslatedFileArtifact {
+  name: string;
+  url: string; // Simulated download URL or path to translated file
+  format: string; // e.g., 'pdf', 'docx'
+}
+
+export interface TranslationJob {
+  id: string;
+  name: string; // Job title, user-defined
+  type: TranslationJobType;
+  status: TranslationJobStatus;
+  createdAt: number;
+  updatedAt: number;
+
+  sourceLanguage: string; // Language code (e.g., 'en', 'auto')
+  targetLanguages: string[]; // Array of language codes
+
+  // For text jobs
+  inputText?: string;
+  outputTextByLanguage?: Record<string, string>; // { 'es': 'Hola mundo', 'fr': 'Bonjour le monde' }
+
+  // For document jobs
+  sourceFiles?: UploadedFile[];
+  translatedFilesByLanguage?: Record<string, TranslatedFileArtifact[]>; // { 'es': [file1_es, file2_es], 'fr': [file1_fr, file2_fr] }
+
+  emailNotifications?: boolean; // User preference
+  errorMessage?: string; // If the job itself failed
+}
+
 
 // For Welcome Dialog Charts
 export interface ChartNode {
