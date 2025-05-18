@@ -63,19 +63,6 @@ export interface Document {
   error?: string; // Store error message if any step fails
 }
 
-// Deprecated: Replaced by TranslationJob
-export interface TranslationEntry {
-  id: string;
-  inputText: string;
-  outputText: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  timestamp: number;
-}
-
-
-// New types for the enhanced Translation Module
-
 export type TranslationJobType = 'text' | 'document';
 export type TranslationJobStatus = 'draft' | 'in-progress' | 'complete' | 'archived' | 'failed';
 
@@ -119,6 +106,18 @@ export interface TranslationJob {
 
   emailNotifications?: boolean; // User preference
   errorMessage?: string; // If the job itself failed
+}
+
+export interface UserFeedbackEntry {
+  id: string;
+  sourceLanguage: string;
+  targetLanguage: string;
+  sourceKeyword?: string; // For non-bulk
+  targetKeyword?: string; // For non-bulk
+  isBulk: boolean;
+  fileName?: string; // For bulk upload
+  fileContent?: string; // For bulk upload, actual content or link
+  createdAt: number;
 }
 
 

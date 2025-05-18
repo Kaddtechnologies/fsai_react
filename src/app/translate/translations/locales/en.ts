@@ -1,3 +1,4 @@
+
 const translations = {
   // Settings dialog
   settings: {
@@ -222,7 +223,8 @@ const translations = {
     viewFullSummary: "View full summary",
     fullSummary: "Full Summary",
     chatAboutDocument: "Chat about Document",
-    rawMarkdownPreview: "Raw markdown preview of the document summary"
+    rawMarkdownPreview: "Raw markdown preview of the document summary",
+    renderedMarkdownPreview: "Rendered Markdown preview of the document summary"
   },
   
   // Translation page
@@ -260,7 +262,6 @@ const translations = {
     translating: "Translating...",
     completed: "Completed",
     
-    // Add more translation keys
     allTypes: "All Types",
     textJobs: "Text Jobs",
     documentJobs: "Document Jobs",
@@ -287,7 +288,47 @@ const translations = {
     downloadAllZip: "Download All as ZIP",
     translationIssues: "Translation Issues",
     actionCancelled: "Action Cancelled",
-    actionCancelledDesc: "Current operation was cancelled."
+    actionCancelledDesc: "Current operation was cancelled.",
+    jobCancelled: "Job cancelled",
+    jobCancelledDesc: "The new job was cancelled and not saved.",
+    changesDiscarded: "Changes Discarded",
+    changesDiscardedDesc: "Your unsaved changes have been discarded.",
+
+    feedback: {
+      title: "Translation Feedback",
+      tabLabel: "User Feedback",
+      instructionsTitle: "Mistakes in the translation(s)?",
+      instructionsBody: "Please provide the original (source) keyword and the corrected (target) keyword translation to improve future results. Or for bulk feedback upload, download the template, update the feedbacks then upload the file.",
+      supportedFormats: "Supported document types (.csv, .tsv, .xlsx)",
+      topSubmitFeedback: "Submit Feedback", // Top button, might be for a simpler mode
+      viewGlossary: "View Glossary",
+      addFeedbackTitle: "Add Translation Feedback",
+      addFeedbackDescription: "Help us improve translations by providing corrections",
+      sourceKeywordPlaceholder: "Enter source keyword",
+      targetKeywordPlaceholder: "Enter target keyword",
+      bulkUploadLabel: "Bulk Upload",
+      bulkUploadDescription: "Upload multiple feedbacks via CSV/Excel file",
+      downloadTemplate: "Download Template",
+      dragDropOrBrowse: "Drag and drop your file here, or click to browse",
+      chooseFile: "Choose File",
+      submitFeedback: "Submit Feedback", // Main form submit
+      historyTitle: "Your Feedback History",
+      searchFeedback: "Search feedback...",
+      noFeedback: "No feedback found. Add yours!",
+      feedbackAddedSuccess: "Feedback submitted successfully!",
+      feedbackAddedError: "Error submitting feedback.",
+      deleteFeedbackConfirmTitle: "Delete Feedback?",
+      deleteFeedbackConfirmDesc: "Are you sure you want to delete this feedback entry? This action cannot be undone.",
+      feedbackDeleted: "Feedback deleted",
+      errorDeletingFeedback: "Error deleting feedback",
+      errorMissingFields: "Please select source/target languages and provide keywords or a file.",
+      errorFileTooLarge: "File is too large. Maximum size is 5MB.",
+      errorInvalidFileType: "Invalid file type. Please upload a CSV, TSV, or XLSX file.",
+      fileSelected: "File selected: {fileName}",
+      keywords: "Keywords",
+      bulkFile: "Bulk File",
+      submitted: "Submitted",
+    }
   },
   
   // Common UI elements
@@ -337,7 +378,9 @@ const translations = {
     viewSummarySnippet: "View summary snippet",
     viewFullSummary: "View full summary",
     defaultName: "document",
-    fullSummaryTitle: "Full Summary: {docName}"
+    fullSummaryTitle: "Full Summary: {docName}",
+    rawMarkdownPreview: "Raw markdown preview of the document summary",
+    renderedMarkdownPreview: "Rendered Markdown preview of the document summary"
   },
   
   // File uploads
@@ -382,6 +425,16 @@ const translations = {
     error: "Failed to send feedback. Please try again.",
     characterCount: "{count}/3000",
     minCharacters: "Minimum 100 characters required"
+  },
+
+  languages: {
+    en: "English",
+    es: "Spanish",
+    fr: "French",
+    de: "German",
+    ja: "Japanese",
+    ko: "Korean",
+    zh: "Chinese (Simplified)"
   }
 };
 
