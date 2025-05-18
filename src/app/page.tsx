@@ -20,14 +20,12 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { MOCK_PRODUCTS, searchMockProducts } from '@/data/products';
 import { useSpeechSynthesis } from '@/hooks/use-speech-synthesis';
+import { MOCK_USER } from './utils/constants';
+import { formatRelative } from 'date-fns';
+import { enUS } from 'date-fns/locale';
+import useTranslation from '@/app/hooks/useTranslation';
 // Removed: import ReactMarkdown from 'react-markdown';
 
-// Mock user
-const MOCK_USER = {
-  id: "user-123",
-  name: "Flowserve User",
-  avatarUrl: "https://placehold.co/100x100.png", // data-ai-hint: "profile avatar"
-};
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -102,6 +100,13 @@ async function uploadFileToBackend(file: File, onProgress: (percentage: number) 
   });
 }
 
+const translateWithParams = (t: (key: string) => string, key: string, params: Record<string, string | number>) => {
+  let translated = t(key);
+  Object.entries(params).forEach(([paramKey, paramValue]) => {
+    translated = translated.replace(`{${paramKey}}`, String(paramValue));
+  });
+  return translated;
+};
 
 const ChatPage = () => {
   const { toast } = useToast();
@@ -110,6 +115,7 @@ const ChatPage = () => {
   const pathname = usePathname();
   const chatIdFromUrl = searchParams.get('chatId');
   const documentIdToDiscuss = searchParams.get('documentIdToDiscuss');
+  const { t } = useTranslation();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -118,7 +124,7 @@ const ChatPage = () => {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isChatPageLoading, setIsChatPageLoading] = useState(true);
-  const [currentPlaceholder, setCurrentPlaceholder] = useState("Chat with AI, or ask about documents and products...");
+  const [currentPlaceholder, setCurrentPlaceholder] = useState(t('chat.placeholder'));
   
   const [showFullSummaryModal, setShowFullSummaryModal] = useState(false);
   const [modalSummaryContent, setModalSummaryContent] = useState<{title: string, content: string} | null>(null);
@@ -139,16 +145,16 @@ const ChatPage = () => {
       ) || false;
       
       if (window.innerWidth < 640) { // sm breakpoint
-        setCurrentPlaceholder(hasUserOrAIMessages ? "" : "Let's Chat");
+        setCurrentPlaceholder(hasUserOrAIMessages ? "" : t('chat.placeholderMobile'));
       } else {
-        setCurrentPlaceholder(hasUserOrAIMessages ? "" : "Chat with AI, or ask about documents and products...");
+        setCurrentPlaceholder(hasUserOrAIMessages ? "" : t('chat.placeholder'));
       }
     };
 
     updatePlaceholder();
     window.addEventListener('resize', updatePlaceholder);
     return () => window.removeEventListener('resize', updatePlaceholder);
-  }, [activeConversation?.messages]);
+  }, [activeConversation?.messages, t]);
 
   // Auto-resize textarea based on content
   const autoResizeTextarea = useCallback(() => {
@@ -397,13 +403,21 @@ const ChatPage = () => {
     const file = files[0];
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      toast({ title: "File too large", description: `File size cannot exceed ${MAX_FILE_SIZE_MB}MB.`, variant: "destructive" });
+      toast({ 
+        title: t('uploads.fileTooLarge.title'), 
+        description: translateWithParams(t, 'uploads.fileTooLarge.description', { maxSize: MAX_FILE_SIZE_MB }), 
+        variant: "destructive" 
+      });
       if (textareaRef.current) textareaRef.current.value = ""; return;
     }
 
     const docType = getDocumentTypeFromMime(file.type, file.name);
     if (!docType) {
-      toast({ title: "Invalid file type", description: `Allowed: ${ALLOWED_EXTENSIONS_STRING}. Images are not supported.`, variant: "destructive" });
+      toast({ 
+        title: t('uploads.invalidType.title'), 
+        description: translateWithParams(t, 'uploads.invalidType.description', { allowed: ALLOWED_EXTENSIONS_STRING }), 
+        variant: "destructive" 
+      });
       if (textareaRef.current) textareaRef.current.value = ""; return;
     }
 
@@ -416,7 +430,8 @@ const ChatPage = () => {
     const uploadMessageId = `msg-upload-${clientDocumentId}`;
     const uploadStatusMessage: Message = {
       id: uploadMessageId, conversationId: activeConversationId,
-      content: `Preparing to upload ${file.name}...`, sender: 'system', timestamp: Date.now(),
+      content: translateWithParams(t, 'uploads.preparing', { fileName: file.name }), 
+      sender: 'system', timestamp: Date.now(),
       type: 'document_upload_status', attachments: [initialDocument],
       data: { fileName: file.name, documentType: docType, progress: 0, status: 'pending_upload', clientDocId: clientDocumentId }
     };
@@ -440,7 +455,7 @@ const ChatPage = () => {
       
       const backendUploadedDoc: Partial<Document> = { backendId: backendResult.backendId, fileUrl: backendResult.fileUrl, status: 'pending_ai_processing', progress: 50 };
       updateMessageInData(uploadMessageId, 
-        { status: 'pending_ai_processing', progress: 50, content: `Uploaded ${file.name}. Processing with AI...` },
+        { status: 'pending_ai_processing', progress: 50, content: translateWithParams(t, 'uploads.processingAi', { fileName: file.name }) },
         backendUploadedDoc
       );
 
@@ -457,25 +472,25 @@ const ChatPage = () => {
           const summaryResponse = await summarizeDocument({ documentDataUri: dataUri });
           const finalDocUpdate: Partial<Document> = { summary: summaryResponse.summary, status: 'completed', progress: 100 };
           updateMessageInData(uploadMessageId,
-            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: `Successfully processed ${file.name}. Summary is available.` },
+            { status: 'completed', progress: 100, summary: summaryResponse.summary, content: translateWithParams(t, 'uploads.processingComplete', { fileName: file.name }) },
             finalDocUpdate
           );
-          toast({ title: "File processed", description: `${file.name} uploaded and summarized.` });
+          toast({ title: t('uploads.fileProcessed'), description: translateWithParams(t, 'uploads.fileProcessedSummary', { fileName: file.name }) });
         } catch (aiError) {
           console.error("AI processing error:", aiError);
           const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: "AI processing failed." };
           updateMessageInData(uploadMessageId,
-            { status: 'failed', progress: 100, error: "AI processing failed.", content: `Failed to process ${file.name} with AI.` },
+            { status: 'failed', progress: 100, error: "AI processing failed.", content: translateWithParams(t, 'uploads.processingFailed', { fileName: file.name }) },
             finalDocUpdate
           );
-          toast({ title: "AI Error", description: `Could not process ${file.name}.`, variant: "destructive" });
+          toast({ title: t('uploads.aiError'), description: translateWithParams(t, 'uploads.couldNotProcess', { fileName: file.name }), variant: "destructive" });
         }
       };
       reader.onerror = () => {
         const errorMsg = "Failed to read file for AI processing.";
         const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: errorMsg };
         updateMessageInData(uploadMessageId,
-            { status: 'failed', progress: 100, error: errorMsg, content: `Error reading ${file.name}.` },
+            { status: 'failed', progress: 100, error: errorMsg, content: translateWithParams(t, 'uploads.readingFailed', { fileName: file.name }) },
             finalDocUpdate
         );
         toast({ title: "File Read Error", description: errorMsg, variant: "destructive" });
@@ -486,7 +501,7 @@ const ChatPage = () => {
       const errorMsg = uploadError.message || "An unknown error occurred during upload.";
       const finalDocUpdate: Partial<Document> = { status: 'failed', progress: 100, error: errorMsg };
       updateMessageInData(uploadMessageId,
-        { status: 'failed', progress: 100, error: errorMsg, content: `Failed to upload ${file.name}.` },
+        { status: 'failed', progress: 100, error: errorMsg, content: translateWithParams(t, 'uploads.uploadFailed', { fileName: file.name }) },
         finalDocUpdate
       );
       toast({ title: "Upload Failed", description: errorMsg, variant: "destructive" });
@@ -495,22 +510,46 @@ const ChatPage = () => {
     if (textareaRef.current) textareaRef.current.value = "";
   };
 
-  const handleCopy = (text: string) => { navigator.clipboard.writeText(text); toast({ title: "Copied to clipboard" }); };
-  const handleTTS = (text: string) => { if (isSpeaking) cancel(); else speak(text); };
-  const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => { updateConversation((activeConversation?.messages || []).map(msg => msg.id === messageId ? { ...msg, feedback } : msg)); };
-  const startEdit = (message: Message) => { setEditingMessage(message); setEditValue(message.content); };
-  const cancelEdit = () => { setEditingMessage(null); setEditValue(''); };
+  const handleCopy = (text: string) => { 
+    navigator.clipboard.writeText(text); 
+    toast({ title: t('actions.copiedToClipboard') }); 
+  };
+
+  const handleTTS = (text: string) => { 
+    if (isSpeaking) cancel(); 
+    else speak(text); 
+  };
+
+  const handleFeedback = (messageId: string, feedback: 'liked' | 'disliked') => { 
+    updateConversation((activeConversation?.messages || []).map(msg => 
+      msg.id === messageId ? { ...msg, feedback } : msg
+    )); 
+  };
+
+  const startEdit = (message: Message) => { 
+    setEditingMessage(message); 
+    setEditValue(message.content); 
+  };
+
+  const cancelEdit = () => { 
+    setEditingMessage(null); 
+    setEditValue(''); 
+  };
+
   const submitEdit = () => {
     if (!editingMessage || !editValue.trim()) return;
     updateConversation((activeConversation?.messages || []).map(msg =>
       msg.id === editingMessage.id ? { ...msg, content: editValue, originalContent: msg.content, timestamp: Date.now(), feedback: undefined } : msg
     ));
     cancelEdit();
-    toast({ title: "Message edited" });
+    toast({ title: t('chat.messageEdited') });
   };
   
   const handleShowFullSummary = (docName: string, summary: string) => {
-    setModalSummaryContent({ title: `Full Summary: ${docName}`, content: summary });
+    setModalSummaryContent({ 
+      title: translateWithParams(t, 'document.fullSummaryTitle', { docName }), 
+      content: summary 
+    });
     setShowFullSummaryModal(true);
   };
 
@@ -518,31 +557,57 @@ const ChatPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
         <Loader2 className="w-16 h-16 mb-4 text-primary animate-spin" />
-        <p className="text-muted-foreground">Loading chat...</p>
+        <p className="text-muted-foreground">{t('chat.loading')}</p>
       </div>
     );
   }
 
-  if (!activeConversationId && conversations.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <BotMessageSquare className="w-24 h-24 mb-6 text-primary opacity-50" />
-        <h2 className="text-2xl font-semibold mb-2 text-foreground">Welcome to FlowserveAI</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">Start a new conversation by typing below or select one from the sidebar.</p>
-      </div>
-    );
-  }
+if (!activeConversationId && conversations.length === 0) {
+  const startNewChat = () => {
+    const newConversationId = `conv-${Date.now()}`;
+    const newConversation: Conversation = {
+      id: newConversationId,
+      title: 'New Chat',
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    
+    setConversations([newConversation]);
+    setActiveConversationId(newConversationId);
+    router.replace(`/?chatId=${newConversationId}`, { scroll: false });
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+      <img 
+        src="/assets/images/flowserve_logo_transparent.svg" 
+        alt="Flowserve Logo" 
+        className=" h-20 mb-6"
+      />
+      <h2 className="text-2xl font-semibold mb-2 text-foreground">{t('chat.welcome')}</h2>
+      <p className="text-muted-foreground mb-6 max-w-md">{t('chat.welcomeSubtitle')}</p>
+      <Button 
+        onClick={startNewChat}
+        className="bg-primary-gradient hover:opacity-90 text-primary-foreground px-6"
+      >
+        <BotMessageSquare className="mr-2 h-5 w-5" />
+        {t('chat.newChat')}
+      </Button>
+    </div>
+  );
+}
   
   if (!activeConversation) {
      const message = activeConversationId 
-        ? `Chat with ID ${activeConversationId.substring(0,10)}... not found.`
-        : "No active chat session.";
+        ? translateWithParams(t, 'chat.notFound', { id: activeConversationId.substring(0,10) })
+        : t('chat.noActiveSession');
      return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
         <MessageCircleWarning className="w-24 h-24 mb-6 text-accent-warning opacity-70" />
         <h2 className="text-2xl font-semibold mb-2 text-foreground">{message}</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">Please select an existing conversation from the sidebar or start a new one.</p>
-         <Button onClick={() => router.push('/')}>Go to Chats</Button>
+        <p className="text-muted-foreground mb-6 max-w-md">{t('chat.selectOrStartNew')}</p>
+         <Button onClick={() => router.push('/')}>{t('actions.goToChats')}</Button>
       </div>
     );
   }
@@ -555,7 +620,10 @@ const ChatPage = () => {
             {activeConversation.messages.map((message) => (
               <div key={message.id} className={cn("flex items-start gap-3", message.sender === 'user' ? "justify-end" : "justify-start")}>
                 {message.sender === 'ai' && (
-                  <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
+                  <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> 
+                    <AvatarImage src="/assets/images/flowserve_logo_transparent.svg" alt="Flowserve AI" />
+                    <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> 
+                  </Avatar>
                 )}
                 <div className={cn("max-w-[70%] p-3 rounded-xl shadow", 
                   message.sender === 'user' ? "bg-primary text-primary-foreground rounded-tr-none" : 
@@ -581,12 +649,12 @@ const ChatPage = () => {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate" title={message.data.fileName}>{message.data.fileName}</p>
                               <p className="text-xs text-muted-foreground">
-                                {message.data.status === 'pending_upload' && 'Waiting for upload...'}
-                                {message.data.status === 'uploading_to_backend' && `Uploading... (${message.data.progress?.toFixed(0) || 0}%)`}
-                                {message.data.status === 'pending_ai_processing' && 'Processing with AI...'}
-                                {message.data.status === 'ai_processing' && `Processing with AI... (${message.data.progress?.toFixed(0) || 50}%)`}
-                                {message.data.status === 'completed' && <span className="text-accent-success flex items-center gap-1"><CheckCircle size={14}/>Completed</span>}
-                                {message.data.status === 'failed' && <span className="text-destructive flex items-center gap-1"><XCircle size={14}/>Failed: {message.data.error || "Unknown error"}</span>}
+                                {message.data.status === 'pending_upload' && t('uploads.status.pendingUpload')}
+                                {message.data.status === 'uploading_to_backend' && translateWithParams(t, 'uploads.status.uploading', { progress: message.data.progress?.toFixed(0) || 0 })}
+                                {message.data.status === 'pending_ai_processing' && t('uploads.status.pendingProcessing')}
+                                {message.data.status === 'ai_processing' && translateWithParams(t, 'uploads.status.processing', { progress: message.data.progress?.toFixed(0) || 50 })}
+                                {message.data.status === 'completed' && <span className="text-accent-success flex items-center gap-1"><CheckCircle size={14}/>{t('uploads.status.completed')}</span>}
+                                {message.data.status === 'failed' && <span className="text-destructive flex items-center gap-1"><XCircle size={14}/>{t('uploads.status.failed')}: {message.data.error || t('common.unknownError')}</span>}
                               </p>
                             </div>
                           </div>
@@ -596,11 +664,11 @@ const ChatPage = () => {
                           {message.data.status === 'completed' && message.data.summary && (
                               <div className="mt-2">
                                   <details>
-                                      <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary Snippet</summary>
+                                      <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">{t('document.viewSummarySnippet')}</summary>
                                       <p className="text-xs mt-1 p-2 bg-muted rounded whitespace-pre-wrap max-h-24 overflow-y-auto">{message.data.summary}</p>
                                   </details>
-                                  <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-1" onClick={() => handleShowFullSummary(message.data?.fileName || 'Document', message.data?.summary || '')}>
-                                      <Eye size={12} className="mr-1" /> View Full Raw Markdown Summary
+                                  <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-1" onClick={() => handleShowFullSummary(message.data?.fileName || t('document.defaultName'), message.data?.summary || '')}>
+                                      <Eye size={12} className="mr-1" /> {t('document.viewFullSummary')}
                                   </Button>
                               </div>
                           )}
@@ -670,7 +738,10 @@ const ChatPage = () => {
             ))}
             {isLoadingAIResponse && (
               <div className="flex items-start gap-3 justify-start">
-                <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> </Avatar>
+                <Avatar className="h-8 w-8 border-2 border-secondary-gradient"> 
+                  <AvatarImage src="/assets/images/flowserve_logo_transparent.svg" alt="Flowserve AI" />
+                  <AvatarFallback><BotMessageSquare size={18}/></AvatarFallback> 
+                </Avatar>
                 <div className="max-w-[70%] p-3 rounded-xl shadow bg-card text-card-foreground rounded-tl-none">
                   <div className="flex items-center space-x-1"> <span className="typing-dot"></span> <span className="typing-dot"></span> <span className="typing-dot"></span> </div>
                 </div>
@@ -700,10 +771,17 @@ const ChatPage = () => {
           </div>
           <div className="flex items-center px-3 py-2">
             <div className="flex items-center gap-1.5">
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => textareaRef.current?.click()}>
+              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => fileInputRef.current?.click()}>
                 <Paperclip size={20} />
                 <span className="sr-only">Attach file</span>
               </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept={ALLOWED_EXTENSIONS_STRING}
+                onChange={handleFileUpload}
+              />
               <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" disabled>
                 <Mic size={20} />
                 <span className="sr-only">Use microphone</span>
@@ -722,7 +800,7 @@ const ChatPage = () => {
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground text-center mt-2 px-4">Flowserve AI can make mistakes. Please validate important information.</p>
+        <p className="text-xs text-muted-foreground text-center mt-2 px-4">{t('chat.aiDisclaimer')}</p>
       </div>
 
       {modalSummaryContent && (
@@ -730,7 +808,7 @@ const ChatPage = () => {
           <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{modalSummaryContent.title}</DialogTitle>
-              <DialogDescriptionComponent className="text-sm text-muted-foreground">Raw Markdown Preview. Install 'react-markdown' for styled rendering.</DialogDescriptionComponent>
+              <DialogDescriptionComponent className="text-sm text-muted-foreground">{t('document.rawMarkdownPreview')}</DialogDescriptionComponent>
             </DialogHeader>
             <ScrollArea className="flex-1 min-h-0 py-2 pr-3 -mr-2">
               <pre className="block w-full text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
@@ -738,7 +816,7 @@ const ChatPage = () => {
               </pre>
             </ScrollArea>
             <DialogClose asChild>
-              <Button type="button" variant="outline" className="mt-4">Close</Button>
+              <Button type="button" variant="outline" className="mt-4">{t('actions.close')}</Button>
             </DialogClose>
           </DialogContent>
         </Dialog>
@@ -748,5 +826,3 @@ const ChatPage = () => {
 };
 
 export default ChatPage;
-
-    

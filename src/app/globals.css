@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -182,5 +181,16 @@ body {
   }
   40% {
     transform: scale(1.0);
+  }
+}
+
+/* Safe area insets for iOS devices */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@supports (padding: max(0px)) {
+  .pb-safe {
+    padding-bottom: max(0.875rem, env(safe-area-inset-bottom, 0.875rem));
   }
 }

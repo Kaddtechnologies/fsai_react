@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -11,7 +10,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription as DialogDescriptionComponent, DialogClose } from "@/components/ui/dialog";
 import type { Conversation, Document } from '@/lib/types';
 import { format } from 'date-fns';
+import useTranslation from '@/app/hooks/useTranslation';
 // Removed: import ReactMarkdown from 'react-markdown';
+
+// Add our translation parameter helper under the imports
+const translateWithParams = (t: (key: string) => string, key: string, params: Record<string, string | number>) => {
+  let translated = t(key);
+  Object.entries(params).forEach(([paramKey, paramValue]) => {
+    translated = translated.replace(`{${paramKey}}`, String(paramValue));
+  });
+  return translated;
+};
 
 const FileTypeIcon = ({ type, size = 20 }: { type: Document['type'], size?: number }) => {
   switch (type) {
@@ -32,6 +41,7 @@ const FileTypeIcon = ({ type, size = 20 }: { type: Document['type'], size?: numb
 
 const DocumentsPage = () => {
   const router = useRouter();
+  const { t } = useTranslation();
   const [allDocuments, setAllDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showFullSummaryModal, setShowFullSummaryModal] = useState(false);
@@ -89,7 +99,7 @@ const DocumentsPage = () => {
   };
   
   const handleShowFullSummary = (docName: string, summary: string) => {
-    setModalSummaryContent({ title: `Full Summary: ${docName}`, content: summary });
+    setModalSummaryContent({ title: `${t('documents.fullSummary')}: ${docName}`, content: summary });
     setShowFullSummaryModal(true);
   };
 
@@ -106,12 +116,12 @@ const DocumentsPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-8">
         <FolderOpen className="w-24 h-24 mb-6 text-primary opacity-50" />
-        <h2 className="text-2xl font-semibold mb-2 text-foreground">No Documents Found</h2>
+        <h2 className="text-2xl font-semibold mb-2 text-foreground">{t('documents.noDocumentsFound')}</h2>
         <p className="text-muted-foreground mb-6 max-w-md">
-          You haven't uploaded any documents yet. Upload documents in any chat to see them here.
+          {t('documents.noDocumentsDesc')}
         </p>
         <Button asChild>
-          <Link href="/">Go to Chat</Link>
+          <Link href="/">{t('documents.goToChat')}</Link>
         </Button>
       </div>
     );
@@ -122,8 +132,8 @@ const DocumentsPage = () => {
       <Card className="shadow-2xl">
         <CardHeader className="text-center border-b">
           <FileSearch className="w-12 h-12 mx-auto text-primary mb-2" />
-          <CardTitle className="text-3xl font-bold">My Documents</CardTitle>
-          <CardDescription>Browse and manage all your uploaded documents.</CardDescription>
+          <CardTitle className="text-3xl font-bold">{t('documents.title')}</CardTitle>
+          <CardDescription>{t('documents.description')}</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className="h-[calc(100vh-20rem)]"> {/* Adjust height as needed */}
@@ -136,16 +146,16 @@ const DocumentsPage = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-base font-medium text-foreground truncate" title={doc.name}>{doc.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          Uploaded: {format(new Date(doc.uploadedAt), "MMM d, yyyy HH:mm")} | Size: {(doc.size / (1024 * 1024)).toFixed(2)} MB
+                          {t('documents.uploaded')}: {format(new Date(doc.uploadedAt), "MMM d, yyyy HH:mm")} | {t('documents.size')}: {(doc.size / (1024 * 1024)).toFixed(2)} MB
                         </p>
                         {doc.summary && (
                            <div className="mt-1">
                                <details>
-                                   <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">View Summary Snippet</summary>
+                                   <summary className="text-xs cursor-pointer text-muted-foreground hover:underline">{t('documents.viewSummarySnippet')}</summary>
                                    <p className="text-xs mt-1 p-1.5 bg-muted rounded whitespace-pre-wrap max-h-20 overflow-y-auto">{doc.summary}</p>
                                </details>
                                <Button variant="link" size="sm" className="text-xs h-auto p-0 mt-0.5" onClick={() => handleShowFullSummary(doc.name, doc.summary || '')}>
-                                   <Eye size={12} className="mr-1" /> View Full Raw Markdown Summary
+                                   <Eye size={12} className="mr-1" /> {t('documents.viewFullSummary')}
                                </Button>
                            </div>
                         )}
@@ -158,7 +168,7 @@ const DocumentsPage = () => {
                       className="shrink-0"
                     >
                       <MessageSquarePlus size={16} className="mr-2" />
-                      Chat about Document
+                      {t('documents.chatAboutDocument')}
                     </Button>
                   </div>
                 </div>
@@ -172,7 +182,7 @@ const DocumentsPage = () => {
           <DialogContent className="sm:max-w-2xl max-h-[80vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>{modalSummaryContent.title}</DialogTitle>
-              <DialogDescriptionComponent className="text-sm text-muted-foreground">Raw Markdown Preview. Install 'react-markdown' for styled rendering.</DialogDescriptionComponent>
+              <DialogDescriptionComponent className="text-sm text-muted-foreground">{t('documents.rawMarkdownPreview')}</DialogDescriptionComponent>
             </DialogHeader>
             <ScrollArea className="flex-1 min-h-0 py-2 pr-3 -mr-2">
               <pre className="block w-full text-sm whitespace-pre-wrap break-words bg-muted p-3 rounded-md">
@@ -180,7 +190,7 @@ const DocumentsPage = () => {
               </pre>
             </ScrollArea>
             <DialogClose asChild>
-              <Button type="button" variant="outline" className="mt-4">Close</Button>
+              <Button type="button" variant="outline" className="mt-4">{t('common.close')}</Button>
             </DialogClose>
           </DialogContent>
         </Dialog>

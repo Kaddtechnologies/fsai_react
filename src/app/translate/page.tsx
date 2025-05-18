@@ -23,6 +23,10 @@ import type { TranslationJob, TranslationJobType, TranslationJobStatus, Uploaded
 import { useSpeechSynthesis } from '@/hooks/use-speech-synthesis';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import useTranslation from '@/app/hooks/useTranslation';
+
+// Add new imports for i18n
+// import { useTranslations } from '@/hooks/use-translations';
 
 const supportedLanguages = [
   { code: 'en', name: 'English' },
@@ -50,7 +54,6 @@ const ALLOWED_DOC_MIMES: Record<string, string> = {
   "application/pdf": "pdf",
   "text/plain": "txt",
 };
-
 
 const JobStatusBadge: React.FC<{ status: TranslationJobStatus }> = ({ status }) => {
   const variant: "default" | "secondary" | "destructive" | "outline" =
@@ -84,11 +87,20 @@ const JobStatusBadge: React.FC<{ status: TranslationJobStatus }> = ({ status }) 
   );
 };
 
+// Add our translation parameter helper under the imports
+const translateWithParams = (t: (key: string) => string, key: string, params: Record<string, string | number>) => {
+  let translated = t(key);
+  Object.entries(params).forEach(([paramKey, paramValue]) => {
+    translated = translated.replace(`{${paramKey}}`, String(paramValue));
+  });
+  return translated;
+};
 
 const TranslatePage = () => {
   const { toast } = useToast();
   const { speak, cancel, isSpeaking } = useSpeechSynthesis();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { t, language } = useTranslation();
 
   const [jobs, setJobs] = useState<TranslationJob[]>([]);
   const [activeJob, setActiveJob] = useState<TranslationJob | null>(null);
@@ -353,8 +365,11 @@ const TranslatePage = () => {
   };
 
   const performCancelAction = () => {
-    resetMainFormToEmpty(true); // true to signal it's from cancel, resets dirty flag immediately
-    toast({ title: "Action Cancelled", description: "Current operation was cancelled." });
+    resetMainFormToEmpty(true);
+    toast({ 
+      title: t('translation.actionCancelled'), 
+      description: t('translation.actionCancelledDesc')
+    });
     setShowCancelConfirm(false);
   };
 
@@ -697,37 +712,39 @@ const TranslatePage = () => {
 
   return (
     <TooltipProvider>
-      <div className="flex h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4 p-1">
-        <Card className="flex-grow-[3] basis-0 shadow-xl flex flex-col overflow-hidden">
+      <div className="flex flex-col md:flex-row h-auto min-h-[80vh] md:h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4 p-1">
+        <Card className="flex-1 shadow-xl flex flex-col overflow-hidden mb-4 md:mb-0 min-h-[400px]">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle className="text-2xl">
-                {activeJob ? (activeJob.name === 'Untitled Translation Job' && activeJob.status === 'draft' && !isFormDirty && !jobs.some(j => j.id === activeJob.id) ? 'New Translation Job' : 'Edit Job') : 'New Translation Job'}
+              <CardTitle className="text-xl md:text-2xl">
+                {activeJob ? (activeJob.name === 'Untitled Translation Job' && activeJob.status === 'draft' && !isFormDirty && !jobs.some(j => j.id === activeJob.id) ? t('translation.new') : t('translation.edit')) : t('translation.new')}
               </CardTitle>
               {activeJob && <JobStatusBadge status={activeJob.status} />}
             </div>
-             {activeJob && <CardDescription>ID: {activeJob.id.substring(0,12)}...</CardDescription>}
+             {activeJob && <CardDescription className="text-xs md:text-sm">ID: {activeJob.id.substring(0,12)}...</CardDescription>}
           </CardHeader>
-          <ScrollArea className="flex-grow p-4 relative">
+          <ScrollArea className="flex-grow p-2 md:p-4 relative">
             <div className="space-y-4 h-full">
             {!activeJob ? (
-              <div className="flex flex-col items-center justify-center absolute inset-0 text-center p-8">
-                <div className="bg-card/50 rounded-lg border border-border p-6 shadow-sm w-full max-w-[280px] sm:max-w-sm">
-                  <LanguagesIcon className="w-16 h-16 mx-auto mb-5 text-primary opacity-50" />
-                  <h3 className="text-xl font-medium mb-2">No Active Job</h3>
-                  <p className="text-muted-foreground mb-6">Create a new job or select one from the history panel to get started.</p>
-                  <Button onClick={()=>handleNewJob()} className="w-full">
-                    <PlusCircle className="mr-2 h-5 w-5" /> Create New Job
-                  </Button>
+              <div className="flex flex-col items-center justify-center absolute inset-0 text-center p-0 md:p-8">
+                <div className="bg-card/50 rounded-lg border border-border p-4 shadow-sm w-full max-w-[85%]">
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <LanguagesIcon className="w-10 h-10 md:w-16 md:h-16 text-primary opacity-50" />
+                    <h3 className="text-base md:text-xl font-medium mt-4 mb-2">{t('translation.noActiveJob')}</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground mb-4 max-w-[200px] mx-auto">{t('translation.createNew')}</p>
+                    <Button onClick={()=>handleNewJob()} size="sm" className="w-full md:w-auto md:px-6">
+                      <PlusCircle className="mr-2 h-4 w-4" /> {t('translation.createNewButton')}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
               <>
                 <div className="space-y-1">
-                  <label htmlFor="jobTitle" className="text-sm font-medium">Job Title <span className="text-destructive">*</span></label>
+                  <label htmlFor="jobTitle" className="text-sm font-medium">{t('translation.jobTitle')} <span className="text-destructive">*</span></label>
                   <Input
                     id="jobTitle"
-                    placeholder="Enter job title (e.g., Marketing Brochure Q3)"
+                    placeholder={t('translation.enterJobTitle')}
                     value={jobTitle}
                     onChange={(e) => setJobTitle(e.target.value.slice(0, MAX_JOB_TITLE_LENGTH))}
                     maxLength={MAX_JOB_TITLE_LENGTH}
@@ -736,39 +753,39 @@ const TranslatePage = () => {
                   <p className="text-xs text-muted-foreground text-right">{jobTitle.length}/{MAX_JOB_TITLE_LENGTH}</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-1">
-                    <label className="text-sm font-medium">Job Type</label>
+                    <label className="text-sm font-medium">{t('translation.jobType')}</label>
                     <Select 
                         value={jobType} 
                         onValueChange={(v) => handleJobTypeChange(v as TranslationJobType)} 
                         disabled={isLoading || activeJob?.status === 'in-progress'}
                     >
-                      <SelectTrigger><SelectValue placeholder="Select job type" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t('translation.selectJobType')} /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="text">Text Translation</SelectItem>
-                        <SelectItem value="document">Document Translation</SelectItem>
+                        <SelectItem value="text">{t('translation.textTranslation')}</SelectItem>
+                        <SelectItem value="document">{t('translation.documentTranslation')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                    <div className="space-y-1">
-                     <label className="text-sm font-medium">Source Language</label>
+                     <label className="text-sm font-medium">{t('translation.sourceLanguage')}</label>
                      <Select value={sourceLang} onValueChange={setSourceLang} disabled={isLoading || activeJob?.status === 'in-progress'}>
-                       <SelectTrigger><SelectValue placeholder="Select source language" /></SelectTrigger>
+                       <SelectTrigger><SelectValue placeholder={t('translation.selectSourceLanguage')} /></SelectTrigger>
                        <SelectContent>
-                         <SelectItem value="auto">Auto-detect</SelectItem>
-                         {supportedLanguages.map(l => <SelectItem key={l.code} value={l.code}>{l.name}</SelectItem>)}
+                         <SelectItem value="auto">{t('translation.autoDetect')}</SelectItem>
+                         {supportedLanguages.map(l => <SelectItem key={l.code} value={l.code}>{t(`languages.${l.code}`)}</SelectItem>)}
                        </SelectContent>
                      </Select>
                    </div>
                 </div>
                 
                 <div className="space-y-1">
-                   <label className="text-sm font-medium">Target Language</label>
+                   <label className="text-sm font-medium">{t('translation.targetLanguage')}</label>
                    <Select value={targetLang} onValueChange={setTargetLang} disabled={isLoading || activeJob?.status === 'in-progress'}>
-                     <SelectTrigger><SelectValue placeholder="Select target language" /></SelectTrigger>
+                     <SelectTrigger><SelectValue placeholder={t('translation.selectTargetLanguage')} /></SelectTrigger>
                      <SelectContent>
-                       {supportedLanguages.map(l => <SelectItem key={l.code} value={l.code} disabled={l.code === sourceLang && sourceLang !== 'auto'}>{l.name}</SelectItem>)}
+                       {supportedLanguages.map(l => <SelectItem key={l.code} value={l.code} disabled={l.code === sourceLang && sourceLang !== 'auto'}>{t(`languages.${l.code}`)}</SelectItem>)}
                      </SelectContent>
                    </Select>
                  </div>
@@ -777,7 +794,7 @@ const TranslatePage = () => {
                   <div className="space-y-4">
                     <div>
                       <Textarea
-                        placeholder="Enter text to translate..."
+                        placeholder={t('translation.enterTextToTranslate')}
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value.slice(0, MAX_TEXT_INPUT_LENGTH))}
                         className="min-h-[150px] bg-input focus-visible:ring-1 focus-visible:ring-ring"
@@ -786,32 +803,32 @@ const TranslatePage = () => {
                         disabled={isLoading || activeJob?.status === 'in-progress'}
                       />
                        <div className="flex justify-between items-center mt-1">
-                          <p className="text-xs text-muted-foreground">{inputText.length}/{MAX_TEXT_INPUT_LENGTH} characters</p>
+                          <p className="text-xs text-muted-foreground">{inputText.length}/{MAX_TEXT_INPUT_LENGTH} {t('translation.characters')}</p>
                           <div>
-                            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleCopy(inputText)} disabled={!inputText}><Copy size={16}/></Button></TooltipTrigger><TooltipContent>Copy text</TooltipContent></Tooltip>
+                            <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleCopy(inputText)} disabled={!inputText}><Copy size={16}/></Button></TooltipTrigger><TooltipContent>{t('translation.copyText')}</TooltipContent></Tooltip>
                             <Tooltip><TooltipTrigger asChild>
                               <Button variant="ghost" size="icon" onClick={() => handleTTS(inputText)} disabled={!inputText}>
                                 {isSpeaking ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
                               </Button>
-                            </TooltipTrigger><TooltipContent>Speak text</TooltipContent></Tooltip>
+                            </TooltipTrigger><TooltipContent>{t('translation.speakText')}</TooltipContent></Tooltip>
                           </div>
                        </div>
                     </div>
                     <div>
                       <Textarea
-                        placeholder="Translation will appear here..."
+                        placeholder={t('translation.translationWillAppear')}
                         value={outputText}
                         readOnly
                         className="min-h-[150px] bg-muted text-muted-foreground"
                         rows={6}
                       />
                       <div className="flex justify-end items-center mt-1">
-                          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleCopy(outputText)} disabled={!outputText}><Copy size={16}/></Button></TooltipTrigger><TooltipContent>Copy translation</TooltipContent></Tooltip>
+                          <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" onClick={() => handleCopy(outputText)} disabled={!outputText}><Copy size={16}/></Button></TooltipTrigger><TooltipContent>{t('translation.copyTranslation')}</TooltipContent></Tooltip>
                           <Tooltip><TooltipTrigger asChild>
                            <Button variant="ghost" size="icon" onClick={() => handleTTS(outputText)} disabled={!outputText}>
                              {isSpeaking ? <Volume2 size={16} className="text-secondary-gradient"/> : <Volume2 size={16}/>}
                            </Button>
-                          </TooltipTrigger><TooltipContent>Speak translation</TooltipContent></Tooltip>
+                          </TooltipTrigger><TooltipContent>{t('translation.speakTranslation')}</TooltipContent></Tooltip>
                       </div>
                     </div>
                   </div>
@@ -820,24 +837,23 @@ const TranslatePage = () => {
                 {jobType === 'document' && (
                   <div className="space-y-4">
                     <Card className="border-dashed border-2 hover:border-primary transition-colors">
-                      <CardContent className="p-6 text-center">
-                        <FileUp className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
-                        <p className="mb-2 text-sm text-muted-foreground">Drag & drop files here or</p>
+                      <CardContent className="p-4 md:p-6 text-center">
+                        <FileUp className="mx-auto h-10 w-10 md:h-12 md:w-12 text-muted-foreground mb-2" />
+                        <p className="mb-2 text-xs md:text-sm text-muted-foreground">Drag & drop files here or</p>
                         <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isLoading || activeJob?.status === 'in-progress'}>
-                          Browse Files
+                          {t('translation.browseFiles')}
                         </Button>
                         <input type="file" ref={fileInputRef} multiple onChange={handleFileSelect} className="hidden" accept={ALLOWED_DOC_EXTENSIONS.join(',')} />
                         <p className="mt-2 text-xs text-muted-foreground">
-                          Max {MAX_FILES_PER_JOB} files. Max {MAX_TOTAL_UPLOAD_SIZE_MB}MB total.
-                          Supported: {ALLOWED_DOC_EXTENSIONS.join(', ')}
+                          {translateWithParams(t, 'translation.maxFiles', { max: MAX_FILES_PER_JOB, size: MAX_TOTAL_UPLOAD_SIZE_MB })}
                         </p>
                       </CardContent>
                     </Card>
                     {uploadedFiles.length > 0 && (
                       <ScrollArea className="max-h-60 border rounded-md p-2">
                         <div className="flex justify-between items-center mb-2">
-                            <p className="text-sm font-medium">Selected Files ({uploadedFiles.length}/{MAX_FILES_PER_JOB}):</p>
-                            {hasAnyPdfFileInUploads && <p className="text-xs text-muted-foreground">Toggle PDF to DOCX conversion</p>}
+                            <p className="text-sm font-medium">{translateWithParams(t, 'translation.selectedFiles', { count: uploadedFiles.length, max: MAX_FILES_PER_JOB })}</p>
+                            {hasAnyPdfFileInUploads && <p className="text-xs text-muted-foreground">{t('translation.togglePdfDocx')}</p>}
                         </div>
                         <ul className="space-y-2">
                           {uploadedFiles.map(file => (
@@ -873,14 +889,14 @@ const TranslatePage = () => {
                                         <FileSliders size={14} className="mr-1"/> DOCX
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent><p>Convert PDF to DOCX on translation</p></TooltipContent>
+                                    <TooltipContent><p>{t('translation.pdfToDocxTooltip')}</p></TooltipContent>
                                   </Tooltip>
                                 ) : (
                                   hasAnyPdfFileInUploads && <div className="w-[78px] h-7"></div> 
                                 )}
                                 <Tooltip><TooltipTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeUploadedFile(file.id)} disabled={isLoading || activeJob?.status === 'in-progress' || file.status === 'processing' || file.status === 'completed'}><XCircleIcon size={16} /></Button>
-                                </TooltipTrigger><TooltipContent>Remove file</TooltipContent></Tooltip>
+                                </TooltipTrigger><TooltipContent>{t('translation.removeFile')}</TooltipContent></Tooltip>
                               </div>
                             </li>
                           ))}
@@ -889,7 +905,7 @@ const TranslatePage = () => {
                     )}
                     {activeJob?.status === 'complete' && activeJob.translatedFilesByLanguage?.[targetLang] && activeJob.translatedFilesByLanguage[targetLang].length > 0 && (
                        <div>
-                        <h4 className="text-md font-semibold mb-2 mt-4">Translated Documents for {getLanguageName(targetLang)}:</h4>
+                        <h4 className="text-md font-semibold mb-2 mt-4">{translateWithParams(t, 'translation.translatedDocuments', { language: getLanguageName(targetLang) })}</h4>
                          <ScrollArea className="max-h-48 border rounded-md p-2">
                             <ul className="space-y-2">
                             {(activeJob.translatedFilesByLanguage[targetLang] || []).map(artifact => (
@@ -908,18 +924,18 @@ const TranslatePage = () => {
                                       </Tooltip>
                                   </div>
                                   <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => toast({title: "Download (Simulated)", description: `Would download ${artifact.name}`})}>
-                                      <Download size={14} className="mr-1"/> Download
+                                      <Download size={14} className="mr-1"/> {t('translation.download')}
                                   </Button>
                                 </li>
                             ))}
                             </ul>
                          </ScrollArea>
-                         <div className="flex gap-2 mt-2 justify-end">
+                         <div className="flex flex-col sm:flex-row gap-2 mt-2 justify-end">
                             <Button variant="outline" size="sm" onClick={handleDownloadSelected} disabled={Object.values(selectedTranslatedFiles).every(v => !v)}>
-                                <Download className="mr-2 h-4 w-4" /> Download Selected
+                                <Download className="mr-2 h-4 w-4" /> {t('translation.downloadSelected')}
                             </Button>
                             <Button variant="outline" size="sm" onClick={handleDownloadAllZip}>
-                                <Archive className="mr-2 h-4 w-4" /> Download All as ZIP
+                                <Archive className="mr-2 h-4 w-4" /> {t('translation.downloadAllZip')}
                             </Button>
                          </div>
                        </div>
@@ -929,7 +945,7 @@ const TranslatePage = () => {
                             <CardHeader className="p-3">
                                 <div className="flex items-center gap-2 text-destructive">
                                     <AlertTriangle className="h-5 w-5" />
-                                    <CardTitle className="text-base">Translation Issues</CardTitle>
+                                    <CardTitle className="text-base">{t('translation.translationIssues')}</CardTitle>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-3 pt-0 text-sm text-destructive">
@@ -947,24 +963,24 @@ const TranslatePage = () => {
             </div>
           </ScrollArea>
           {activeJob && (
-            <CardFooter className="border-t p-4 flex justify-between items-center">
-              <div>
+            <CardFooter className="border-t p-3 md:p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <div className="w-full sm:w-auto">
                 {activeJob.status !== 'in-progress' && (
                     <Button 
                         variant="destructive" 
                         onClick={() => requestDeleteJob(activeJob.id)} 
                         disabled={isLoading}
                         size="sm"
-                        className="mr-2"
+                        className="mr-2 w-full sm:w-auto"
                     >
-                       <Trash2 className="mr-2 h-4 w-4" /> Delete Job
+                       <Trash2 className="mr-2 h-4 w-4" /> {t('translation.deleteJob')}
                     </Button>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 w-full sm:w-auto">
                 {activeJob.status !== 'in-progress' && (
-                   <Button variant="outline" onClick={handleCancelActiveJob} disabled={isLoading} size="sm">
-                     <XCircleIcon className="mr-2 h-4 w-4" /> Cancel
+                   <Button variant="outline" onClick={handleCancelActiveJob} disabled={isLoading} size="sm" className="flex-1 sm:flex-none">
+                     <XCircleIcon className="mr-2 h-4 w-4" /> {t('translation.cancel')}
                    </Button>
                 )}
 
@@ -974,10 +990,11 @@ const TranslatePage = () => {
                       onClick={handleSaveDraft} 
                       disabled={isLoading || !jobTitle.trim() || (!isFormDirty && activeJob.status !== 'complete' && activeJob.status !== 'archived' && activeJob.status !== 'failed')}
                       size="sm"
+                      className="flex-1 sm:flex-none"
                   >
                     <Save className="mr-2 h-4 w-4" /> 
-                    { (activeJob.status === 'complete' || activeJob.status === 'archived' || activeJob.status === 'failed') && isFormDirty ? 'Save Changes' : 
-                      (activeJob.status === 'complete' || activeJob.status === 'archived' || activeJob.status === 'failed') && !isFormDirty ? 'Saved' : 'Save Draft' }
+                    { (activeJob.status === 'complete' || activeJob.status === 'archived' || activeJob.status === 'failed') && isFormDirty ? t('translation.save') : 
+                      (activeJob.status === 'complete' || activeJob.status === 'archived' || activeJob.status === 'failed') && !isFormDirty ? t('translation.saved') : t('translation.save') }
                   </Button>
                 )}
 
@@ -988,17 +1005,17 @@ const TranslatePage = () => {
                               (jobType === 'text' && !inputText.trim()) || 
                               (jobType === 'document' && uploadedFiles.filter(f => f.status === 'queued' || f.status === 'failed').length === 0 && !uploadedFiles.some(f => f.status === 'processing')) || 
                               !jobTitle.trim()}
-                    className="bg-primary-gradient text-primary-foreground hover:opacity-90"
+                    className="bg-primary-gradient text-primary-foreground hover:opacity-90 flex-1 sm:flex-none"
                     size="sm"
                   >
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                    Translate
+                    {t('translation.translate')}
                   </Button>
                 )}
-                {activeJob.status === 'in-progress' && <Button disabled variant="secondary" size="sm"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Translating...</Button>}
+                {activeJob.status === 'in-progress' && <Button disabled variant="secondary" size="sm" className="w-full sm:w-auto"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('translation.translating')}</Button>}
                 {activeJob.status === 'complete' && (
-                  <Button variant="default" disabled className="bg-accent-success hover:bg-accent-success/90" size="sm">
-                    <CheckSquare className="mr-2 h-4 w-4" /> Completed
+                  <Button variant="default" disabled className="bg-accent-success hover:bg-accent-success/90 w-full sm:w-auto" size="sm">
+                    <CheckSquare className="mr-2 h-4 w-4" /> {t('translation.completed')}
                   </Button>
                 )}
               </div>
@@ -1006,57 +1023,57 @@ const TranslatePage = () => {
           )}
         </Card>
 
-          <Card className="flex-grow-[2] basis-0 shadow-xl flex flex-col overflow-hidden">
-      <CardHeader className="pb-3">
+          <Card className="flex-1 shadow-xl flex flex-col overflow-hidden min-h-[400px]">
+      <CardHeader className="pb-3 p-3">
         <div className="flex flex-col gap-3">
-          <CardTitle className="text-xl">Job History</CardTitle>
+          <CardTitle className="text-xl">{t('translation.jobHistory')}</CardTitle>
           <Button 
             size="sm" 
             onClick={() => handleNewJob()}
             className="bg-primary hover:bg-primary/90 transition-colors self-start w-full"
           >
-            <PlusCircle className="mr-2 h-4 w-4" /> New Job
+            <PlusCircle className="mr-2 h-4 w-4" /> <span className="whitespace-nowrap">{t('translation.newJob')}</span>
           </Button>
         </div>
       </CardHeader>
       
-      <CardContent className="pt-0 px-4 pb-4">
-        <div className="space-y-4">
+      <CardContent className="pt-0 px-3 md:px-4 pb-3 md:pb-4">
+        <div className="space-y-3 md:space-y-4">
           {/* Improved search field with better positioning */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search jobs..."
+              placeholder={t('translation.searchJobs')}
               value={historySearchTerm}
               onChange={(e) => setHistorySearchTerm(e.target.value)}
-              className="pl-9 h-10 w-full"
+              className="pl-9 h-9 md:h-10 w-full"
             />
           </div>
           
           {/* Responsive filter section */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex-1">
+          <div className="flex flex-col gap-2">
+            <div className="w-full">
               <Select 
                 value={historyFilterType} 
                 onValueChange={(v) => setHistoryFilterType(v as 'all' | TranslationJobType)}
               >
-                <SelectTrigger className="h-10 w-full">
-                  <SelectValue placeholder="All Types" />
+                <SelectTrigger className="h-9 md:h-10 w-full">
+                  <SelectValue placeholder={t('translation.allTypes')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="text">Text Jobs</SelectItem>
-                  <SelectItem value="document">Document Jobs</SelectItem>
+                  <SelectItem value="all">{t('translation.allTypes')}</SelectItem>
+                  <SelectItem value="text">{t('translation.textJobs')}</SelectItem>
+                  <SelectItem value="document">{t('translation.documentJobs')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="flex-1 flex gap-2">
+            <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-10 flex-1">
+                  <Button variant="outline" className="h-9 md:h-10 flex-1">
                     <ListFilter className="mr-2 h-4 w-4" /> 
-                    Status {historyFilterStatus.length > 0 && 
+                    <span className="whitespace-nowrap">{t('translation.status')}</span> {historyFilterStatus.length > 0 && 
                       <Badge variant="secondary" className="ml-2">
                         {historyFilterStatus.length}
                       </Badge>
@@ -1064,7 +1081,7 @@ const TranslatePage = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
-                  <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t('translation.filterByStatus')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {(['draft', 'in-progress', 'complete', 'failed', 'archived'] as TranslationJobStatus[]).map(status => ( 
                     <DropdownMenuCheckboxItem
@@ -1083,7 +1100,7 @@ const TranslatePage = () => {
               <Button 
                 variant={showArchived ? "secondary" : "outline"} 
                 size="icon" 
-                className="h-10 w-10 shrink-0" 
+                className="h-9 md:h-10 w-10 shrink-0" 
                 onClick={() => setShowArchived(!showArchived)}
                 title="Show/Hide Archived Jobs"
               >
@@ -1097,17 +1114,17 @@ const TranslatePage = () => {
       {/* Improved scroll area with better empty state */}
       <ScrollArea className="flex-grow p-2">
         {filteredJobs.length === 0 ? (
-          <div className="text-center text-muted-foreground py-12 px-4">
-            <div className="bg-slate-800/50 p-4 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
-              <Info className="h-8 w-8 opacity-70" />
+          <div className="text-center text-muted-foreground py-6 px-3">
+            <div className="bg-slate-800/50 p-3 rounded-full mx-auto mb-3 w-10 h-10 md:w-14 md:h-14 flex items-center justify-center">
+              <Info className="h-5 w-5 md:h-6 md:w-6 opacity-70" />
             </div>
-            <h3 className="text-lg font-medium mb-2">No jobs match your criteria</h3>
-            <p className="max-w-sm mx-auto text-sm opacity-70">
-              Try adjusting your filters or add new jobs to start tracking your progress
+            <h3 className="text-sm md:text-base font-medium mb-1">{t('translation.noJobsMatch')}</h3>
+            <p className="text-xs opacity-70 max-w-[180px] mx-auto">
+              {t('translation.adjustFilters')}
             </p>
           </div>
         ) : (
-          <div className="space-y-3 px-2">
+          <div className="space-y-3 px-1 md:px-2">
             {filteredJobs.map(job => (
               <Card
                 key={job.id}
@@ -1117,10 +1134,10 @@ const TranslatePage = () => {
                 )}
                 onClick={() => handleSelectJobFromHistory(job.id)}
               >
-                <CardContent className="p-3">
+                <CardContent className="p-2 md:p-3">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-grow min-w-0">
-                      <p className="font-semibold truncate text-base" title={job.name}>{job.name}</p>
+                      <p className="font-semibold truncate text-sm md:text-base" title={job.name}>{job.name}</p>
                       <div className="flex items-center text-xs text-muted-foreground mt-1">
                         <span className="capitalize">{job.type}</span>
                         <span className="mx-2">•</span>
@@ -1174,30 +1191,30 @@ const TranslatePage = () => {
 
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] md:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard Unsaved Changes?</AlertDialogTitle>
+            <AlertDialogTitle>{t('translation.discardChanges')}</AlertDialogTitle>
             <AlertDialogDescription>
-              You have unsaved changes. Are you sure you want to discard them and cancel editing this job?
+              {t('translation.unsavedChangesDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowCancelConfirm(false)}>Keep Editing</AlertDialogCancel>
-            <AlertDialogAction onClick={performCancelAction} className={buttonVariants({variant: "destructive"})}>Discard & Reset</AlertDialogAction>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => setShowCancelConfirm(false)}>{t('translation.keepEditing')}</AlertDialogCancel>
+            <AlertDialogAction onClick={performCancelAction} className={buttonVariants({variant: "destructive"})}>{t('translation.discardAndReset')}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteConfirmModal} onOpenChange={setShowDeleteConfirmModal}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-[90vw] md:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Job?</AlertDialogTitle>
+            <AlertDialogTitle>{t('translation.deleteJobConfirm')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the job "{jobs.find(j => j.id === jobIdPendingDeletion)?.name || 'this job'}"? This action cannot be undone.
+              {translateWithParams(t, 'translation.deleteJobDesc', { jobName: jobs.find(j => j.id === jobIdPendingDeletion)?.name || 'this job' })}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel onClick={() => {setShowDeleteConfirmModal(false); setJobIdPendingDeletion(null);}}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteJob} className={buttonVariants({variant: "destructive"})}>Delete</AlertDialogAction>
           </AlertDialogFooter>

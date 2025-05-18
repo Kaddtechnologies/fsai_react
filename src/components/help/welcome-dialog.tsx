@@ -11,39 +11,148 @@ import Image from 'next/image';
 import type { ChartNode, FlowStep } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { cn } from '@/lib/utils';
+import useTranslation from '@/app/hooks/useTranslation';
 
 interface WelcomeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const AiCapabilitiesChart: ChartNode = {
-  id: 'root',
-  label: 'What can Flowserve AI do for you?',
-  children: [
-    { id: 'ans', label: 'Answer questions' },
-    { id: 'exp', label: 'Provide explanations' },
-    { id: 'ast', label: 'Assist with tasks' },
-  ],
+const WelcomeDialog: FC<WelcomeDialogProps> = ({ open, onOpenChange }) => {
+  const { t } = useTranslation();
+  
+  const AiCapabilitiesChart: ChartNode = {
+    id: 'root',
+    label: t('welcomeDialog.ai.capabilities.root'),
+    children: [
+      { id: 'ans', label: t('welcomeDialog.ai.capabilities.answer') },
+      { id: 'exp', label: t('welcomeDialog.ai.capabilities.explain') },
+      { id: 'ast', label: t('welcomeDialog.ai.capabilities.assist') },
+    ],
+  };
+  
+  const DocumentFlow: FlowStep[] = [
+    { id: 'up', icon: UploadCloud, title: t('welcomeDialog.documents.flow.upload.title'), description: t('welcomeDialog.documents.flow.upload.description') },
+    { id: 'conv', icon: MessageSquareText, title: t('welcomeDialog.documents.flow.conversation.title'), description: t('welcomeDialog.documents.flow.conversation.description') },
+    { id: 'ext', icon: Info, title: t('welcomeDialog.documents.flow.insights.title'), description: t('welcomeDialog.documents.flow.insights.description') },
+  ];
+  
+  const TranslationFlow: FlowStep[] = [
+    { id: 'up-trans', icon: UploadCloud, title: t('welcomeDialog.translation.flow.upload.title'), description: t('welcomeDialog.translation.flow.upload.description') },
+    { id: 'lang', icon: Globe, title: t('welcomeDialog.translation.flow.selectLanguage.title'), description: t('welcomeDialog.translation.flow.selectLanguage.description') },
+    { id: 'receive', icon: FileText, title: t('welcomeDialog.translation.flow.receiveTranslation.title'), description: t('welcomeDialog.translation.flow.receiveTranslation.description') },
+    { id: 'feedback', icon: MessageSquareText, title: t('welcomeDialog.translation.flow.provideFeedback.title'), description: t('welcomeDialog.translation.flow.provideFeedback.description') },
+  ];
+  
+  const supportedTranslationLanguages = ['English', 'Spanish', 'French', 'German', 'Japanese', 'Korean', 'Chinese'];
+  const supportedDocTypes = ['Word', 'PowerPoint', 'Excel', 'PDF'];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
+      <DialogContent className="max-w-3xl w-[90vw] p-0 border-[3px] border-yellow-500 rounded-[24px] shadow-2xl bg-background">
+        <DialogHeader className="p-6 pb-4 border-b border-border relative">
+          <DialogTitle className="text-2xl font-bold text-center text-primary-gradient">{t('welcomeDialog.title')}</DialogTitle>
+          <DialogDescription className="text-center text-muted-foreground mt-1">
+            {t('welcomeDialog.subtitle')}
+          </DialogDescription>       
+        </DialogHeader>
+        
+        <ScrollArea className="h-[70vh] max-h-[70vh]">
+          <div className="p-6 space-y-8">
+            {/* Flowserve AI Section */}
+            <Card className="bg-card/50 border-border shadow-lg">
+              <CardHeader className="flex flex-row items-center gap-3">
+                <Bot size={32} className="text-primary" />
+                <div>
+                  <CardTitle className="text-xl">{t('welcomeDialog.ai.title')}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{t('welcomeDialog.ai.subtitle')}</p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-foreground">
+                  {t('welcomeDialog.ai.description')}
+                </p>
+                <div className="p-3 bg-muted/30 rounded-md">
+                   <ChartNodeDisplay node={AiCapabilitiesChart} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Document Analysis Section */}
+            <Card className="bg-card/50 border-border shadow-lg">
+              <CardHeader className="flex flex-row items-center gap-3">
+                <FileText size={32} className="text-primary" />
+                <div>
+                  <CardTitle className="text-xl">{t('welcomeDialog.documents.title')}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{t('welcomeDialog.documents.subtitle')}</p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{t('welcomeDialog.documents.maxFileSize')}</Badge>
+                  <Badge variant="outline">{t('welcomeDialog.documents.onlyPDF')}</Badge>
+                  <Badge variant="outline">{t('welcomeDialog.documents.extractInfo')}</Badge>
+                </div>
+                <p className="text-sm text-foreground">
+                  {t('welcomeDialog.documents.description')}
+                </p>
+                <div className="p-3 bg-muted/30 rounded-md relative overflow-x-auto">
+                  <FlowChartDisplay steps={DocumentFlow} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Translation Section */}
+            <Card className="bg-card/50 border-border shadow-lg">
+              <CardHeader className="flex flex-row items-center gap-3">
+                <Globe size={32} className="text-primary" />
+                <div>
+                  <CardTitle className="text-xl">{t('welcomeDialog.translation.title')}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{t('welcomeDialog.translation.subtitle')}</p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-foreground">
+                  {t('welcomeDialog.translation.description')}
+                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">{t('welcomeDialog.translation.supportedLanguages')}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {supportedTranslationLanguages.map(lang => <Badge key={lang} variant="secondary" className="text-xs">{lang}</Badge>)}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground font-medium">{t('welcomeDialog.translation.supportedDocTypes')}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {supportedDocTypes.map(type => <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>)}
+                  </div>
+                </div>
+                <div className="p-3 bg-muted/30 rounded-md relative overflow-x-auto">
+                  <FlowChartDisplay steps={TranslationFlow} />
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm font-medium mb-2">{t('welcomeDialog.translation.videoTutorial')}</p>
+                  <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border">
+                    <video 
+                      controls
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                    >
+                      <source src="/assets/videos/Translation_app_demo 1.mp4" type="video/mp4" />
+                      {t('welcomeDialog.translation.unsupportedVideo')}
+                    </video>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
-const DocumentFlow: FlowStep[] = [
-  { id: 'up', icon: UploadCloud, title: 'Upload Document', description: 'Securely upload your PDF files.' },
-  { id: 'conv', icon: MessageSquareText, title: 'Start Conversation', description: 'Ask questions about your document.' },
-  { id: 'ext', icon: Info, title: 'Extract Insights', description: 'Get summaries and key information.' },
-];
-
-const TranslationFlow: FlowStep[] = [
-  { id: 'up-trans', icon: UploadCloud, title: 'Upload', description: 'Word, PowerPoint, Excel, PDF files.' },
-  { id: 'lang', icon: Globe, title: 'Select Language', description: 'Choose your target language.' },
-  { id: 'receive', icon: FileText, title: 'Receive Translation', description: 'Get your translated content.' },
-  { id: 'feedback', icon: MessageSquareText, title: 'Provide Feedback', description: 'Help improve future translations.' },
-];
-
-const supportedTranslationLanguages = ['English', 'Spanish', 'French', 'German', 'Japanese', 'Korean', 'Chinese'];
-const supportedDocTypes = ['Word', 'PowerPoint', 'Excel', 'PDF'];
-
-
+// Helper components moved inside main component to avoid redeclaring translations
 const ChartNodeDisplay: FC<{ node: ChartNode; level?: number }> = ({ node, level = 0 }) => {
   // For the root node
   if (level === 0) {
@@ -122,117 +231,9 @@ const FlowChartDisplay: FC<{ steps: FlowStep[] }> = ({ steps }) => (
         </div>
         <p className="font-semibold text-sm mb-0.5">{step.title}</p>
         <p className="text-xs text-muted-foreground">{step.description}</p>
-       
       </div>
     ))}
   </div>
 );
-
-
-const WelcomeDialog: FC<WelcomeDialogProps> = ({ open, onOpenChange }) => {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
-      <DialogContent className="max-w-3xl w-[90vw] p-0 border-[3px] border-yellow-500 rounded-[24px] shadow-2xl bg-background">
-        <DialogHeader className="p-6 pb-4 border-b border-border relative">
-          <DialogTitle className="text-2xl font-bold text-center text-primary-gradient">Welcome to Flowserve AI</DialogTitle>
-          <DialogDescription className="text-center text-muted-foreground mt-1">
-            Your unified platform for intelligent assistance, document analysis, and product knowledge.
-          </DialogDescription>       
-        </DialogHeader>
-        
-        <ScrollArea className="h-[70vh] max-h-[70vh]">
-          <div className="p-6 space-y-8">
-            {/* Flowserve AI Section */}
-            <Card className="bg-card/50 border-border shadow-lg">
-              <CardHeader className="flex flex-row items-center gap-3">
-                <Bot size={32} className="text-primary" />
-                <div>
-                  <CardTitle className="text-xl">Flowserve AI</CardTitle>
-                  <p className="text-sm text-muted-foreground">Your Digital Assistant</p>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-foreground">
-                  Engage in natural conversations to get answers, understand complex topics, and receive assistance with various tasks related to Flowserve's offerings.
-                </p>
-                <div className="p-3 bg-muted/30 rounded-md">
-                   <ChartNodeDisplay node={AiCapabilitiesChart} />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Document Analysis Section */}
-            <Card className="bg-card/50 border-border shadow-lg">
-              <CardHeader className="flex flex-row items-center gap-3">
-                <FileText size={32} className="text-primary" />
-                <div>
-                  <CardTitle className="text-xl">Document Analysis</CardTitle>
-                  <p className="text-sm text-muted-foreground">Chat with Your Documents</p>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline">Max File Size 5MB</Badge>
-                  <Badge variant="outline">Only PDF files</Badge>
-                  <Badge variant="outline">Extract info from documents</Badge>
-                </div>
-                <p className="text-sm text-foreground">
-                  Upload your documents (PDFs) and interact with them directly in the chat. Ask questions, get summaries, and find information quickly.
-                </p>
-                 <div className="p-3 bg-muted/30 rounded-md relative overflow-x-auto">
-                   <FlowChartDisplay steps={DocumentFlow} />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Translation Section */}
-            <Card className="bg-card/50 border-border shadow-lg">
-              <CardHeader className="flex flex-row items-center gap-3">
-                <Globe size={32} className="text-primary" />
-                <div>
-                  <CardTitle className="text-xl">Translation</CardTitle>
-                  <p className="text-sm text-muted-foreground">Multi-Language Support</p>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-sm text-foreground">
-                  Translate text and documents between various languages. Use the dedicated "Translate" tool in the sidebar.
-                </p>
-                <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground font-medium">Supported Languages for Text:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                        {supportedTranslationLanguages.map(lang => <Badge key={lang} variant="secondary" className="text-xs">{lang}</Badge>)}
-                    </div>
-                </div>
-                 <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground font-medium">Supported Document Types for Translation Module (Future):</p>
-                     <div className="flex flex-wrap gap-1.5">
-                        {supportedDocTypes.map(type => <Badge key={type} variant="secondary" className="text-xs">{type}</Badge>)}
-                    </div>
-                </div>
-                <div className="p-3 bg-muted/30 rounded-md relative overflow-x-auto">
-                   <FlowChartDisplay steps={TranslationFlow} />
-                </div>
-                <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">Video Tutorial</p>
-                  <div className="aspect-video bg-muted rounded-lg overflow-hidden border border-border">
-                    <video 
-                      controls
-                      className="w-full h-full object-cover"
-                      preload="metadata"
-                    >
-                      <source src="/assets/videos/Translation_app_demo 1.mp4" type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 export default WelcomeDialog;
