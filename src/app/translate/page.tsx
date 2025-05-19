@@ -1,4 +1,4 @@
-* 
+/* 
  * A comprehensive translation management interface that supports:
  * - Text and document translation
  * - Job management with history
