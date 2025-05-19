@@ -31,11 +31,17 @@ import useTranslation from '@/app/hooks/useTranslation';
 const supportedLanguages = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Spanish' },
+  { code: 'ta', name: 'Tamil' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'ru', name: 'Russian' },
   { code: 'fr', name: 'French' },
   { code: 'de', name: 'German' },
+  { code: 'it', name: 'Italian' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'zh', name: 'Chinese (Simplified)' },
   { code: 'ja', name: 'Japanese' },
   { code: 'ko', name: 'Korean' },
-  { code: 'zh', name: 'Chinese (Simplified)' },
+  { code: 'ar', name: 'Arabic' },
 ];
 
 const MAX_JOB_TITLE_LENGTH = 100;

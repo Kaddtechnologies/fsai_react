@@ -24,7 +24,7 @@ import { MOCK_USER } from './utils/constants';
 import { formatRelative } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import useTranslation from '@/app/hooks/useTranslation';
-// Removed: import ReactMarkdown from 'react-markdown';
+import * as DocumentContextService from '@/lib/services/document-context';
 
 
 const MAX_FILE_SIZE_MB = 5;
@@ -328,7 +328,13 @@ const ChatPage = () => {
     
     if ((isFirstUserTextMessage || activeConversation.title === 'New Chat' || activeConversation.title.startsWith('Chat about ')) && currentInputValue.trim()) {
       try {
-        const titleResponse = await generateChatTitle({ firstMessage: currentInputValue });
+        const titleResponse = await generateChatTitle({ 
+          firstMessage: currentInputValue,
+          messages: updatedMessages.map(msg => ({
+            content: msg.content,
+            isDocument: msg.type === 'document_upload_status'
+          }))
+        });
         conversationTitle = titleResponse.title;
       } catch (error) {
         console.error("Failed to generate chat title:", error);
@@ -336,20 +342,36 @@ const ChatPage = () => {
     }
     
     try {
+      // Prepare conversation history for AI
       const historyForAI = updatedMessages
         .filter(msg => msg.sender === 'user' || msg.sender === 'ai')
         .slice(0, -1) 
         .map(msg => ({
           role: msg.sender as 'user' | 'ai',
-          content: msg.content + 
-                   (msg.attachments && msg.attachments.length > 0 && msg.attachments[0].status === 'completed' ? 
-                      ` (User attached a document: ${msg.attachments[0].name}. Its summary, in Markdown format, is: ${msg.attachments[0].summary || 'Summary not available.'})` 
-                      : '')
+          content: msg.content,
+          documentIds: msg.attachments?.map(doc => doc.id || doc.backendId || '').filter(Boolean) || []
         }));
+
+      // Use the document context service to prepare documents for AI
+      const documentContext = await DocumentContextService.prepareDocumentContext(
+        activeConversation,
+        currentInputValue,
+        3 // Maximum number of documents to include
+      ).then(refs => 
+        // Convert to the format expected by the generate-chat-response flow
+        refs.map(ref => ({
+          id: ref.id,
+          name: ref.name,
+          type: ref.type,
+          summary: ref.summary,
+          recentlyDiscussed: ref.recentlyDiscussed
+        }))
+      );
 
       let aiResponseContent = `FlowserveAI received: "${userMessage.content}"`;
       let aiMessageType: Message['type'] = 'text';
       let aiMessageData: any = null;
+      let referencedDocumentIds: string[] = [];
 
       const productQueryMatch = currentInputValue.toLowerCase().match(/search products? for (.*)/i) || currentInputValue.toLowerCase().match(/find (.*) products?/i) || currentInputValue.toLowerCase().match(/show me (.*) products?/i);
       if (productQueryMatch) {
@@ -365,8 +387,18 @@ const ChatPage = () => {
         }
         setCurrentPlaceholder("Ask about products, documents, or chat with AI...");
       } else {
-        const aiResult = await generateChatResponse({ userInput: currentInputValue, history: historyForAI });
+        const aiResult = await generateChatResponse({ 
+          userInput: currentInputValue, 
+          history: historyForAI,
+          documentContext
+        });
         aiResponseContent = aiResult.aiResponse;
+        
+        // If the response referenced documents, store that information
+        if (aiResult.referencedDocumentIds?.length) {
+          referencedDocumentIds = aiResult.referencedDocumentIds;
+          aiMessageData = { ...aiMessageData, referencedDocumentIds };
+        }
       }
 
       const aiMessage: Message = {

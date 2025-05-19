@@ -4,6 +4,7 @@ import { roboto, robotoMono } from '@/lib/fonts';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AppClientLayout from '@/components/layout/app-client-layout';
+import StorageInitializer from '@/components/storage/storage-initializer';
 
 export const metadata: Metadata = {
   title: 'FlowserveAI',
@@ -30,7 +31,9 @@ export default function RootLayout({
             Loading... 
           </div>
         }>
-          <AppClientLayout>{children}</AppClientLayout>
+          <StorageInitializer>
+            <AppClientLayout>{children}</AppClientLayout>
+          </StorageInitializer>
         </Suspense>
         <Toaster />
       </body>

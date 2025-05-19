@@ -44,7 +44,7 @@ const WelcomeDialog: FC<WelcomeDialogProps> = ({ open, onOpenChange }) => {
     { id: 'feedback', icon: MessageSquareText, title: t('welcomeDialog.translation.flow.provideFeedback.title'), description: t('welcomeDialog.translation.flow.provideFeedback.description') },
   ];
   
-  const supportedTranslationLanguages = ['English', 'Spanish', 'French', 'German', 'Japanese', 'Korean', 'Chinese'];
+  const supportedTranslationLanguages = ['English', 'Spanish', 'Tamil', 'Arabic',  'French', 'German', 'Italian', 'Portuguese', 'Japanese', 'Korean', 'Chinese', 'Russian', 'Hindi'];
   const supportedDocTypes = ['Word', 'PowerPoint', 'Excel', 'PDF'];
 
   return (

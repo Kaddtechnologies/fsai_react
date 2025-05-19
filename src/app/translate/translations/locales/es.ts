@@ -2,28 +2,74 @@ const translations = {
   // Settings dialog
   settings: {
     title: "Configuración",
-    description: "Personaliza tu experiencia de FlowserveAI. Los cambios se aplicarán inmediatamente.",
+    secondaryTitle: "Más",
+    description: "Personaliza tu experiencia con FlowserveAI. Los cambios se aplicarán inmediatamente.",
     language: "Idioma",
-    save: "Guardar cambios"
+    theme: "Tema",
+    themeOptions: {
+      light: "Claro",
+      dark: "Oscuro",
+      system: "Sistema"
+    },
+    save: "Guardar cambios",
+    saveStatus: {
+      success: "Configuración guardada",
+      description: "Tu configuración se ha actualizado exitosamente"
+    },
+    tools: "Herramientas",
+    preferences: "Preferencias",
+    darkMode: "Modo Oscuro",
+    support: "Ayuda y Soporte",
+    policies: "Políticas",
+    selectLanguage: "Seleccionar Idioma",
+    search: "Buscar idiomas...",
+    noLanguageMatch: "Ningún idioma coincide con tu búsqueda"
+  },
+  
+  // Tools section
+  tools: {
+    documents: "Documentos",
+    documentsDesc: "Ve y gestiona tus documentos subidos",
+    chat: "Chat",
+    chatDesc: "Chatea con el asistente de Flowserve AI",
+    jobs: "Traducción",
+    jobsDesc: "Traduce texto y documentos",
+    translate: "Traducir",
+    translationModule: "Módulo de Traducción",
+    products: "Productos"
+  },
+  
+  // Support section
+  support: {
+    help: "Centro de Ayuda",
+    helpDesc: "Obtén ayuda para usar Flowserve AI"
+  },
+  
+  // Policies section
+  policies: {
+    privacy: "Política de Privacidad",
+    privacyDesc: "Cómo manejamos tus datos",
+    ai: "Directrices de IA",
+    aiDesc: "Cómo usamos la IA de manera responsable"
   },
   
   // Empty state
   emptyState: {
     welcome: "Bienvenido a FlowserveAI",
-    subtitle: "Conéctate de forma segura y chatea con tus Documentos, Base de Conocimiento e IA en la Red de Flowserve",
-    startTyping: "Comienza una conversación escribiendo abajo",
+    subtitle: "Conecta de forma segura y chatea con tus documentos, base de conocimientos e IA en la red de Flowserve",
+    startTyping: "Inicia una conversación escribiendo abajo",
     suggestions: {
       aiChat: {
-        category: "Chat IA",
-        text: "¿Cómo funcionan las bombas centrífugas?"
+        category: "Productos",
+        text: "Explica la bomba Flowserve IDURCO Mark 3 de alto silicio"
       },
       documents: {
-        category: "Documentos",
-        text: "Resumir mis documentos de mantenimiento"
+        category: "Productos",
+        text: "¿Cómo opero la bomba Flowserve IDURCO Mark 3 de hierro de alto silicio?"
       },
       products: {
-        category: "Productos",
-        text: "Buscar válvulas de control de flujo"
+        category: "Beneficios",
+        text: "¿Cómo gestiono mis inversiones de 401(k)?"
       }
     }
   },
@@ -36,12 +82,12 @@ const translations = {
     ai: {
       title: "Flowserve AI",
       subtitle: "Tu Asistente Digital",
-      description: "Participa en conversaciones naturales para obtener respuestas, comprender temas complejos y recibir asistencia con varias tareas relacionadas con las ofertas de Flowserve.",
+      description: "Participa en conversaciones naturales para obtener respuestas, entender temas complejos y recibir asistencia con varias tareas relacionadas con las ofertas de Flowserve.",
       capabilities: {
         root: "¿Qué puede hacer Flowserve AI por ti?",
         answer: "Responder preguntas",
         explain: "Proporcionar explicaciones",
-        assist: "Ayudar con tareas"
+        assist: "Asistir con tareas"
       }
     },
     // Document section
@@ -50,7 +96,8 @@ const translations = {
       subtitle: "Chatea con tus Documentos",
       maxFileSize: "Tamaño máximo de archivo 5MB",
       onlyPDF: "Solo archivos PDF",
-      vectorSearch: "Búsqueda semántica basada en vectores",
+      vectorSearch: "Búsqueda semántica impulsada por vectores",
+      extractInfo: "Extraer información de documentos",
       description: "Sube tus documentos (PDFs) e interactúa con ellos directamente en el chat. Haz preguntas específicas sobre su contenido, obtén resúmenes y extrae información con nuestra tecnología de búsqueda semántica.",
       flow: {
         upload: {
@@ -62,7 +109,7 @@ const translations = {
           description: "Haz preguntas sobre tu documento."
         },
         insights: {
-          title: "Extraer Información",
+          title: "Extraer Conocimientos",
           description: "Obtén resúmenes e información clave."
         }
       }
@@ -70,12 +117,13 @@ const translations = {
     // Translation section
     translation: {
       title: "Traducción",
-      subtitle: "Soporte Multilingüe",
-      description: "Traduce texto y documentos entre varios idiomas. Utiliza la herramienta dedicada \"Traducir\" en la barra lateral.",
-      supportedLanguages: "Idiomas admitidos para texto:",
-      supportedDocTypes: "Tipos de documentos compatibles para el módulo de traducción (Futuro):",
-      videoTutorial: "Tutorial en Video (Provisional)",
+      subtitle: "Soporte Multiidioma",
+      description: "Traduce texto y documentos entre varios idiomas. Usa la herramienta dedicada \"Traducir\" en la barra lateral.",
+      supportedLanguages: "Idiomas Soportados para Texto:",
+      supportedDocTypes: "Tipos de Documentos Soportados para el Módulo de Traducción (Futuro):",
+      videoTutorial: "Tutorial en Video",
       videoComingSoon: "Tutorial en video próximamente.",
+      unsupportedVideo: "Tu navegador no soporta la etiqueta de video.",
       flow: {
         upload: {
           title: "Subir",
@@ -101,10 +149,11 @@ const translations = {
   chat: {
     newChat: "Nuevo Chat",
     placeholder: "Escribe un mensaje...",
+    placeholderMobile: "Escribe un mensaje...",
     send: "Enviar",
     typing: "Flowserve AI está escribiendo...",
     loadMore: "Cargar más mensajes",
-    emptyConversation: "Inicia una nueva conversación",
+    emptyConversation: "Iniciar una nueva conversación",
     uploadFile: "Subir un archivo",
     today: "Hoy",
     yesterday: "Ayer",
@@ -115,82 +164,224 @@ const translations = {
     loading: "Cargando...",
     errorLoading: "Error al cargar la conversación",
     messageSent: "Mensaje enviado",
-    documentUploadSuccess: "Documento subido con éxito",
-    documentUploadError: "Error al subir el documento",
+    documentUploadSuccess: "Documento subido exitosamente",
+    documentUploadError: "Error al subir documento",
     documentProcessing: "Procesando documento...",
-    documentReady: "Documento listo"
+    documentReady: "Documento listo",
+    welcome: "Bienvenido al Chat de FlowserveAI",
+    welcomeSubtitle: "Chatea con tus documentos, base de conocimientos e IA en la red de Flowserve",
+    newChatCreated: "Nuevo chat creado",
+    conversationDeleted: "Conversación eliminada",
+    conversationRenamed: "Conversación renombrada",
+    renameCancelledEmpty: {
+      title: "Renombrar cancelado",
+      description: "El nuevo título no puede estar vacío"
+    },
+    renameCancelledUnchanged: {
+      title: "Sin cambios",
+      description: "El título permanece sin cambios"
+    },
+    renameCancelled: "Renombrar cancelado",
+    messageEdited: "Mensaje editado",
+    notFound: "Chat {id} no encontrado",
+    noActiveSession: "No hay sesión de chat activa",
+    selectOrStartNew: "Por favor selecciona un chat de la barra lateral o inicia una nueva conversación",
+    aiDisclaimer: "Las respuestas de IA pueden no ser siempre precisas. Siempre verifica información importante.",
+    enterNewTitle: "Ingresa nuevo título",
+    containsDocuments: "Esta conversación contiene documentos",
   },
   
-  // Quick Actions
-  quickActions: {
-    title: "Acciones Rápidas",
-    questions: {
-      espp: {
-        question: "¿Qué es el Plan de Compra de Acciones para Empleados (ESPP)?",
-        answer: `# Plan de Compra de Acciones para Empleados (ESPP)
-
-## Descripción General
-El ESPP permite a los empleados elegibles comprar acciones de Flowserve con descuento a través de deducciones de nómina.
-
-## Características Principales
-- Compra de acciones con 15% de descuento
-- Deducciones automáticas de nómina
-- Períodos de compra trimestrales
-- Sin comisiones de corretaje
-- Adquisición inmediata
-
-## Elegibilidad
-- Empleados regulares de tiempo completo
-- Mínimo 90 días de empleo
-- No estar en licencia
-
-## Cómo Participar
-1. Inscribirse durante el período de inscripción abierta
-2. Seleccionar porcentaje de contribución (1-10% de la compensación elegible)
-3. Los fondos se deducen de cada cheque de pago
-4. Las acciones se compran trimestralmente con 15% de descuento
-
-## Consideraciones Fiscales
-- Las compras se realizan con dólares después de impuestos
-- Las ganancias se gravan como ingreso ordinario o ganancias de capital
-- Consulte a un asesor fiscal para orientación específica`
-      },
-      retirement: {
-        question: "¿Cómo gestiono mis inversiones en 401(k)?",
-        answer: `# Gestión de Inversiones en 401(k)
-
-## Descripción General
-El plan 401(k) de Flowserve ofrece una variedad de opciones de inversión para ayudarte a ahorrar para la jubilación.
-
-## Características Principales
-- Contribución de la empresa hasta 6% de la compensación elegible
-- Adquisición inmediata de la contribución de la empresa
-- Amplia gama de opciones de inversión
-- Gestión profesional de inversiones
-- Acceso a cuenta en línea
-
-## Opciones de Inversión
-1. Fondos de Fecha Objetivo
-2. Fondos Índice
-3. Fondos de Gestión Activa
-4. Fondo de Acciones de la Empresa
-5. Fondo de Valor Estable
-
-## Cómo Gestionar
-1. Inicie sesión en su cuenta en [portal de jubilación]
-2. Revise las asignaciones actuales
-3. Ajuste el porcentaje de contribución
-4. Reequilibre la cartera según sea necesario
-5. Monitoree el rendimiento regularmente
-
-## Mejores Prácticas
-- Contribuya al menos 6% para obtener la contribución completa de la empresa
-- Diversifique entre diferentes clases de activos
-- Revise y reequilibre anualmente
-- Considere fondos de fecha objetivo para simplicidad
-- Aumente las contribuciones con aumentos salariales`
-      }
+  // Documents page
+  documentsPage: {
+    title: "Mis Documentos",
+    description: "Navega y gestiona todos tus documentos subidos.",
+    noDocuments: {
+      title: "No se encontraron documentos",
+      description: "Aún no has subido ningún documento. Sube documentos en cualquier chat para verlos aquí.",
+      action: "Ir al Chat"
+    },
+    document: {
+      uploaded: "Subido",
+      size: "Tamaño",
+      viewSummary: "Ver Resumen",
+      chatAction: "Chatear sobre Documento"
+    },
+    loading: "Cargando..."
+  },
+  
+  // Documents page (used in documents/page.tsx)
+  documents: {
+    title: "Mis Documentos",
+    description: "Navega y gestiona todos tus documentos subidos.",
+    noDocumentsFound: "No se encontraron documentos",
+    noDocumentsDesc: "Aún no has subido ningún documento. Sube documentos en cualquier chat para verlos aquí.",
+    goToChat: "Ir al Chat",
+    uploaded: "Subido",
+    size: "Tamaño",
+    viewSummarySnippet: "Ver fragmento de resumen",
+    viewFullSummary: "Ver resumen completo",
+    fullSummary: "Resumen Completo",
+    chatAboutDocument: "Chatear sobre Documento",
+    rawMarkdownPreview: "Vista previa en markdown del resumen del documento"
+  },
+  
+  // Translation page
+  translation: {
+    new: "Nuevo Trabajo de Traducción",
+    edit: "Editar Trabajo",
+    noActiveJob: "No hay Trabajo Activo",
+    createNew: "Crea un nuevo trabajo o selecciona uno del historial",
+    createNewButton: "Crear Nuevo Trabajo",
+    jobTitle: "Título del Trabajo",
+    enterJobTitle: "Ingresa título del trabajo",
+    jobType: "Tipo de Trabajo",
+    selectJobType: "Selecciona tipo de trabajo",
+    textTranslation: "Traducción de Texto",
+    documentTranslation: "Traducción de Documento",
+    sourceLanguage: "Idioma Origen",
+    selectSourceLanguage: "Selecciona idioma origen",
+    autoDetect: "Detección automática",
+    targetLanguage: "Idioma Destino",
+    selectTargetLanguage: "Selecciona idioma destino",
+    enterTextToTranslate: "Ingresa texto a traducir...",
+    characters: "caracteres",
+    copyText: "Copiar texto",
+    speakText: "Hablar texto",
+    translationWillAppear: "La traducción aparecerá aquí...",
+    copyTranslation: "Copiar traducción",
+    speakTranslation: "Hablar traducción",
+    jobHistory: "Historial de Trabajos",
+    newJob: "Nuevo Trabajo",
+    deleteJob: "Eliminar Trabajo",
+    cancel: "Cancelar",
+    save: "Guardar",
+    saved: "Guardado",
+    translate: "Traducir",
+    translating: "Traduciendo...",
+    completed: "Completado",
+    
+    // Add more translation keys
+    allTypes: "Todos los Tipos",
+    textJobs: "Trabajos de Texto",
+    documentJobs: "Trabajos de Documento",
+    status: "Estado",
+    filterByStatus: "Filtrar por Estado",
+    noJobsMatch: "Ningún trabajo coincide con los criterios",
+    adjustFilters: "Intenta ajustar tus filtros",
+    searchJobs: "Buscar trabajos",
+    discardChanges: "¿Descartar Cambios No Guardados?",
+    unsavedChangesDesc: "Tienes cambios no guardados. ¿Estás seguro de que quieres descartarlos y cancelar la edición de este trabajo?",
+    keepEditing: "Seguir Editando",
+    discardAndReset: "Descartar y Reiniciar",
+    deleteJobConfirm: "¿Eliminar Trabajo?",
+    deleteJobDesc: "¿Estás seguro de que quieres eliminar el trabajo \"{jobName}\"? Esta acción no se puede deshacer.",
+    maxFiles: "Máx {max} archivos. Máx {size}MB total.",
+    browseFiles: "Explorar Archivos",
+    selectedFiles: "Archivos Seleccionados ({count}/{max}):",
+    togglePdfDocx: "Alternar PDF→DOCX",
+    pdfToDocxTooltip: "Convertir PDF a DOCX en traducción",
+    removeFile: "Eliminar archivo",
+    translatedDocuments: "Documentos Traducidos para {language}:",
+    download: "Descargar",
+    downloadSelected: "Descargar Seleccionados",
+    downloadAllZip: "Descargar Todo como ZIP",
+    translationIssues: "Problemas de Traducción",
+    actionCancelled: "Acción Cancelada",
+    actionCancelledDesc: "La operación actual fue cancelada."
+  },
+  
+  // Common UI elements
+  common: {
+    close: "Cerrar",
+    chat: "Chat",
+    unknownError: "Error desconocido",
+    selectedChat: "Chat Seleccionado",
+    appName: "FlowserveAI",
+    invalidDate: "Fecha inválida",
+    logoAlt: "Flowserve AI"
+  },
+  
+  // Action buttons
+  actions: {
+    rename: "Renombrar",
+    delete: "Eliminar",
+    cancel: "Cancelar",
+    close: "Cerrar",
+    goToChats: "Ir a Chats",
+    copiedToClipboard: "Copiado al portapapeles"
+  },
+  
+  // Sidebar elements
+  sidebar: {
+    conversations: "Conversaciones Recientes",
+    tools: "Herramientas"
+  },
+  
+  // Account section
+  account: {
+    myAccount: "Mi Cuenta",
+    profile: "Perfil",
+    logout: "Cerrar Sesión"
+  },
+  
+  // Alerts
+  alerts: {
+    deleteConfirm: {
+      title: "¿Eliminar Conversación?",
+      description: "¿Estás seguro de que quieres eliminar \"{title}\"? Esto no se puede deshacer."
     }
+  },
+  
+  // Document related
+  document: {
+    viewSummarySnippet: "Ver fragmento de resumen",
+    viewFullSummary: "Ver resumen completo",
+    defaultName: "documento",
+    fullSummaryTitle: "Resumen Completo: {docName}"
+  },
+  
+  // File uploads
+  uploads: {
+    fileTooLarge: {
+      title: "Archivo Demasiado Grande",
+      description: "El tamaño máximo de archivo es {maxSize}MB"
+    },
+    invalidType: {
+      title: "Tipo de Archivo Inválido",
+      description: "Archivos permitidos: {allowed}"
+    },
+    preparing: "Preparando {fileName} para subir...",
+    processingAi: "Procesando {fileName} con IA...",
+    processingComplete: "Procesamiento de {fileName} completado",
+    processingFailed: "Procesamiento de {fileName} falló",
+    readingFailed: "Lectura de {fileName} falló",
+    uploadFailed: "Subida de {fileName} falló",
+    fileProcessed: "Archivo Procesado",
+    fileProcessedSummary: "Procesó {fileName} exitosamente",
+    aiError: "Error de Procesamiento de IA",
+    couldNotProcess: "No se pudo procesar {fileName}",
+    status: {
+      pendingUpload: "Subida pendiente...",
+      uploading: "Subiendo... {progress}%",
+      pendingProcessing: "Procesamiento de IA pendiente...",
+      processing: "Procesando... {progress}%",
+      completed: "Completado",
+      failed: "Falló"
+    }
+  },
+  
+  // Feedback dialog
+  feedback: {
+    title: "Enviar Comentarios",
+    description: "Comparte tu experiencia con FlowserveAI. Tus comentarios nos ayudan a mejorar.",
+    placeholder: "Cuéntanos sobre tu experiencia...",
+    send: "Enviar Comentarios",
+    cancel: "Cancelar",
+    sending: "Enviando comentarios...",
+    success: "¡Comentarios enviados exitosamente!",
+    error: "Error al enviar comentarios. Por favor intenta de nuevo.",
+    characterCount: "{count}/3000",
+    minCharacters: "Se requieren mínimo 100 caracteres"
   }
 };
 

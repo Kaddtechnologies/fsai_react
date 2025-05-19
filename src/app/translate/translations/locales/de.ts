@@ -1,197 +1,388 @@
 const translations = {
-    // Settings dialog
-    settings: {
-      title: "Einstellungen",
-      description: "Passen Sie Ihr FlowserveAI-Erlebnis an. Änderungen werden sofort übernommen.",
-      language: "Sprache",
-      save: "Änderungen speichern"
+  // Settings dialog
+  settings: {
+    title: "Einstellungen",
+    secondaryTitle: "Mehr",
+    description: "Passen Sie Ihre FlowserveAI-Erfahrung an. Änderungen werden sofort übernommen.",
+    language: "Sprache",
+    theme: "Thema",
+    themeOptions: {
+      light: "Hell",
+      dark: "Dunkel",
+      system: "System"
     },
-    
-    // Empty state
-    emptyState: {
-      welcome: "Willkommen bei FlowserveAI",
-      subtitle: "Verbinden Sie sich sicher und chatten Sie mit Ihren Dokumenten, Wissensdatenbank und KI im Flowserve-Netzwerk",
-      startTyping: "Beginnen Sie eine Unterhaltung, indem Sie unten tippen",
-      suggestions: {
-        aiChat: {
-          category: "KI-Chat",
-          text: "Wie funktionieren Kreiselpumpen?"
-        },
-        documents: {
-          category: "Dokumente",
-          text: "Fassen Sie meine Wartungsdokumente zusammen"
-        },
-        products: {
-          category: "Produkte",
-          text: "Suche nach Durchflussregelventilen"
-        }
-      }
+    save: "Änderungen speichern",
+    saveStatus: {
+      success: "Einstellungen gespeichert",
+      description: "Ihre Einstellungen wurden erfolgreich aktualisiert"
     },
-    
-    // Welcome dialog
-    welcomeDialog: {
-      title: "Willkommen bei Flowserve AI",
-      subtitle: "Ihre einheitliche Plattform für intelligente Unterstützung, Dokumentenanalyse und Produktwissen.",
-      // AI section
-      ai: {
-        title: "Flowserve AI",
-        subtitle: "Ihr digitaler Assistent",
-        description: "Führen Sie natürliche Gespräche, um Antworten zu erhalten, komplexe Themen zu verstehen und Unterstützung bei verschiedenen Aufgaben im Zusammenhang mit Flowserve-Angeboten zu erhalten.",
-        capabilities: {
-          root: "Was kann Flowserve AI für Sie tun?",
-          answer: "Fragen beantworten",
-          explain: "Erklärungen liefern",
-          assist: "Bei Aufgaben unterstützen"
-        }
+    tools: "Werkzeuge",
+    preferences: "Präferenzen",
+    darkMode: "Dunkelmodus",
+    support: "Hilfe & Support",
+    policies: "Richtlinien",
+    selectLanguage: "Sprache auswählen",
+    search: "Sprachen suchen...",
+    noLanguageMatch: "Keine Sprachen stimmen mit Ihrer Suche überein"
+  },
+
+  // Tools section
+  tools: {
+    documents: "Dokumente",
+    documentsDesc: "Hochgeladene Dokumente anzeigen und verwalten",
+    chat: "Chat",
+    chatDesc: "Chatten Sie mit dem Flowserve AI-Assistenten",
+    jobs: "Übersetzung",
+    jobsDesc: "Text und Dokumente übersetzen",
+    translate: "Übersetzen",
+    translationModule: "Übersetzungsmodul",
+    products: "Produkte"
+  },
+
+  // Support section
+  support: {
+    help: "Hilfezentrum",
+    helpDesc: "Hilfe zur Verwendung von Flowserve AI erhalten"
+  },
+
+  // Policies section
+  policies: {
+    privacy: "Datenschutzrichtlinie",
+    privacyDesc: "Wie wir Ihre Daten behandeln",
+    ai: "KI-Richtlinien",
+    aiDesc: "Wie wir KI verantwortungsvoll einsetzen"
+  },
+
+  // Empty state
+  emptyState: {
+    welcome: "Willkommen bei FlowserveAI",
+    subtitle: "Verbinden Sie sich sicher und chatten Sie mit Ihren Dokumenten, Ihrer Wissensdatenbank und KI im Flowserve-Netzwerk",
+    startTyping: "Starten Sie eine Unterhaltung, indem Sie unten tippen",
+    suggestions: {
+      aiChat: {
+        category: "Produkte",
+        text: "Erklären Sie die Flowserve IDURCO Mark 3 Hochsiliziumpumpe"
       },
-      // Document section
       documents: {
-        title: "Dokumentenanalyse",
-        subtitle: "Chatten Sie mit Ihren Dokumenten",
-        maxFileSize: "Maximale Dateigröße 5MB",
-        onlyPDF: "Nur PDF-Dateien",
-        vectorSearch: "Vektorbasierte semantische Suche",
-        description: "Laden Sie Ihre Dokumente (PDFs) hoch und interagieren Sie direkt im Chat mit ihnen. Stellen Sie spezifische Fragen zu deren Inhalt, erhalten Sie Zusammenfassungen und extrahieren Sie Informationen mit unserer semantischen Suchtechnologie.",
-        flow: {
-          upload: {
-            title: "Dokument hochladen",
-            description: "Laden Sie Ihre PDF-Dateien sicher hoch."
-          },
-          conversation: {
-            title: "Unterhaltung beginnen",
-            description: "Stellen Sie Fragen zu Ihrem Dokument."
-          },
-          insights: {
-            title: "Erkenntnisse gewinnen",
-            description: "Erhalten Sie Zusammenfassungen und Schlüsselinformationen."
-          }
-        }
+        category: "Produkte",
+        text: "Wie bediene ich die Flowserve IDURCO Mark 3 Hochsiliziumeisenpumpe?"
       },
-      // Translation section
-      translation: {
-        title: "Übersetzung",
-        subtitle: "Mehrsprachige Unterstützung",
-        description: "Übersetzen Sie Text und Dokumente zwischen verschiedenen Sprachen. Verwenden Sie das spezielle Tool \"Übersetzen\" in der Seitenleiste.",
-        supportedLanguages: "Unterstützte Sprachen für Text:",
-        supportedDocTypes: "Unterstützte Dokumenttypen für das Übersetzungsmodul (zukünftig):",
-        videoTutorial: "Video-Tutorial (Platzhalter)",
-        videoComingSoon: "Video-Tutorial kommt bald.",
-        flow: {
-          upload: {
-            title: "Hochladen",
-            description: "Word-, PowerPoint-, Excel-, PDF-Dateien."
-          },
-          selectLanguage: {
-            title: "Sprache auswählen",
-            description: "Wählen Sie Ihre Zielsprache."
-          },
-          receiveTranslation: {
-            title: "Übersetzung erhalten",
-            description: "Erhalten Sie Ihren übersetzten Inhalt."
-          },
-          provideFeedback: {
-            title: "Feedback geben",
-            description: "Helfen Sie, zukünftige Übersetzungen zu verbessern."
-          }
+      products: {
+        category: "Vorteile",
+        text: "Wie verwalte ich meine 401(k)-Investitionen?"
+      }
+    }
+  },
+
+  // Welcome dialog
+  welcomeDialog: {
+    title: "Willkommen bei Flowserve AI",
+    subtitle: "Ihre einheitliche Plattform für intelligente Unterstützung, Dokumentenanalyse und Produktwissen.",
+    // AI section
+    ai: {
+      title: "Flowserve AI",
+      subtitle: "Ihr digitaler Assistent",
+      description: "Führen Sie natürliche Gespräche, um Antworten zu erhalten, komplexe Themen zu verstehen und Unterstützung bei verschiedenen Aufgaben im Zusammenhang mit den Angeboten von Flowserve zu erhalten.",
+      capabilities: {
+        root: "Was kann Flowserve AI für Sie tun?",
+        answer: "Fragen beantworten",
+        explain: "Erklärungen liefern",
+        assist: "Bei Aufgaben unterstützen"
+      }
+    },
+    // Document section
+    documents: {
+      title: "Dokumentenanalyse",
+      subtitle: "Chatten Sie mit Ihren Dokumenten",
+      maxFileSize: "Maximale Dateigröße 5 MB",
+      onlyPDF: "Nur PDF-Dateien",
+      vectorSearch: "Vektorbasierte semantische Suche",
+      extractInfo: "Informationen aus Dokumenten extrahieren",
+      description: "Laden Sie Ihre Dokumente (PDFs) hoch und interagieren Sie direkt im Chat mit ihnen. Stellen Sie spezifische Fragen zu deren Inhalt, erhalten Sie Zusammenfassungen und extrahieren Sie Informationen mit unserer semantischen Suchtechnologie.",
+      flow: {
+        upload: {
+          title: "Dokument hochladen",
+          description: "Laden Sie Ihre PDF-Dateien sicher hoch."
+        },
+        conversation: {
+          title: "Gespräch beginnen",
+          description: "Stellen Sie Fragen zu Ihrem Dokument."
+        },
+        insights: {
+          title: "Erkenntnisse gewinnen",
+          description: "Erhalten Sie Zusammenfassungen und wichtige Informationen."
         }
       }
     },
-    
-    // Chat-related
-    chat: {
-      newChat: "Neuer Chat",
-      placeholder: "Nachricht eingeben...",
-      send: "Senden",
-      typing: "Flowserve AI schreibt...",
-      loadMore: "Mehr Nachrichten laden",
-      emptyConversation: "Neue Unterhaltung beginnen",
-      uploadFile: "Datei hochladen",
-      today: "Heute",
-      yesterday: "Gestern",
-      deleteMessage: "Diese Nachricht löschen",
-      editMessage: "Diese Nachricht bearbeiten",
-      copyToClipboard: "In die Zwischenablage kopieren",
-      copied: "In die Zwischenablage kopiert",
-      loading: "Wird geladen...",
-      errorLoading: "Fehler beim Laden der Unterhaltung",
-      messageSent: "Nachricht gesendet",
-      documentUploadSuccess: "Dokument erfolgreich hochgeladen",
-      documentUploadError: "Fehler beim Hochladen des Dokuments",
-      documentProcessing: "Dokument wird verarbeitet...",
-      documentReady: "Dokument bereit"
-    },
-    
-    // Quick Actions
-    quickActions: {
-      title: "Schnellaktionen",
-      questions: {
-        espp: {
-          question: "Was ist der Mitarbeiteraktienkaufplan (ESPP)?",
-          answer: `# Mitarbeiteraktienkaufplan (ESPP)
-
-## Übersicht
-Der ESPP ermöglicht berechtigten Mitarbeitern den Kauf von Flowserve-Aktien mit Rabatt durch Gehaltsabzüge.
-
-## Hauptmerkmale
-- Aktienkauf mit 15% Rabatt
-- Automatische Gehaltsabzüge
-- Vierteljährliche Kaufperioden
-- Keine Maklergebühren
-- Sofortige Übertragung
-
-## Berechtigung
-- Regelmäßige Vollzeitmitarbeiter
-- Mindestens 90 Tage Beschäftigung
-- Nicht im Urlaub
-
-## Teilnahme
-1. Anmeldung während der offenen Anmeldezeit
-2. Auswahl des Beitragsprozentsatzes (1-10% des berechtigten Entgelts)
-3. Mittel werden von jeder Gehaltszahlung abgezogen
-4. Aktien werden vierteljährlich mit 15% Rabatt gekauft
-
-## Steuerliche Überlegungen
-- Käufe werden mit nachsteuerlichen Dollar getätigt
-- Gewinne werden als gewöhnliches Einkommen oder Kapitalgewinne besteuert
-- Konsultieren Sie einen Steuerberater für spezifische Beratung`
+    // Translation section
+    translation: {
+      title: "Übersetzung",
+      subtitle: "Mehrsprachige Unterstützung",
+      description: "Übersetzen Sie Texte und Dokumente zwischen verschiedenen Sprachen. Verwenden Sie das spezielle Werkzeug \"Übersetzen\" in der Seitenleiste.",
+      supportedLanguages: "Unterstützte Sprachen für Text:",
+      supportedDocTypes: "Unterstützte Dokumenttypen für das Übersetzungsmodul (zukünftig):",
+      videoTutorial: "Videoanleitung",
+      videoComingSoon: "Videoanleitung in Kürze verfügbar.",
+      unsupportedVideo: "Ihr Browser unterstützt das Video-Tag nicht.",
+      flow: {
+        upload: {
+          title: "Hochladen",
+          description: "Word-, PowerPoint-, Excel-, PDF-Dateien."
         },
-        retirement: {
-          question: "Wie verwalte ich meine 401(k)-Investitionen?",
-          answer: `# Verwaltung Ihrer 401(k)-Investitionen
-
-## Übersicht
-Der Flowserve 401(k)-Plan bietet eine Reihe von Anlagemöglichkeiten, um Ihnen beim Sparen für den Ruhestand zu helfen.
-
-## Hauptmerkmale
-- Unternehmensbeitrag bis zu 6% des berechtigten Entgelts
-- Sofortige Übertragung des Unternehmensbeitrags
-- Breite Palette von Anlagemöglichkeiten
-- Professionelles Anlagemanagement
-- Online-Kontozugang
-
-## Anlagemöglichkeiten
-1. Zielterminfonds
-2. Indexfonds
-3. Aktiv verwaltete Fonds
-4. Unternehmensaktienfonds
-5. Stabilitätsfonds
-
-## Verwaltung
-1. Melden Sie sich bei Ihrem Konto auf [Ruhestandsportal] an
-2. Überprüfen Sie die aktuellen Zuweisungen
-3. Passen Sie den Beitragsprozentsatz an
-4. Rebalancieren Sie das Portfolio nach Bedarf
-5. Überwachen Sie die Performance regelmäßig
-
-## Best Practices
-- Beitragen Sie mindestens 6%, um den vollen Unternehmensbeitrag zu erhalten
-- Diversifizieren Sie über verschiedene Anlageklassen
-- Überprüfen und rebalancieren Sie jährlich
-- Erwägen Sie Zielterminfonds für Einfachheit
-- Erhöhen Sie Beiträge mit Gehaltserhöhungen`
+        selectLanguage: {
+          title: "Sprache auswählen",
+          description: "Wählen Sie Ihre Zielsprache."
+        },
+        receiveTranslation: {
+          title: "Übersetzung erhalten",
+          description: "Erhalten Sie Ihre übersetzten Inhalte."
+        },
+        provideFeedback: {
+          title: "Feedback geben",
+          description: "Helfen Sie mit, zukünftige Übersetzungen zu verbessern."
         }
       }
     }
-  };
-  
-  export default translations;
+  },
+
+  // Chat-related
+  chat: {
+    newChat: "Neuer Chat",
+    placeholder: "Nachricht eingeben...",
+    placeholderMobile: "Nachricht eingeben...",
+    send: "Senden",
+    typing: "Flowserve AI tippt...",
+    loadMore: "Weitere Nachrichten laden",
+    emptyConversation: "Neue Unterhaltung beginnen",
+    uploadFile: "Datei hochladen",
+    today: "Heute",
+    yesterday: "Gestern",
+    deleteMessage: "Diese Nachricht löschen",
+    editMessage: "Diese Nachricht bearbeiten",
+    copyToClipboard: "In die Zwischenablage kopieren",
+    copied: "In die Zwischenablage kopiert",
+    loading: "Lädt...",
+    errorLoading: "Fehler beim Laden der Unterhaltung",
+    messageSent: "Nachricht gesendet",
+    documentUploadSuccess: "Dokument erfolgreich hochgeladen",
+    documentUploadError: "Fehler beim Hochladen des Dokuments",
+    documentProcessing: "Dokument wird verarbeitet...",
+    documentReady: "Dokument bereit",
+    welcome: "Willkommen beim FlowserveAI Chat",
+    welcomeSubtitle: "Chatten Sie mit Ihren Dokumenten, Ihrer Wissensdatenbank und KI im Flowserve-Netzwerk",
+    newChatCreated: "Neuer Chat erstellt",
+    conversationDeleted: "Unterhaltung gelöscht",
+    conversationRenamed: "Unterhaltung umbenannt",
+    renameCancelledEmpty: {
+      title: "Umbenennung abgebrochen",
+      description: "Der neue Titel darf nicht leer sein"
+    },
+    renameCancelledUnchanged: {
+      title: "Keine Änderungen",
+      description: "Der Titel bleibt unverändert"
+    },
+    renameCancelled: "Umbenennung abgebrochen",
+    messageEdited: "Nachricht bearbeitet",
+    notFound: "Chat {id} nicht gefunden",
+    noActiveSession: "Keine aktive Chat-Sitzung",
+    selectOrStartNew: "Bitte wählen Sie einen Chat aus der Seitenleiste aus oder starten Sie eine neue Unterhaltung",
+    aiDisclaimer: "KI-Antworten sind möglicherweise nicht immer korrekt. Überprüfen Sie wichtige Informationen immer.",
+    enterNewTitle: "Neuen Titel eingeben",
+    containsDocuments: "Diese Unterhaltung enthält Dokumente"
+  },
+
+  // Documents page
+  documentsPage: {
+    title: "Meine Dokumente",
+    description: "Durchsuchen und verwalten Sie alle Ihre hochgeladenen Dokumente.",
+    noDocuments: {
+      title: "Keine Dokumente gefunden",
+      description: "Sie haben noch keine Dokumente hochgeladen. Laden Sie Dokumente in einem beliebigen Chat hoch, um sie hier anzuzeigen.",
+      action: "Zum Chat gehen"
+    },
+    document: {
+      uploaded: "Hochgeladen",
+      size: "Größe",
+      viewSummary: "Zusammenfassung anzeigen",
+      chatAction: "Über Dokument chatten"
+    },
+    loading: "Lädt..."
+  },
+
+  // Documents page (used in documents/page.tsx)
+  documents: {
+    title: "Meine Dokumente",
+    description: "Durchsuchen und verwalten Sie alle Ihre hochgeladenen Dokumente.",
+    noDocumentsFound: "Keine Dokumente gefunden",
+    noDocumentsDesc: "Sie haben noch keine Dokumente hochgeladen. Laden Sie Dokumente in einem beliebigen Chat hoch, um sie hier anzuzeigen.",
+    goToChat: "Zum Chat gehen",
+    uploaded: "Hochgeladen",
+    size: "Größe",
+    viewSummarySnippet: "Zusammenfassungs-Snippet anzeigen",
+    viewFullSummary: "Vollständige Zusammenfassung anzeigen",
+    fullSummary: "Vollständige Zusammenfassung",
+    chatAboutDocument: "Über Dokument chatten",
+    rawMarkdownPreview: "Rohe Markdown-Vorschau der Dokumentzusammenfassung"
+  },
+
+  // Translation page
+  translation: {
+    new: "Neuer Übersetzungsauftrag",
+    edit: "Auftrag bearbeiten",
+    noActiveJob: "Kein aktiver Auftrag",
+    createNew: "Erstellen Sie einen neuen Auftrag oder wählen Sie einen aus dem Verlauf aus",
+    createNewButton: "Neuen Auftrag erstellen",
+    jobTitle: "Auftragstitel",
+    enterJobTitle: "Auftragstitel eingeben",
+    jobType: "Auftragstyp",
+    selectJobType: "Auftragstyp auswählen",
+    textTranslation: "Textübersetzung",
+    documentTranslation: "Dokumentübersetzung",
+    sourceLanguage: "Ausgangssprache",
+    selectSourceLanguage: "Ausgangssprache auswählen",
+    autoDetect: "Automatisch erkennen",
+    targetLanguage: "Zielsprache",
+    selectTargetLanguage: "Zielsprache auswählen",
+    enterTextToTranslate: "Zu übersetzenden Text eingeben...",
+    characters: "Zeichen",
+    copyText: "Text kopieren",
+    speakText: "Text sprechen",
+    translationWillAppear: "Übersetzung wird hier angezeigt...",
+    copyTranslation: "Übersetzung kopieren",
+    speakTranslation: "Übersetzung sprechen",
+    jobHistory: "Auftragsverlauf",
+    newJob: "Neuer Auftrag",
+    deleteJob: "Auftrag löschen",
+    cancel: "Abbrechen",
+    save: "Speichern",
+    saved: "Gespeichert",
+    translate: "Übersetzen",
+    translating: "Übersetzt...",
+    completed: "Abgeschlossen",
+
+    // Add more translation keys
+    allTypes: "Alle Typen",
+    textJobs: "Textaufträge",
+    documentJobs: "Dokumentaufträge",
+    status: "Status",
+    filterByStatus: "Nach Status filtern",
+    noJobsMatch: "Keine Aufträge entsprechen den Kriterien",
+    adjustFilters: "Versuchen Sie, Ihre Filter anzupassen",
+    searchJobs: "Aufträge suchen",
+    discardChanges: "Nicht gespeicherte Änderungen verwerfen?",
+    unsavedChangesDesc: "Sie haben nicht gespeicherte Änderungen. Sind Sie sicher, dass Sie diese verwerfen und die Bearbeitung dieses Auftrags abbrechen möchten?",
+    keepEditing: "Weiter bearbeiten",
+    discardAndReset: "Verwerfen & Zurücksetzen",
+    deleteJobConfirm: "Auftrag löschen?",
+    deleteJobDesc: "Sind Sie sicher, dass Sie den Auftrag \"{jobName}\" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    maxFiles: "Max. {max} Dateien. Max. {size}MB insgesamt.",
+    browseFiles: "Dateien durchsuchen",
+    selectedFiles: "Ausgewählte Dateien ({count}/{max}):",
+    togglePdfDocx: "PDF→DOCX umschalten",
+    pdfToDocxTooltip: "PDF bei Übersetzung in DOCX konvertieren",
+    removeFile: "Datei entfernen",
+    translatedDocuments: "Übersetzte Dokumente für {language}:",
+    download: "Herunterladen",
+    downloadSelected: "Ausgewählte herunterladen",
+    downloadAllZip: "Alle als ZIP herunterladen",
+    translationIssues: "Übersetzungsprobleme",
+    actionCancelled: "Aktion abgebrochen",
+    actionCancelledDesc: "Aktueller Vorgang wurde abgebrochen."
+  },
+
+  // Common UI elements
+  common: {
+    close: "Schließen",
+    chat: "Chat",
+    unknownError: "Unbekannter Fehler",
+    selectedChat: "Ausgewählter Chat",
+    appName: "FlowserveAI",
+    invalidDate: "Ungültiges Datum",
+    logoAlt: "Flowserve AI"
+  },
+
+  // Action buttons
+  actions: {
+    rename: "Umbenennen",
+    delete: "Löschen",
+    cancel: "Abbrechen",
+    close: "Schließen",
+    goToChats: "Zu den Chats gehen",
+    copiedToClipboard: "In die Zwischenablage kopiert"
+  },
+
+  // Sidebar elements
+  sidebar: {
+    conversations: "Letzte Unterhaltungen",
+    tools: "Werkzeuge"
+  },
+
+  // Account section
+  account: {
+    myAccount: "Mein Konto",
+    profile: "Profil",
+    logout: "Abmelden"
+  },
+
+  // Alerts
+  alerts: {
+    deleteConfirm: {
+      title: "Unterhaltung löschen?",
+      description: "Sind Sie sicher, dass Sie \"{title}\" löschen möchten? Dies kann nicht rückgängig gemacht werden."
+    }
+  },
+
+  // Document related
+  document: {
+    viewSummarySnippet: "Zusammenfassungs-Snippet anzeigen",
+    viewFullSummary: "Vollständige Zusammenfassung anzeigen",
+    defaultName: "Dokument",
+    fullSummaryTitle: "Vollständige Zusammenfassung: {docName}"
+  },
+
+  // File uploads
+  uploads: {
+    fileTooLarge: {
+      title: "Datei zu groß",
+      description: "Maximale Dateigröße ist {maxSize}MB"
+    },
+    invalidType: {
+      title: "Ungültiger Dateityp",
+      description: "Erlaubte Dateien: {allowed}"
+    },
+    preparing: "Vorbereitung von {fileName} für den Upload...",
+    processingAi: "Verarbeitung von {fileName} mit KI...",
+    processingComplete: "Verarbeitung von {fileName} abgeschlossen",
+    processingFailed: "Verarbeitung von {fileName} fehlgeschlagen",
+    readingFailed: "Lesen von {fileName} fehlgeschlagen",
+    uploadFailed: "Upload von {fileName} fehlgeschlagen",
+    fileProcessed: "Datei verarbeitet",
+    fileProcessedSummary: "{fileName} erfolgreich verarbeitet",
+    aiError: "KI-Verarbeitungsfehler",
+    couldNotProcess: "{fileName} konnte nicht verarbeitet werden",
+    status: {
+      pendingUpload: "Upload ausstehend...",
+      uploading: "Lädt hoch... {progress}%",
+      pendingProcessing: "KI-Verarbeitung ausstehend...",
+      processing: "Verarbeitet... {progress}%",
+      completed: "Abgeschlossen",
+      failed: "Fehlgeschlagen"
+    }
+  },
+
+  // Feedback dialog
+  feedback: {
+    title: "Feedback senden",
+    description: "Teilen Sie Ihre Erfahrungen mit FlowserveAI. Ihr Feedback hilft uns, uns zu verbessern.",
+    placeholder: "Erzählen Sie uns von Ihren Erfahrungen...",
+    send: "Feedback senden",
+    cancel: "Abbrechen",
+    sending: "Feedback wird gesendet...",
+    success: "Feedback erfolgreich gesendet!",
+    error: "Feedback konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    characterCount: "{count}/3000",
+    minCharacters: "Mindestens 100 Zeichen erforderlich"
+  }
+};
+
+export default translations;

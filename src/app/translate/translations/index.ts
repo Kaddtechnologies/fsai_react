@@ -9,9 +9,11 @@ import zh from './locales/zh';
 import ja from './locales/ja';
 import ko from './locales/ko';
 import ar from './locales/ar';
-
+import ta from './locales/ta';
+import ru from './locales/ru';
+import hi from './locales/hi';
 // Define a complete set of supported languages
-export const supportedLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja', 'ko', 'ar'];
+export const supportedLanguages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'zh', 'ja', 'ko', 'ar', 'ta', 'ru', 'hi'];
 
 // Export all translations keyed by language code
 export const translations: Record<string, any> = {
@@ -24,7 +26,10 @@ export const translations: Record<string, any> = {
   zh,
   ja,
   ko,
-  ar
+  ar,
+  ta,
+  ru,
+  hi
 };
 
 // Define types for the translation objects
