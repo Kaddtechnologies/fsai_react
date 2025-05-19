@@ -147,6 +147,7 @@ export interface CodeHighlightConfig {
  * Translation configuration
  */
 export interface TranslationConfig {
+  defaultLanguage: string | null;
   // Available languages for translation
   availableLanguages: Array<{
     code: string;

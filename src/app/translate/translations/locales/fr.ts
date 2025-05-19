@@ -3,7 +3,7 @@ const translations = {
   settings: {
     title: "Paramètres",
     secondaryTitle: "Plus",
-    description: "Personnalisez votre expérience FlowserveAI. Les modifications s'appliqueront immédiatement.",
+    description: "Personnalisez votre expérience FlowserveAI. Les changements sont appliqués immédiatement.",
     language: "Langue",
     theme: "Thème",
     themeOptions: {
@@ -21,7 +21,7 @@ const translations = {
     darkMode: "Mode sombre",
     support: "Aide et assistance",
     policies: "Politiques",
-    selectLanguage: "Sélectionner la langue",
+    selectLanguage: "Sélectionner une langue",
     search: "Rechercher des langues...",
     noLanguageMatch: "Aucune langue ne correspond à votre recherche"
   },
@@ -29,11 +29,11 @@ const translations = {
   // Tools section
   tools: {
     documents: "Documents",
-    documentsDesc: "Affichez et gérez vos documents téléchargés",
+    documentsDesc: "Afficher et gérer les documents téléchargés",
     chat: "Chat",
-    chatDesc: "Discutez avec l'assistant Flowserve AI",
+    chatDesc: "Discuter avec l'assistant Flowserve AI",
     jobs: "Traduction",
-    jobsDesc: "Traduisez du texte et des documents",
+    jobsDesc: "Traduire du texte et des documents",
     translate: "Traduire",
     translationModule: "Module de traduction",
     products: "Produits"
@@ -42,14 +42,14 @@ const translations = {
   // Support section
   support: {
     help: "Centre d'aide",
-    helpDesc: "Obtenez de l'aide pour utiliser Flowserve AI"
+    helpDesc: "Obtenir de l'aide pour utiliser Flowserve AI"
   },
 
   // Policies section
   policies: {
     privacy: "Politique de confidentialité",
     privacyDesc: "Comment nous traitons vos données",
-    ai: "Directives IA",
+    ai: "Directives d'IA",
     aiDesc: "Comment nous utilisons l'IA de manière responsable"
   },
 
@@ -61,15 +61,15 @@ const translations = {
     suggestions: {
       aiChat: {
         category: "Produits",
-        text: "Expliquez la pompe Flowserve IDURCO Mark 3 à haute teneur en silicium"
+        text: "Expliquez la pompe à haute teneur en silicium Flowserve IDURCO Mark 3"
       },
       documents: {
         category: "Produits",
-        text: "Comment utiliser la pompe Flowserve IDURCO Mark 3 en fonte à haute teneur en silicium ?"
+        text: "Comment faire fonctionner la pompe en fonte à haute teneur en silicium Flowserve IDURCO Mark 3?"
       },
       products: {
         category: "Avantages",
-        text: "Comment gérer mes investissements 401(k) ?"
+        text: "Comment gérer mes investissements 401(k)?"
       }
     }
   },
@@ -77,7 +77,7 @@ const translations = {
   // Welcome dialog
   welcomeDialog: {
     title: "Bienvenue sur Flowserve AI",
-    subtitle: "Votre plateforme unifiée pour une assistance intelligente, l'analyse de documents et la connaissance des produits.",
+    subtitle: "Votre plateforme unifiée pour l'assistance intelligente, l'analyse de documents et les connaissances sur les produits.",
     // AI section
     ai: {
       title: "Flowserve AI",
@@ -87,29 +87,29 @@ const translations = {
         root: "Que peut faire Flowserve AI pour vous ?",
         answer: "Répondre aux questions",
         explain: "Fournir des explications",
-        assist: "Aider aux tâches"
+        assist: "Aider avec les tâches"
       }
     },
     // Document section
     documents: {
       title: "Analyse de documents",
       subtitle: "Discutez avec vos documents",
-      maxFileSize: "Taille maximale du fichier 5 Mo",
+      maxFileSize: "Taille maximale de fichier 5 Mo",
       onlyPDF: "Fichiers PDF uniquement",
-      vectorSearch: "Recherche sémantique basée sur des vecteurs",
+      vectorSearch: "Recherche sémantique basée sur les vecteurs",
       extractInfo: "Extraire des informations des documents",
-      description: "Téléchargez vos documents (PDF) et interagissez directement avec eux dans le chat. Posez des questions spécifiques sur leur contenu, obtenez des résumés et extrayez des informations grâce à notre technologie de recherche sémantique.",
+      description: "Téléchargez vos documents (PDF) et interagissez avec eux directement dans le chat. Posez des questions spécifiques sur leur contenu, obtenez des résumés et extrayez des informations grâce à notre technologie de recherche sémantique.",
       flow: {
         upload: {
-          title: "Télécharger le document",
+          title: "Télécharger un document",
           description: "Téléchargez vos fichiers PDF en toute sécurité."
         },
         conversation: {
-          title: "Démarrer la conversation",
+          title: "Commencer une conversation",
           description: "Posez des questions sur votre document."
         },
         insights: {
-          title: "Extraire des informations",
+          title: "Obtenir des insights",
           description: "Obtenez des résumés et des informations clés."
         }
       }
@@ -117,12 +117,12 @@ const translations = {
     // Translation section
     translation: {
       title: "Traduction",
-      subtitle: "Prise en charge multilingue",
+      subtitle: "Support multilingue",
       description: "Traduisez du texte et des documents entre différentes langues. Utilisez l'outil dédié \"Traduire\" dans la barre latérale.",
-      supportedLanguages: "Langues prises en charge pour le texte :",
-      supportedDocTypes: "Types de documents pris en charge pour le module de traduction (futur) :",
+      supportedLanguages: "Langues prises en charge pour le texte :",
+      supportedDocTypes: "Types de documents pris en charge pour le module de traduction (à venir) :",
       videoTutorial: "Tutoriel vidéo",
-      videoComingSoon: "Tutoriel vidéo bientôt disponible.",
+      videoComingSoon: "Le tutoriel vidéo sera bientôt disponible.",
       unsupportedVideo: "Votre navigateur ne prend pas en charge la balise vidéo.",
       flow: {
         upload: {
@@ -130,7 +130,7 @@ const translations = {
           description: "Fichiers Word, PowerPoint, Excel, PDF."
         },
         selectLanguage: {
-          title: "Sélectionner la langue",
+          title: "Sélectionner une langue",
           description: "Choisissez votre langue cible."
         },
         receiveTranslation: {
@@ -147,13 +147,13 @@ const translations = {
 
   // Chat-related
   chat: {
-    newChat: "Nouveau chat",
-    placeholder: "Tapez un message...",
-    placeholderMobile: "Tapez un message...",
+    newChat: "Nouvelle conversation",
+    placeholder: "Saisissez un message...",
+    placeholderMobile: "Saisissez un message...",
     send: "Envoyer",
     typing: "Flowserve AI est en train d'écrire...",
     loadMore: "Charger plus de messages",
-    emptyConversation: "Démarrer une nouvelle conversation",
+    emptyConversation: "Commencer une nouvelle conversation",
     uploadFile: "Télécharger un fichier",
     today: "Aujourd'hui",
     yesterday: "Hier",
@@ -170,7 +170,7 @@ const translations = {
     documentReady: "Document prêt",
     welcome: "Bienvenue sur le chat FlowserveAI",
     welcomeSubtitle: "Discutez avec vos documents, votre base de connaissances et l'IA sur le réseau Flowserve",
-    newChatCreated: "Nouveau chat créé",
+    newChatCreated: "Nouvelle conversation créée",
     conversationDeleted: "Conversation supprimée",
     conversationRenamed: "Conversation renommée",
     renameCancelledEmpty: {
@@ -178,7 +178,7 @@ const translations = {
       description: "Le nouveau titre ne peut pas être vide"
     },
     renameCancelledUnchanged: {
-      title: "Aucune modification",
+      title: "Aucun changement",
       description: "Le titre reste inchangé"
     },
     renameCancelled: "Renommage annulé",
@@ -186,8 +186,8 @@ const translations = {
     notFound: "Chat {id} introuvable",
     noActiveSession: "Aucune session de chat active",
     selectOrStartNew: "Veuillez sélectionner un chat dans la barre latérale ou démarrer une nouvelle conversation",
-    aiDisclaimer: "Les réponses de l'IA ne sont pas toujours exactes. Vérifiez toujours les informations importantes.",
-    enterNewTitle: "Saisir un nouveau titre",
+    aiDisclaimer: "Les réponses de l'IA peuvent ne pas toujours être précises. Vérifiez toujours les informations importantes.",
+    enterNewTitle: "Entrez un nouveau titre",
     containsDocuments: "Cette conversation contient des documents"
   },
 
@@ -197,13 +197,13 @@ const translations = {
     description: "Parcourez et gérez tous vos documents téléchargés.",
     noDocuments: {
       title: "Aucun document trouvé",
-      description: "Vous n'avez encore téléchargé aucun document. Téléchargez des documents dans n'importe quel chat pour les voir ici.",
+      description: "Vous n'avez pas encore téléchargé de documents. Téléchargez des documents dans n'importe quel chat pour les voir ici.",
       action: "Aller au chat"
     },
     document: {
       uploaded: "Téléchargé",
       size: "Taille",
-      viewSummary: "Afficher le résumé",
+      viewSummary: "Voir le résumé",
       chatAction: "Discuter du document"
     },
     loading: "Chargement..."
@@ -214,15 +214,15 @@ const translations = {
     title: "Mes documents",
     description: "Parcourez et gérez tous vos documents téléchargés.",
     noDocumentsFound: "Aucun document trouvé",
-    noDocumentsDesc: "Vous n'avez encore téléchargé aucun document. Téléchargez des documents dans n'importe quel chat pour les voir ici.",
+    noDocumentsDesc: "Vous n'avez pas encore téléchargé de documents. Téléchargez des documents dans n'importe quel chat pour les voir ici.",
     goToChat: "Aller au chat",
     uploaded: "Téléchargé",
     size: "Taille",
-    viewSummarySnippet: "Afficher l'extrait du résumé",
-    viewFullSummary: "Afficher le résumé complet",
+    viewSummarySnippet: "Voir l'extrait de résumé",
+    viewFullSummary: "Voir le résumé complet",
     fullSummary: "Résumé complet",
     chatAboutDocument: "Discuter du document",
-    rawMarkdownPreview: "Aperçu markdown brut du résumé du document"
+    rawMarkdownPreview: "Aperçu brut en markdown du résumé de document"
   },
 
   // Translation page
@@ -233,23 +233,23 @@ const translations = {
     createNew: "Créez une nouvelle tâche ou sélectionnez-en une dans l'historique",
     createNewButton: "Créer une nouvelle tâche",
     jobTitle: "Titre de la tâche",
-    enterJobTitle: "Saisir le titre de la tâche",
+    enterJobTitle: "Entrez le titre de la tâche",
     jobType: "Type de tâche",
-    selectJobType: "Sélectionner le type de tâche",
+    selectJobType: "Sélectionnez le type de tâche",
     textTranslation: "Traduction de texte",
-    documentTranslation: "Traduction de documents",
+    documentTranslation: "Traduction de document",
     sourceLanguage: "Langue source",
-    selectSourceLanguage: "Sélectionner la langue source",
+    selectSourceLanguage: "Sélectionnez la langue source",
     autoDetect: "Détection automatique",
     targetLanguage: "Langue cible",
-    selectTargetLanguage: "Sélectionner la langue cible",
-    enterTextToTranslate: "Saisir le texte à traduire...",
+    selectTargetLanguage: "Sélectionnez la langue cible",
+    enterTextToTranslate: "Entrez le texte à traduire...",
     characters: "caractères",
     copyText: "Copier le texte",
-    speakText: "Lire le texte à voix haute",
+    speakText: "Prononcer le texte",
     translationWillAppear: "La traduction apparaîtra ici...",
     copyTranslation: "Copier la traduction",
-    speakTranslation: "Lire la traduction à voix haute",
+    speakTranslation: "Prononcer la traduction",
     jobHistory: "Historique des tâches",
     newJob: "Nouvelle tâche",
     deleteJob: "Supprimer la tâche",
@@ -259,8 +259,67 @@ const translations = {
     translate: "Traduire",
     translating: "Traduction en cours...",
     completed: "Terminé",
+    
+    // Toast messages
+    jobSaved: "Tâche enregistrée",
+    jobSavedDesc: "'{name}' a été enregistré avec succès",
+    jobDeleted: "Tâche supprimée",
+    jobArchived: "Tâche archivée",
+    jobUnarchived: "Tâche désarchivée",
+    copiedToClipboard: "Copié dans le presse-papiers",
+    jobTypeSwitched: "Type de tâche modifié",
+    jobTypeSwitchedDesc: "Les données précédentes ont été effacées",
+    nothingToSave: "Rien à enregistrer",
+    nothingToSaveDesc: "Aucune tâche active à enregistrer",
+    
+    // Error messages
+    jobTitleRequired: "Titre de tâche requis",
+    jobTitleRequiredDesc: "Veuillez entrer un titre pour cette tâche",
+    jobTitleRequiredDesc2: "Veuillez entrer un titre avant de traduire",
+    inputRequired: "Texte requis",
+    inputRequiredDesc: "Veuillez saisir du texte à traduire",
+    errorTitle: "Erreur",
+    errorStartTranslationDesc: "Impossible de démarrer la traduction",
+    translationError: "Erreur de traduction",
+    translationErrorDesc: "La traduction n'a pas pu être terminée",
+    
+    // Status notifications
+    translationComplete: "Traduction terminée",
+    translationCompleteDesc: "'{title}' a été traduit avec succès",
+    documentJobComplete: "Traduction de document terminée",
+    documentJobCompleteDesc: "'{title}' a été traité avec succès",
+    documentJobIssues: "Problèmes avec la tâche de document",
+    documentJobIssuesDesc: "'{title}' a rencontré des problèmes pendant le traitement",
+    jobUpdated: "Tâche mise à jour",
+    jobUpdatedDesc: "'{title}' a été mis à jour",
+    
+    // File processing messages
+    fileLimitReached: "Limite de fichiers atteinte",
+    fileLimitReachedDesc: "Maximum de {max} fichiers par tâche",
+    invalidFileType: "Type de fichier non valide",
+    invalidFileTypeDesc: "'{fileName}' n'est pas pris en charge",
+    sizeLimitExceeded: "Limite de taille dépassée",
+    sizeLimitExceededDesc: "La taille totale dépasse {max} Mo",
+    fileProcessed: "Fichier traité",
+    fileProcessedDesc: "'{fileName}' a été traité avec succès",
+    fileFailed: "Échec du traitement du fichier",
+    fileFailedDesc: "'{fileName}' n'a pas pu être traité",
+    allFilesProcessed: "Tous les fichiers traités",
+    allFilesProcessedDesc: "Tous les fichiers ont déjà été traités",
+    noFilesUploaded: "Aucun fichier téléchargé",
+    noFilesUploadedDesc: "Veuillez télécharger au moins un fichier",
+    noFilesSelected: "Aucun fichier sélectionné",
+    noFilesSelectedDesc: "Veuillez sélectionner au moins un fichier",
+    downloadSelectedSimulated: "Téléchargement simulé",
+    downloadSelectedSimulatedDesc: "Téléchargement simulé pour: {fileList}",
+    downloadAllZipSimulated: "Téléchargement ZIP simulé",
+    downloadAllZipSimulatedDesc: "Téléchargement simulé de {count} fichiers en ZIP",
+    noTranslatedFiles: "Aucun fichier traduit",
+    noTranslatedFilesDesc: "Aucun fichier traduit disponible pour cette langue",
+    downloadSimulated: "Téléchargement simulé",
+    downloadSimulatedDesc: "Téléchargement simulé de '{fileName}'",
 
-    // Add more translation keys
+    // Additional UI elements
     allTypes: "Tous les types",
     textJobs: "Tâches de texte",
     documentJobs: "Tâches de document",
@@ -269,25 +328,42 @@ const translations = {
     noJobsMatch: "Aucune tâche ne correspond aux critères",
     adjustFilters: "Essayez d'ajuster vos filtres",
     searchJobs: "Rechercher des tâches",
-    discardChanges: "Annuler les modifications non enregistrées ?",
-    unsavedChangesDesc: "Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir les annuler et annuler la modification de cette tâche ?",
-    keepEditing: "Continuer la modification",
-    discardAndReset: "Annuler et réinitialiser",
-    deleteJobConfirm: "Supprimer la tâche ?",
-    deleteJobDesc: "Êtes-vous sûr de vouloir supprimer la tâche « {jobName} » ? Cette action est irréversible.",
-    maxFiles: "Max {max} fichiers. Max {size}Mo au total.",
+    discardChanges: "Abandonner les modifications non enregistrées ?",
+    unsavedChangesDesc: "Vous avez des modifications non enregistrées. Voulez-vous vraiment les abandonner et annuler l'édition de cette tâche ?",
+    keepEditing: "Continuer l'édition",
+    discardAndReset: "Abandonner et réinitialiser",
+    deleteJobConfirm: "Supprimer la tâche ?",
+    deleteJobDesc: "Êtes-vous sûr de vouloir supprimer la tâche \"{jobName}\" ? Cette action ne peut pas être annulée.",
+    maxFiles: "Max. {max} fichiers. Max. {size} Mo au total.",
     browseFiles: "Parcourir les fichiers",
-    selectedFiles: "Fichiers sélectionnés ({count}/{max}) :",
+    selectedFiles: "Fichiers sélectionnés ({count}/{max}) :",
     togglePdfDocx: "Basculer PDF→DOCX",
     pdfToDocxTooltip: "Convertir PDF en DOCX lors de la traduction",
     removeFile: "Supprimer le fichier",
-    translatedDocuments: "Documents traduits pour {language} :",
+    translatedDocuments: "Documents traduits pour {language} :",
     download: "Télécharger",
     downloadSelected: "Télécharger la sélection",
-    downloadAllZip: "Télécharger tout en ZIP",
+    downloadAllZip: "Tout télécharger en ZIP",
     translationIssues: "Problèmes de traduction",
     actionCancelled: "Action annulée",
     actionCancelledDesc: "L'opération en cours a été annulée."
+  },
+
+  // Language names
+  languages: {
+    en: "Anglais",
+    es: "Espagnol",
+    ta: "Tamoul",
+    hi: "Hindi",
+    ru: "Russe",
+    fr: "Français",
+    de: "Allemand",
+    it: "Italien",
+    pt: "Portugais",
+    zh: "Chinois (simplifié)",
+    ja: "Japonais",
+    ko: "Coréen",
+    ar: "Arabe"
   },
 
   // Common UI elements
@@ -328,15 +404,15 @@ const translations = {
   alerts: {
     deleteConfirm: {
       title: "Supprimer la conversation ?",
-      description: "Êtes-vous sûr de vouloir supprimer « {title} » ? Cette action est irréversible."
+      description: "Êtes-vous sûr de vouloir supprimer \"{title}\" ? Cette action ne peut pas être annulée."
     }
   },
 
   // Document related
   document: {
-    viewSummarySnippet: "Afficher l'extrait du résumé",
-    viewFullSummary: "Afficher le résumé complet",
-    defaultName: "document",
+    viewSummarySnippet: "Voir l'extrait de résumé",
+    viewFullSummary: "Voir le résumé complet",
+    defaultName: "Document",
     fullSummaryTitle: "Résumé complet : {docName}"
   },
 
@@ -344,18 +420,18 @@ const translations = {
   uploads: {
     fileTooLarge: {
       title: "Fichier trop volumineux",
-      description: "La taille maximale du fichier est de {maxSize}Mo"
+      description: "La taille maximale du fichier est de {maxSize} Mo"
     },
     invalidType: {
-      title: "Type de fichier invalide",
+      title: "Type de fichier non valide",
       description: "Fichiers autorisés : {allowed}"
     },
     preparing: "Préparation de {fileName} pour le téléchargement...",
     processingAi: "Traitement de {fileName} avec l'IA...",
-    processingComplete: "Le traitement de {fileName} est terminé",
-    processingFailed: "Le traitement de {fileName} a échoué",
-    readingFailed: "La lecture de {fileName} a échoué",
-    uploadFailed: "Le téléchargement de {fileName} a échoué",
+    processingComplete: "Traitement de {fileName} terminé",
+    processingFailed: "Échec du traitement de {fileName}",
+    readingFailed: "Échec de la lecture de {fileName}",
+    uploadFailed: "Échec du téléchargement de {fileName}",
     fileProcessed: "Fichier traité",
     fileProcessedSummary: "{fileName} traité avec succès",
     aiError: "Erreur de traitement IA",
@@ -381,7 +457,7 @@ const translations = {
     success: "Commentaires envoyés avec succès !",
     error: "Échec de l'envoi des commentaires. Veuillez réessayer.",
     characterCount: "{count}/3000",
-    minCharacters: "Minimum 100 caractères requis"
+    minCharacters: "Minimum de 100 caractères requis"
   }
 };
 

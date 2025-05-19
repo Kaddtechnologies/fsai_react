@@ -118,7 +118,7 @@ const translations = {
     translation: {
       title: "翻译",
       subtitle: "多语言支持",
-      description: "在各种语言之间翻译文本和文档。使用侧边栏中专用的“翻译”工具。",
+      description: "在各种语言之间翻译文本和文档。使用侧边栏中专用的\"翻译\"工具。",
       supportedLanguages: "文本支持的语言：",
       supportedDocTypes: "翻译模块支持的文档类型（未来）：",
       videoTutorial: "视频教程",
@@ -248,10 +248,18 @@ const translations = {
     copyText: "复制文本",
     speakText: "朗读文本",
     translationWillAppear: "翻译将显示在此处...",
-    copyTranslation: "复制译文",
-    speakTranslation: "朗读译文",
+    copyTranslation: "复制翻译",
+    speakTranslation: "朗读翻译",
     jobHistory: "任务历史",
     newJob: "新建任务",
+    searchJobs: "搜索任务",
+    status: "状态",
+    filterByStatus: "按状态筛选",
+    allTypes: "所有类型", 
+    textJobs: "文本任务",
+    documentJobs: "文档任务",
+    noJobsMatch: "没有符合条件的任务",
+    adjustFilters: "请调整筛选条件",
     deleteJob: "删除任务",
     cancel: "取消",
     save: "保存",
@@ -259,35 +267,84 @@ const translations = {
     translate: "翻译",
     translating: "翻译中...",
     completed: "已完成",
-
-    // Add more translation keys
-    allTypes: "所有类型",
-    textJobs: "文本任务",
-    documentJobs: "文档任务",
-    status: "状态",
-    filterByStatus: "按状态筛选",
-    noJobsMatch: "没有符合条件的任务",
-    adjustFilters: "尝试调整您的筛选条件",
-    searchJobs: "搜索任务",
     discardChanges: "放弃未保存的更改？",
-    unsavedChangesDesc: "您有未保存的更改。确定要放弃更改并取消编辑此任务吗？",
+    unsavedChangesDesc: "您有未保存的更改。您确定要放弃它们并取消编辑此任务吗？",
     keepEditing: "继续编辑",
     discardAndReset: "放弃并重置",
     deleteJobConfirm: "删除任务？",
-    deleteJobDesc: "您确定要删除任务“{jobName}”吗？此操作无法撤销。",
-    maxFiles: "最多 {max} 个文件。总大小不超过 {size}MB。",
+    deleteJobDesc: "您确定要删除任务 \"{jobName}\" 吗？此操作不能撤消。",
+    maxFiles: "最多 {max} 个文件。总计最大 {size} MB。",
     browseFiles: "浏览文件",
-    selectedFiles: "选定文件 ({count}/{max}):",
+    selectedFiles: "已选择文件 ({count}/{max})：",
     togglePdfDocx: "切换 PDF→DOCX",
-    pdfToDocxTooltip: "翻译时将PDF转换为DOCX",
+    pdfToDocxTooltip: "在翻译期间将PDF转换为DOCX",
     removeFile: "移除文件",
-    translatedDocuments: "{language}的已翻译文档:",
+    translatedDocuments: "{language} 的已翻译文档：",
     download: "下载",
-    downloadSelected: "下载选定项",
+    downloadSelected: "下载选择的文件",
     downloadAllZip: "全部下载为ZIP",
     translationIssues: "翻译问题",
     actionCancelled: "操作已取消",
-    actionCancelledDesc: "当前操作已取消。"
+    actionCancelledDesc: "当前操作已取消。",
+    
+    // Toast messages
+    jobSaved: "任务已保存",
+    jobSavedDesc: "'{name}'已成功保存",
+    jobDeleted: "任务已删除",
+    jobArchived: "任务已归档",
+    jobUnarchived: "任务已取消归档",
+    copiedToClipboard: "已复制到剪贴板",
+    jobTypeSwitched: "任务类型已切换",
+    jobTypeSwitchedDesc: "先前的数据已删除",
+    nothingToSave: "没有内容可保存",
+    nothingToSaveDesc: "没有活动任务可保存",
+    
+    // Error messages
+    jobTitleRequired: "需要任务标题",
+    jobTitleRequiredDesc: "请为此任务输入标题",
+    jobTitleRequiredDesc2: "翻译前请输入标题",
+    inputRequired: "需要文本",
+    inputRequiredDesc: "请输入要翻译的文本",
+    errorTitle: "错误",
+    errorStartTranslationDesc: "无法开始翻译",
+    translationError: "翻译错误",
+    translationErrorDesc: "无法完成翻译",
+    
+    // Status notifications
+    translationComplete: "翻译完成",
+    translationCompleteDesc: "'{title}'已成功翻译",
+    documentJobComplete: "文档翻译完成",
+    documentJobCompleteDesc: "'{title}'已成功处理",
+    documentJobIssues: "文档任务问题",
+    documentJobIssuesDesc: "处理'{title}'时遇到问题",
+    jobUpdated: "任务已更新",
+    jobUpdatedDesc: "'{title}'已更新",
+    
+    // File processing messages
+    fileLimitReached: "已达到文件限制",
+    fileLimitReachedDesc: "每个任务最多{max}个文件",
+    invalidFileType: "无效的文件类型",
+    invalidFileTypeDesc: "不支持'{fileName}'",
+    sizeLimitExceeded: "超出大小限制",
+    sizeLimitExceededDesc: "总大小超过{max}MB",
+    fileProcessed: "文件已处理",
+    fileProcessedDesc: "'{fileName}'已成功处理",
+    fileFailed: "文件处理失败",
+    fileFailedDesc: "无法处理'{fileName}'",
+    allFilesProcessed: "所有文件已处理",
+    allFilesProcessedDesc: "所有文件已经处理完毕",
+    noFilesUploaded: "未上传文件",
+    noFilesUploadedDesc: "请至少上传一个文件",
+    noFilesSelected: "未选择文件",
+    noFilesSelectedDesc: "请至少选择一个文件",
+    downloadSelectedSimulated: "模拟下载",
+    downloadSelectedSimulatedDesc: "以下内容的模拟下载：{fileList}",
+    downloadAllZipSimulated: "模拟ZIP下载",
+    downloadAllZipSimulatedDesc: "模拟{count}个文件的ZIP下载",
+    noTranslatedFiles: "没有翻译文件",
+    noTranslatedFilesDesc: "没有针对此语言的翻译文件",
+    downloadSimulated: "模拟下载",
+    downloadSimulatedDesc: "'{fileName}'的模拟下载"
   },
 
   // Common UI elements
@@ -328,7 +385,7 @@ const translations = {
   alerts: {
     deleteConfirm: {
       title: "删除对话？",
-      description: "您确定要删除“{title}”吗？此操作无法撤销。"
+      description: "您确定要删除\"{title}\"吗？此操作无法撤销。"
     }
   },
 
@@ -382,6 +439,23 @@ const translations = {
     error: "发送反馈失败。请重试。",
     characterCount: "{count}/3000",
     minCharacters: "至少需要100个字符"
+  },
+  
+  // Language names
+  languages: {
+    en: "英语",
+    es: "西班牙语",
+    ta: "泰米尔语",
+    hi: "印地语",
+    ru: "俄语",
+    fr: "法语",
+    de: "德语",
+    it: "意大利语",
+    pt: "葡萄牙语",
+    zh: "中文（简体）",
+    ja: "日语",
+    ko: "韩语",
+    ar: "阿拉伯语"
   }
 };
 

@@ -1,4 +1,3 @@
-
 const translations = {
   // Settings dialog
   settings: {
@@ -293,6 +292,77 @@ const translations = {
     jobCancelledDesc: "The new job was cancelled and not saved.",
     changesDiscarded: "Changes Discarded",
     changesDiscardedDesc: "Your unsaved changes have been discarded.",
+    
+    // Adding toast messages
+    nothingToSave: "Nothing to save",
+    nothingToSaveDesc: "Create or select a job to save.",
+    jobTitleRequired: "Job title required",
+    jobTitleRequiredDesc: "Please enter a title for the job.",
+    jobTitleRequiredDesc2: "Please enter a title for the job before translating.",
+    jobSaved: "Job Saved",
+    jobSavedDesc: "Job \"{name}\" saved.",
+    
+    // Translation job errors/notifications
+    inputRequired: "Input required",
+    inputRequiredDesc: "Please enter text to translate.",
+    errorTitle: "Error",
+    errorStartTranslationDesc: "Could not start translation. Active job not found.",
+    translationComplete: "Translation Complete",
+    translationCompleteDesc: "Job \"{title}\" finished.",
+    translationError: "Translation Error",
+    translationErrorDesc: "Could not translate text.",
+    
+    // File processing messages
+    fileProcessed: "File Processed",
+    fileProcessedDesc: "{fileName} translation complete (simulated).",
+    fileFailed: "File Failed",
+    fileFailedDesc: "{fileName} failed to translate (simulated).",
+    
+    // Document translation messages
+    allFilesProcessed: "All files processed or in progress",
+    allFilesProcessedDesc: "No new files to translate in this job.",
+    noFilesUploaded: "No files uploaded",
+    noFilesUploadedDesc: "Please upload documents to translate.",
+    
+    // File issues
+    fileLimitReached: "File limit reached",
+    fileLimitReachedDesc: "Maximum {max} files per job.",
+    invalidFileType: "Invalid file type",
+    invalidFileTypeDesc: "{fileName} is not a supported document type.",
+    sizeLimitExceeded: "Size limit exceeded",
+    sizeLimitExceededDesc: "Total upload size cannot exceed {max}MB.",
+    
+    // Document job notifications
+    jobTypeSwitched: "Job type switched",
+    jobTypeSwitchedDesc: "Switched to Document Translation mode.",
+    documentJobComplete: "Document Translation Job Complete",
+    documentJobCompleteDesc: "Job \"{title}\" finished processing all files.",
+    documentJobIssues: "Document Translation Job Issues",
+    documentJobIssuesDesc: "Job \"{title}\" completed with some errors.",
+    jobUpdated: "Job Update",
+    jobUpdatedDesc: "Job \"{title}\" status updated.",
+    
+    // Download actions
+    downloadSimulated: "Download (Simulated)",
+    downloadSimulatedDesc: "Would download {fileName}",
+    noFilesSelected: "No files selected",
+    noFilesSelectedDesc: "Please select files to download.",
+    downloadSelectedSimulated: "Download Selected (Simulated)",
+    downloadSelectedSimulatedDesc: "Simulating download of: {fileList}",
+    downloadAllZipSimulated: "Download All as ZIP (Simulated)",
+    downloadAllZipSimulatedDesc: "Simulating ZIP download for all {count} files.",
+    noTranslatedFiles: "No translated files",
+    noTranslatedFilesDesc: "There are no translated files to download.",
+    
+    // Deletion
+    jobDeleted: "Job Deleted",
+    
+    // Archive actions
+    jobArchived: "Job Archived",
+    jobUnarchived: "Job Unarchived",
+    
+    // Copied message
+    copiedToClipboard: "Copied to clipboard",
 
     feedback: {
       title: "Translation Feedback",

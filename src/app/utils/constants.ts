@@ -148,6 +148,7 @@ export const TRANSLATION_CONFIG: TranslationConfig = {
   autoDetect: true,
   apiEndpoint: '/api/translate',
   enableCache: true,
+  defaultLanguage: 'en',
 };
 
 /**

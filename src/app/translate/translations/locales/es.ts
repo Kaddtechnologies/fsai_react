@@ -287,7 +287,78 @@ const translations = {
     downloadAllZip: "Descargar Todo como ZIP",
     translationIssues: "Problemas de Traducción",
     actionCancelled: "Acción Cancelada",
-    actionCancelledDesc: "La operación actual fue cancelada."
+    actionCancelledDesc: "La operación actual fue cancelada.",
+    
+    // Adding toast messages
+    nothingToSave: "Nada que guardar",
+    nothingToSaveDesc: "Crea o selecciona un trabajo para guardar.",
+    jobTitleRequired: "Título del trabajo requerido",
+    jobTitleRequiredDesc: "Por favor ingresa un título para el trabajo.",
+    jobTitleRequiredDesc2: "Por favor ingresa un título para el trabajo antes de traducir.",
+    jobSaved: "Trabajo Guardado",
+    jobSavedDesc: "Trabajo \"{name}\" guardado.",
+    
+    // Translation job errors/notifications
+    inputRequired: "Entrada requerida",
+    inputRequiredDesc: "Por favor ingresa texto para traducir.",
+    errorTitle: "Error",
+    errorStartTranslationDesc: "No se pudo iniciar la traducción. Trabajo activo no encontrado.",
+    translationComplete: "Traducción Completada",
+    translationCompleteDesc: "Trabajo \"{title}\" terminado.",
+    translationError: "Error de Traducción",
+    translationErrorDesc: "No se pudo traducir el texto.",
+    
+    // File processing messages
+    fileProcessed: "Archivo Procesado",
+    fileProcessedDesc: "Traducción de {fileName} completada (simulada).",
+    fileFailed: "Archivo Falló",
+    fileFailedDesc: "{fileName} falló al traducir (simulado).",
+    
+    // Document translation messages
+    allFilesProcessed: "Todos los archivos procesados o en progreso",
+    allFilesProcessedDesc: "No hay nuevos archivos para traducir en este trabajo.",
+    noFilesUploaded: "No hay archivos subidos",
+    noFilesUploadedDesc: "Por favor sube documentos para traducir.",
+    
+    // File issues
+    fileLimitReached: "Límite de archivos alcanzado",
+    fileLimitReachedDesc: "Máximo {max} archivos por trabajo.",
+    invalidFileType: "Tipo de archivo inválido",
+    invalidFileTypeDesc: "{fileName} no es un tipo de documento soportado.",
+    sizeLimitExceeded: "Límite de tamaño excedido",
+    sizeLimitExceededDesc: "El tamaño total de carga no puede exceder {max}MB.",
+    
+    // Document job notifications
+    jobTypeSwitched: "Tipo de trabajo cambiado",
+    jobTypeSwitchedDesc: "Cambiado a modo de Traducción de Documentos.",
+    documentJobComplete: "Trabajo de Traducción de Documentos Completado",
+    documentJobCompleteDesc: "Trabajo \"{title}\" terminó de procesar todos los archivos.",
+    documentJobIssues: "Problemas en Trabajo de Traducción de Documentos",
+    documentJobIssuesDesc: "Trabajo \"{title}\" completado con algunos errores.",
+    jobUpdated: "Trabajo Actualizado",
+    jobUpdatedDesc: "Estado del trabajo \"{title}\" actualizado.",
+    
+    // Download actions
+    downloadSimulated: "Descarga (Simulada)",
+    downloadSimulatedDesc: "Se descargaría {fileName}",
+    noFilesSelected: "No hay archivos seleccionados",
+    noFilesSelectedDesc: "Por favor selecciona archivos para descargar.",
+    downloadSelectedSimulated: "Descarga Seleccionada (Simulada)",
+    downloadSelectedSimulatedDesc: "Simulando descarga de: {fileList}",
+    downloadAllZipSimulated: "Descargar Todo como ZIP (Simulado)",
+    downloadAllZipSimulatedDesc: "Simulando descarga ZIP para todos los {count} archivos.",
+    noTranslatedFiles: "No hay archivos traducidos",
+    noTranslatedFilesDesc: "No hay archivos traducidos para descargar.",
+    
+    // Deletion
+    jobDeleted: "Trabajo Eliminado",
+    
+    // Archive actions
+    jobArchived: "Trabajo Archivado",
+    jobUnarchived: "Trabajo Desarchivado",
+    
+    // Copied message
+    copiedToClipboard: "Copiado al portapapeles"
   },
   
   // Common UI elements

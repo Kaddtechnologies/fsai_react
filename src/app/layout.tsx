@@ -9,6 +9,9 @@ import StorageInitializer from '@/components/storage/storage-initializer';
 export const metadata: Metadata = {
   title: 'FlowserveAI',
   description: 'Unified AI-powered workspace for documents, products, and chat.',
+  icons: {
+    icon: '/assets/icons/favicon.ico',
+  },
   viewport: {
     width: 'device-width',
     initialScale: 1,

@@ -6,13 +6,13 @@ const translations = {
   settings: {
     title: "الإعدادات",
     secondaryTitle: "المزيد",
-    description: "قم بتخصيص تجربة FlowserveAI الخاصة بك. سيتم تطبيق التغييرات على الفور.",
+    description: "قم بتخصيص تجربة FlowserveAI الخاصة بك. يتم تطبيق التغييرات فوراً.",
     language: "اللغة",
     theme: "المظهر",
     themeOptions: {
       light: "فاتح",
       dark: "داكن",
-      system: "نظام"
+      system: "النظام"
     },
     save: "حفظ التغييرات",
     saveStatus: {
@@ -25,7 +25,7 @@ const translations = {
     support: "المساعدة والدعم",
     policies: "السياسات",
     selectLanguage: "اختر اللغة",
-    search: "البحث عن اللغات...",
+    search: "البحث عن لغات...",
     noLanguageMatch: "لا توجد لغات تطابق بحثك"
   },
   
@@ -33,9 +33,9 @@ const translations = {
   // Tools section
   tools: {
     documents: "المستندات",
-    documentsDesc: "عرض وإدارة المستندات التي قمت بتحميلها",
-    chat: "الدردشة",
-    chatDesc: "الدردشة مع مساعد Flowserve للذكاء الاصطناعي",
+    documentsDesc: "عرض وإدارة المستندات المرفوعة",
+    chat: "المحادثة",
+    chatDesc: "التحدث مع مساعد Flowserve AI",
     jobs: "الترجمة",
     jobsDesc: "ترجمة النصوص والمستندات",
     translate: "ترجمة",
@@ -46,49 +46,49 @@ const translations = {
   // Support section
   support: {
     help: "مركز المساعدة",
-    helpDesc: "الحصول على مساعدة في استخدام Flowserve AI"
+    helpDesc: "الحصول على مساعدة لاستخدام Flowserve AI"
   },
   
   // Policies section
   policies: {
     privacy: "سياسة الخصوصية",
-    privacyDesc: "كيفية التعامل مع بياناتك",
+    privacyDesc: "كيف نتعامل مع بياناتك",
     ai: "إرشادات الذكاء الاصطناعي",
-    aiDesc: "كيفية استخدامنا للذكاء الاصطناعي بمسؤولية"
+    aiDesc: "كيف نستخدم الذكاء الاصطناعي بمسؤولية"
   },
   
   // Empty state
   emptyState: {
-    welcome: "مرحبًا بك في FlowserveAI",
-    subtitle: "اتصل بشكل آمن وتحدث مع المستندات الخاصة بك وقاعدة المعرفة والذكاء الاصطناعي على شبكة Flowserve",
-    startTyping: "ابدأ محادثة من خلال الكتابة أدناه",
+    welcome: "مرحباً بك في FlowserveAI",
+    subtitle: "اتصل وتحدث بأمان مع مستنداتك وقاعدة معرفتك والذكاء الاصطناعي على شبكة Flowserve",
+    startTyping: "ابدأ محادثة بالكتابة أدناه",
     suggestions: {
       aiChat: {
-        category: "دردشة الذكاء الاصطناعي",
-        text: "كيف تعمل المضخات الطاردة المركزية؟"
+        category: "المنتجات",
+        text: "اشرح مضخة Flowserve IDURCO Mark 3 عالية السيليكون"
       },
       documents: {
-        category: "المستندات",
-        text: "تلخيص مستندات الصيانة الخاصة بي"
+        category: "المنتجات",
+        text: "كيف أقوم بتشغيل مضخة Flowserve IDURCO Mark 3 حديد السيليكون العالي؟"
       },
       products: {
-        category: "المنتجات",
-        text: "البحث عن صمامات التحكم في التدفق"
+        category: "المزايا",
+        text: "كيف أقوم بإدارة استثمارات 401(k) الخاصة بي؟"
       }
     }
   },
   
   // Welcome dialog
   welcomeDialog: {
-    title: "مرحبًا بك في Flowserve AI",
-    subtitle: "منصتك الموحدة للمساعدة الذكية وتحليل المستندات ومعرفة المنتجات.",
+    title: "مرحباً بك في Flowserve AI",
+    subtitle: "منصتك الموحدة للدعم الذكي وتحليل المستندات ومعرفة المنتجات.",
     // AI section
     ai: {
       title: "Flowserve AI",
       subtitle: "مساعدك الرقمي",
-      description: "شارك في محادثات طبيعية للحصول على إجابات وفهم المواضيع المعقدة وتلقي المساعدة في المهام المختلفة المتعلقة بعروض Flowserve.",
+      description: "شارك في محادثات طبيعية للحصول على إجابات وفهم الموضوعات المعقدة والحصول على مساعدة في المهام المختلفة المتعلقة بعروض Flowserve.",
       capabilities: {
-        root: "ماذا يمكن أن يفعل Flowserve AI من أجلك؟",
+        root: "ما الذي يمكن أن يفعله Flowserve AI لأجلك؟",
         answer: "الإجابة على الأسئلة",
         explain: "تقديم التفسيرات",
         assist: "المساعدة في المهام"
@@ -96,24 +96,25 @@ const translations = {
     },
     // Document section
     documents: {
-      title: "تحليل المستند",
+      title: "تحليل المستندات",
       subtitle: "الدردشة مع مستنداتك",
-      maxFileSize: "الحد الأقصى لحجم الملف 5 ميجابايت",
+      maxFileSize: "الحجم الأقصى للملف 5 ميغابايت",
       onlyPDF: "ملفات PDF فقط",
-      vectorSearch: "بحث دلالي مدعوم بالمتجهات",
-      description: "قم بتحميل مستنداتك (ملفات PDF) وتفاعل معها مباشرة في الدردشة. اطرح أسئلة محددة حول محتواها، واحصل على ملخصات، واستخرج المعلومات باستخدام تقنية البحث الدلالي لدينا.",
+      vectorSearch: "بحث دلالي قائم على المتجهات",
+      extractInfo: "استخراج المعلومات من المستندات",
+      description: "قم برفع مستنداتك (PDF) والتفاعل معها مباشرة في الدردشة. اطرح أسئلة محددة حول محتواها، واحصل على ملخصات، واستخرج المعلومات باستخدام تقنية البحث الدلالي لدينا.",
       flow: {
         upload: {
-          title: "تحميل المستند",
-          description: "قم بتحميل ملفات PDF الخاصة بك بشكل آمن."
+          title: "رفع مستند",
+          description: "قم برفع ملفات PDF الخاصة بك بأمان."
         },
         conversation: {
-          title: "بدء المحادثة",
-          description: "اطرح أسئلة حول المستند الخاص بك."
+          title: "بدء محادثة",
+          description: "اطرح أسئلة حول مستندك."
         },
         insights: {
-          title: "استخراج الأفكار",
-          description: "احصل على ملخصات ومعلومات أساسية."
+          title: "الحصول على رؤى",
+          description: "احصل على ملخصات ومعلومات رئيسية."
         }
       }
     },
@@ -121,27 +122,27 @@ const translations = {
     translation: {
       title: "الترجمة",
       subtitle: "دعم متعدد اللغات",
-      description: "ترجمة النص والمستندات بين مختلف اللغات. استخدم أداة \"الترجمة\" المخصصة في الشريط الجانبي.",
+      description: "ترجمة النصوص والمستندات بين اللغات المختلفة. استخدم أداة \"الترجمة\" المخصصة في الشريط الجانبي.",
       supportedLanguages: "اللغات المدعومة للنص:",
-      supportedDocTypes: "أنواع المستندات المدعومة لوحدة الترجمة (المستقبلية):",
+      supportedDocTypes: "أنواع المستندات المدعومة لوحدة الترجمة (قادمة):",
       videoTutorial: "فيديو تعليمي",
-      videoComingSoon: "الفيديو التعليمي قادم قريباً.",
-      unsupportedVideo: "متصفحك لا يدعم علامة الفيديو",
+      videoComingSoon: "الفيديو التعليمي سيكون متاحاً قريباً.",
+      unsupportedVideo: "متصفحك لا يدعم وسم الفيديو.",
       flow: {
         upload: {
-          title: "تحميل",
-          description: "ملفات Word و PowerPoint و Excel و PDF."
+          title: "رفع",
+          description: "ملفات Word وPowerPoint وExcel وPDF."
         },
         selectLanguage: {
-          title: "اختر اللغة",
-          description: "اختر اللغة المستهدفة."
+          title: "اختر لغة",
+          description: "اختر لغتك المستهدفة."
         },
         receiveTranslation: {
           title: "استلام الترجمة",
           description: "احصل على المحتوى المترجم الخاص بك."
         },
         provideFeedback: {
-          title: "تقديم التعليقات",
+          title: "تقديم الملاحظات",
           description: "ساعد في تحسين الترجمات المستقبلية."
         }
       }
@@ -157,23 +158,23 @@ const translations = {
     typing: "Flowserve AI يكتب...",
     loadMore: "تحميل المزيد من الرسائل",
     emptyConversation: "بدء محادثة جديدة",
-    uploadFile: "تحميل ملف",
+    uploadFile: "رفع ملف",
     today: "اليوم",
-    yesterday: "الأمس",
+    yesterday: "أمس",
     deleteMessage: "حذف هذه الرسالة",
     editMessage: "تعديل هذه الرسالة",
     copyToClipboard: "نسخ إلى الحافظة",
     copied: "تم النسخ إلى الحافظة",
-    loading: "جار التحميل...",
+    loading: "جاري التحميل...",
     errorLoading: "خطأ في تحميل المحادثة",
     messageSent: "تم إرسال الرسالة",
-    documentUploadSuccess: "تم تحميل المستند بنجاح",
-    documentUploadError: "خطأ في تحميل المستند",
-    documentProcessing: "معالجة المستند...",
+    documentUploadSuccess: "تم رفع المستند بنجاح",
+    documentUploadError: "خطأ في رفع المستند",
+    documentProcessing: "جاري معالجة المستند...",
     documentReady: "المستند جاهز",
-    welcome: "مرحبًا بك في دردشة FlowserveAI",
-    welcomeSubtitle: "الدردشة مع المستندات الخاصة بك وقاعدة المعرفة والذكاء الاصطناعي على شبكة Flowserve",
-    newChatCreated: "تم إنشاء دردشة جديدة",
+    welcome: "مرحباً بك في دردشة FlowserveAI",
+    welcomeSubtitle: "دردش مع مستنداتك وقاعدة معرفتك والذكاء الاصطناعي على شبكة Flowserve",
+    newChatCreated: "تم إنشاء محادثة جديدة",
     conversationDeleted: "تم حذف المحادثة",
     conversationRenamed: "تمت إعادة تسمية المحادثة",
     renameCancelledEmpty: {
@@ -181,51 +182,51 @@ const translations = {
       description: "لا يمكن أن يكون العنوان الجديد فارغًا"
     },
     renameCancelledUnchanged: {
-      title: "لا توجد تغييرات",
-      description: "يظل العنوان دون تغيير"
+      title: "لا يوجد تغيير",
+      description: "العنوان لم يتغير"
     },
     renameCancelled: "تم إلغاء إعادة التسمية",
     messageEdited: "تم تعديل الرسالة",
-    notFound: "لم يتم العثور على الدردشة {id}",
-    noActiveSession: "لا توجد جلسة دردشة نشطة",
-    selectOrStartNew: "يرجى تحديد دردشة من الشريط الجانبي أو بدء محادثة جديدة",
-    aiDisclaimer: "قد لا تكون ردود الذكاء الاصطناعي دقيقة دائمًا. تحقق دائمًا من المعلومات المهمة.",
+    notFound: "محادثة {id} غير موجودة",
+    noActiveSession: "لا توجد جلسة محادثة نشطة",
+    selectOrStartNew: "يرجى اختيار محادثة من الشريط الجانبي أو بدء محادثة جديدة",
+    aiDisclaimer: "ردود الذكاء الاصطناعي قد لا تكون دقيقة دائمًا. يرجى التحقق دائمًا من المعلومات المهمة.",
     enterNewTitle: "أدخل عنوانًا جديدًا",
     containsDocuments: "تحتوي هذه المحادثة على مستندات"
   },
   
   // Documents page
   documentsPage: {
-    title: "المستندات الخاصة بي",
-    description: "تصفح وإدارة جميع المستندات التي قمت بتحميلها.",
+    title: "مستنداتي",
+    description: "تصفح وإدارة جميع المستندات التي قمت برفعها.",
     noDocuments: {
       title: "لم يتم العثور على مستندات",
-      description: "لم تقم بتحميل أي مستندات بعد. قم بتحميل المستندات في أي دردشة لرؤيتها هنا.",
-      action: "الذهاب إلى الدردشة"
+      description: "لم تقم برفع أي مستندات بعد. قم برفع مستندات في أي محادثة لرؤيتها هنا.",
+      action: "الذهاب إلى المحادثة"
     },
     document: {
-      uploaded: "تم التحميل",
+      uploaded: "تم الرفع",
       size: "الحجم",
       viewSummary: "عرض الملخص",
       chatAction: "الدردشة حول المستند"
     },
-    loading: "جار التحميل..."
+    loading: "جاري التحميل..."
   },
   
   // Documents page (used in documents/page.tsx)
   documents: {
-    title: "المستندات الخاصة بي",
-    description: "تصفح وإدارة جميع المستندات التي قمت بتحميلها.",
+    title: "مستنداتي",
+    description: "تصفح وإدارة جميع المستندات التي قمت برفعها.",
     noDocumentsFound: "لم يتم العثور على مستندات",
-    noDocumentsDesc: "لم تقم بتحميل أي مستندات بعد. قم بتحميل المستندات في أي دردشة لرؤيتها هنا.",
-    goToChat: "الذهاب إلى الدردشة",
-    uploaded: "تم التحميل",
+    noDocumentsDesc: "لم تقم برفع أي مستندات بعد. قم برفع مستندات في أي محادثة لرؤيتها هنا.",
+    goToChat: "الذهاب إلى المحادثة",
+    uploaded: "تم الرفع",
     size: "الحجم",
     viewSummarySnippet: "عرض مقتطف الملخص",
     viewFullSummary: "عرض الملخص الكامل",
     fullSummary: "الملخص الكامل",
     chatAboutDocument: "الدردشة حول المستند",
-    rawMarkdownPreview: "معاينة النص البرمجي الخام لملخص المستند"
+    rawMarkdownPreview: "معاينة ماركداون خام لملخص المستند"
   },
   
   // Translation page
@@ -233,26 +234,26 @@ const translations = {
     new: "مهمة ترجمة جديدة",
     edit: "تعديل المهمة",
     noActiveJob: "لا توجد مهمة نشطة",
-    createNew: "إنشاء مهمة جديدة أو تحديد واحدة من السجل",
+    createNew: "قم بإنشاء مهمة جديدة أو اختر واحدة من السجل",
     createNewButton: "إنشاء مهمة جديدة",
     jobTitle: "عنوان المهمة",
     enterJobTitle: "أدخل عنوان المهمة",
     jobType: "نوع المهمة",
-    selectJobType: "حدد نوع المهمة",
+    selectJobType: "اختر نوع المهمة",
     textTranslation: "ترجمة نصية",
-    documentTranslation: "ترجمة مستند",
+    documentTranslation: "ترجمة المستندات",
     sourceLanguage: "اللغة المصدر",
-    selectSourceLanguage: "حدد اللغة المصدر",
+    selectSourceLanguage: "اختر اللغة المصدر",
     autoDetect: "كشف تلقائي",
     targetLanguage: "اللغة الهدف",
-    selectTargetLanguage: "حدد اللغة الهدف",
+    selectTargetLanguage: "اختر اللغة الهدف",
     enterTextToTranslate: "أدخل النص المراد ترجمته...",
-    characters: "حرف",
+    characters: "حروف",
     copyText: "نسخ النص",
-    speakText: "نطق النص",
+    speakText: "قراءة النص",
     translationWillAppear: "ستظهر الترجمة هنا...",
     copyTranslation: "نسخ الترجمة",
-    speakTranslation: "نطق الترجمة",
+    speakTranslation: "قراءة الترجمة",
     jobHistory: "سجل المهام",
     newJob: "مهمة جديدة",
     deleteJob: "حذف المهمة",
@@ -263,28 +264,87 @@ const translations = {
     translating: "جاري الترجمة...",
     completed: "مكتمل",
     
-    // Add more translation keys
+    // Toast messages
+    jobSaved: "تم حفظ المهمة",
+    jobSavedDesc: "تم حفظ '{name}' بنجاح",
+    jobDeleted: "تم حذف المهمة",
+    jobArchived: "تمت أرشفة المهمة",
+    jobUnarchived: "تمت إزالة المهمة من الأرشيف",
+    copiedToClipboard: "تم النسخ إلى الحافظة",
+    jobTypeSwitched: "تم تغيير نوع المهمة",
+    jobTypeSwitchedDesc: "تم مسح البيانات السابقة",
+    nothingToSave: "لا شيء للحفظ",
+    nothingToSaveDesc: "لا توجد مهمة نشطة للحفظ",
+    
+    // Error messages
+    jobTitleRequired: "عنوان المهمة مطلوب",
+    jobTitleRequiredDesc: "الرجاء إدخال عنوان لهذه المهمة",
+    jobTitleRequiredDesc2: "الرجاء إدخال عنوان قبل الترجمة",
+    inputRequired: "النص مطلوب",
+    inputRequiredDesc: "الرجاء إدخال نص للترجمة",
+    errorTitle: "خطأ",
+    errorStartTranslationDesc: "تعذر بدء الترجمة",
+    translationError: "خطأ في الترجمة",
+    translationErrorDesc: "تعذر إكمال الترجمة",
+    
+    // Status notifications
+    translationComplete: "اكتملت الترجمة",
+    translationCompleteDesc: "تمت ترجمة '{title}' بنجاح",
+    documentJobComplete: "اكتملت ترجمة المستند",
+    documentJobCompleteDesc: "تمت معالجة '{title}' بنجاح",
+    documentJobIssues: "مشاكل في مهمة المستند",
+    documentJobIssuesDesc: "واجه '{title}' مشاكل أثناء المعالجة",
+    jobUpdated: "تم تحديث المهمة",
+    jobUpdatedDesc: "تم تحديث '{title}'",
+    
+    // File processing messages
+    fileLimitReached: "تم الوصول إلى حد الملفات",
+    fileLimitReachedDesc: "الحجم الإجمالي يتجاوز {max} ميغابايت",
+    invalidFileType: "نوع ملف غير صالح",
+    invalidFileTypeDesc: "'{fileName}' غير مدعوم",
+    sizeLimitExceeded: "تم تجاوز حد الحجم",
+    sizeLimitExceededDesc: "الحجم الإجمالي يتجاوز {max} ميغابايت",
+    fileProcessed: "تمت معالجة الملف",
+    fileProcessedDesc: "تمت معالجة {fileName} بنجاح",
+    fileFailed: "فشلت معالجة الملف",
+    fileFailedDesc: "تعذرت معالجة {fileName}",
+    allFilesProcessed: "تمت معالجة جميع الملفات",
+    allFilesProcessedDesc: "تمت معالجة جميع الملفات بالفعل",
+    noFilesUploaded: "لم يتم رفع ملفات",
+    noFilesUploadedDesc: "الرجاء رفع ملف واحد على الأقل",
+    noFilesSelected: "لم يتم اختيار ملفات",
+    noFilesSelectedDesc: "الرجاء تحديد ملف واحد على الأقل",
+    downloadSelectedSimulated: "تنزيل محاكى",
+    downloadSelectedSimulatedDesc: "تنزيل محاكى لـ: {fileList}",
+    downloadAllZipSimulated: "تنزيل ZIP محاكى",
+    downloadAllZipSimulatedDesc: "تنزيل محاكى لـ {count} ملفات بصيغة ZIP",
+    noTranslatedFiles: "لا توجد ملفات مترجمة",
+    noTranslatedFilesDesc: "لا توجد ملفات مترجمة متاحة لهذه اللغة",
+    downloadSimulated: "تنزيل محاكى",
+    downloadSimulatedDesc: "تنزيل محاكى لـ '{fileName}'",
+
+    // Additional UI elements
     allTypes: "جميع الأنواع",
     textJobs: "مهام نصية",
-    documentJobs: "مهام مستندات",
+    documentJobs: "مهام المستندات",
     status: "الحالة",
     filterByStatus: "تصفية حسب الحالة",
     noJobsMatch: "لا توجد مهام تطابق المعايير",
     adjustFilters: "حاول ضبط المرشحات الخاصة بك",
     searchJobs: "البحث عن المهام",
     discardChanges: "تجاهل التغييرات غير المحفوظة؟",
-    unsavedChangesDesc: "لديك تغييرات غير محفوظة. هل أنت متأكد من أنك تريد تجاهلها وإلغاء تعديل هذه المهمة؟",
-    keepEditing: "استمرار التعديل",
-    discardAndReset: "تجاهل وإعادة الضبط",
+    unsavedChangesDesc: "لديك تغييرات غير محفوظة. هل أنت متأكد من أنك تريد تجاهلها وإلغاء تحرير هذه المهمة؟",
+    keepEditing: "متابعة التحرير",
+    discardAndReset: "تجاهل وإعادة ضبط",
     deleteJobConfirm: "حذف المهمة؟",
-    deleteJobDesc: "هل أنت متأكد من أنك تريد حذف المهمة \"{jobName}\"؟ لا يمكن التراجع عن هذا الإجراء.",
-    maxFiles: "بحد أقصى {max} ملفات. بحد أقصى {size} ميجابايت إجمالي.",
+    deleteJobDesc: "هل أنت متأكد من أنك تريد حذف المهمة \"{jobName}\"؟ هذا الإجراء لا يمكن التراجع عنه.",
+    maxFiles: "بحد أقصى {max} ملفات. بحد أقصى {size} ميغابايت إجمالاً.",
     browseFiles: "تصفح الملفات",
     selectedFiles: "الملفات المحددة ({count}/{max}):",
     togglePdfDocx: "تبديل PDF→DOCX",
     pdfToDocxTooltip: "تحويل PDF إلى DOCX عند الترجمة",
     removeFile: "إزالة الملف",
-    translatedDocuments: "المستندات المترجمة لـ {language}:",
+    translatedDocuments: "المستندات المترجمة للغة {language}:",
     download: "تنزيل",
     downloadSelected: "تنزيل المحدد",
     downloadAllZip: "تنزيل الكل كملف ZIP",
@@ -293,12 +353,29 @@ const translations = {
     actionCancelledDesc: "تم إلغاء العملية الحالية."
   },
   
+  // Language names
+  languages: {
+    en: "الإنجليزية",
+    es: "الإسبانية",
+    ta: "التاميلية",
+    hi: "الهندية",
+    ru: "الروسية",
+    fr: "الفرنسية",
+    de: "الألمانية",
+    it: "الإيطالية",
+    pt: "البرتغالية",
+    zh: "الصينية (المبسطة)",
+    ja: "اليابانية",
+    ko: "الكورية",
+    ar: "العربية"
+  },
+  
   // Common UI elements
   common: {
     close: "إغلاق",
-    chat: "دردشة",
+    chat: "محادثة",
     unknownError: "خطأ غير معروف",
-    selectedChat: "الدردشة المحددة",
+    selectedChat: "المحادثة المحددة",
     appName: "FlowserveAI",
     invalidDate: "تاريخ غير صالح",
     logoAlt: "Flowserve AI"
@@ -310,7 +387,7 @@ const translations = {
     delete: "حذف",
     cancel: "إلغاء",
     close: "إغلاق",
-    goToChats: "الذهاب إلى الدردشات",
+    goToChats: "الذهاب إلى المحادثات",
     copiedToClipboard: "تم النسخ إلى الحافظة"
   },
   
@@ -331,7 +408,7 @@ const translations = {
   alerts: {
     deleteConfirm: {
       title: "حذف المحادثة؟",
-      description: "هل أنت متأكد من أنك تريد حذف \"{title}\"؟ لا يمكن التراجع عن هذا."
+      description: "هل أنت متأكد من أنك تريد حذف \"{title}\"؟ لا يمكن التراجع عن هذا الإجراء."
     }
   },
   
@@ -340,33 +417,33 @@ const translations = {
     viewSummarySnippet: "عرض مقتطف الملخص",
     viewFullSummary: "عرض الملخص الكامل",
     defaultName: "مستند",
-    fullSummaryTitle: "الملخص الكامل: {docName}"
+    fullSummaryTitle: "ملخص كامل: {docName}"
   },
   
   // File uploads
   uploads: {
     fileTooLarge: {
       title: "الملف كبير جدًا",
-      description: "الحد الأقصى لحجم الملف هو {maxSize} ميجابايت"
+      description: "الحجم الأقصى للملف هو {maxSize} ميغابايت"
     },
     invalidType: {
       title: "نوع ملف غير صالح",
       description: "الملفات المسموح بها: {allowed}"
     },
-    preparing: "تجهيز {fileName} للتحميل...",
+    preparing: "تحضير {fileName} للرفع...",
     processingAi: "معالجة {fileName} بالذكاء الاصطناعي...",
     processingComplete: "اكتملت معالجة {fileName}",
     processingFailed: "فشلت معالجة {fileName}",
     readingFailed: "فشلت قراءة {fileName}",
-    uploadFailed: "فشل تحميل {fileName}",
+    uploadFailed: "فشل رفع {fileName}",
     fileProcessed: "تمت معالجة الملف",
     fileProcessedSummary: "تمت معالجة {fileName} بنجاح",
     aiError: "خطأ في معالجة الذكاء الاصطناعي",
     couldNotProcess: "تعذرت معالجة {fileName}",
     status: {
-      pendingUpload: "في انتظار التحميل...",
-      uploading: "جاري التحميل... {progress}%",
-      pendingProcessing: "في انتظار معالجة الذكاء الاصطناعي...",
+      pendingUpload: "بانتظار الرفع...",
+      uploading: "جاري الرفع... {progress}%",
+      pendingProcessing: "بانتظار معالجة الذكاء الاصطناعي...",
       processing: "جاري المعالجة... {progress}%",
       completed: "مكتمل",
       failed: "فشل"
@@ -375,8 +452,8 @@ const translations = {
   
   // Feedback dialog
   feedback: {
-    title: "إرسال الملاحظات",
-    description: "شارك تجربتك مع FlowserveAI. ملاحظاتك تساعدنا على التحسين.",
+    title: "إرسال ملاحظات",
+    description: "شارك تجربتك مع FlowserveAI. ملاحظاتك تساعدنا في التحسين.",
     placeholder: "أخبرنا عن تجربتك...",
     send: "إرسال الملاحظات",
     cancel: "إلغاء",
@@ -385,78 +462,6 @@ const translations = {
     error: "فشل إرسال الملاحظات. يرجى المحاولة مرة أخرى.",
     characterCount: "{count}/3000",
     minCharacters: "مطلوب 100 حرف على الأقل"
-  },
-  
-  // Quick Actions
-  quickActions: {
-    title: "إجراءات سريعة",
-    questions: {
-      espp: {
-        question: "ما هو خطة شراء أسهم الموظفين (ESPP)؟",
-        answer: `# خطة شراء أسهم الموظفين (ESPP)
-
-## نظرة عامة
-تسمح خطة ESPP للموظفين المؤهلين بشراء أسهم Flowserve بخصم من خلال خصومات الرواتب.
-
-## الميزات الرئيسية
-- شراء الأسهم بخصم 15%
-- خصومات تلقائية من الرواتب
-- فترات شراء ربع سنوية
-- بدون رسوم وساطة
-- استحقاق فوري
-
-## الأهلية
-- موظفون منتظمون بدوام كامل
-- الحد الأدنى 90 يوم من العمل
-- غير في إجازة
-
-## كيفية المشاركة
-1. التسجيل خلال فترة التسجيل المفتوحة
-2. اختيار نسبة المساهمة (1-10% من التعويض المؤهل)
-3. يتم خصم الأموال من كل راتب
-4. يتم شراء الأسهم ربع سنوياً بخصم 15%
-
-## الاعتبارات الضريبية
-- تتم المشتريات بالدولار بعد الضريبة
-- تخضع الأرباح للضريبة كدخل عادي أو مكاسب رأسمالية
-- استشر مستشاراً ضريبياً للحصول على إرشادات محددة`
-      },
-      retirement: {
-        question: "كيف أدير استثماراتي في 401(k)؟",
-        answer: `# إدارة استثمارات 401(k)
-
-## نظرة عامة
-تقدم خطة Flowserve 401(k) مجموعة من خيارات الاستثمار لمساعدتك على الادخار للتقاعد.
-
-## الميزات الرئيسية
-- مساهمة الشركة حتى 6% من التعويض المؤهل
-- استحقاق فوري لمساهمة الشركة
-- مجموعة واسعة من خيارات الاستثمار
-- إدارة استثمار احترافية
-- الوصول إلى الحساب عبر الإنترنت
-
-## خيارات الاستثمار
-1. صناديق التاريخ المستهدف
-2. صناديق المؤشرات
-3. صناديق الإدارة النشطة
-4. صندوق أسهم الشركة
-5. صندوق القيمة المستقرة
-
-## كيفية الإدارة
-1. سجل الدخول إلى حسابك على [بوابة التقاعد]
-2. راجع التوزيعات الحالية
-3. اضبط نسبة المساهمة
-4. أعد موازنة المحفظة حسب الحاجة
-5. راقب الأداء بانتظام
-
-## أفضل الممارسات
-- ساهم بنسبة 6% على الأقل للحصول على مساهمة الشركة الكاملة
-- تنويع عبر فئات الأصول المختلفة
-- راجع وأعد الموازنة سنوياً
-- فكر في صناديق التاريخ المستهدف للبساطة
-- زيادة المساهمات مع زيادة الرواتب`
-      }
-    }
   }
 };
 

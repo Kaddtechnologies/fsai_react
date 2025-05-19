@@ -83,6 +83,7 @@ import SettingsSidePanel from '@/components/settings/settings.sidepanel';
 import { MOCK_USER } from '@/app/utils/constants';
 import useTranslation from '@/app/hooks/useTranslation';
 import FeedbackDialog from '@/components/feedback/feedback-dialog';
+import SettingsDialog from '@/components/settings/settings-dialog';
 // Define Loader2 directly in the file
 const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -298,6 +299,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const { t } = useTranslation();
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -918,6 +920,15 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                     <HelpCircle className="shrink-0" /> <span className="group-data-[collapsible=icon]:hidden ml-2">{t('support.help')}</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setIsSettingsDialogOpen(true)} 
+                  tooltip={t('settings.title')}
+                  className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:mx-auto"
+                >
+                    <Settings className="shrink-0" /> <span className="group-data-[collapsible=icon]:hidden ml-2">{t('settings.title')}</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
            </SidebarMenu>
 
            <DropdownMenu>
@@ -940,7 +951,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel>{t('account.myAccount')}</DropdownMenuLabel> <DropdownMenuSeparator />
               <DropdownMenuItem disabled><Users className="mr-2 h-4 w-4" /> {t('account.profile')}</DropdownMenuItem>
-              <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> {t('settings.title')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsSettingsDialogOpen(true)}><Settings className="mr-2 h-4 w-4" /> {t('settings.title')}</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled> <LogOut className="mr-2 h-4 w-4" /> {t('account.logout')} </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1088,6 +1099,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
       </AlertDialog>
       <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
       <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+      {!isMobile && <SettingsDialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen} />}
     </>
   );
 }

@@ -287,7 +287,78 @@ const translations = {
       downloadAllZip: "सभी को ZIP के रूप में डाउनलोड करें",
       translationIssues: "अनुवाद संबंधी समस्याएँ",
       actionCancelled: "कार्रवाई रद्द की गई",
-      actionCancelledDesc: "वर्तमान कार्रवाई रद्द कर दी गई थी।"
+      actionCancelledDesc: "वर्तमान कार्रवाई रद्द कर दी गई थी।",
+      
+      // Adding toast messages
+      nothingToSave: "सहेजने के लिए कुछ नहीं",
+      nothingToSaveDesc: "सहेजने के लिए कार्य बनाएँ या चुनें।",
+      jobTitleRequired: "कार्य शीर्षक आवश्यक है",
+      jobTitleRequiredDesc: "कृपया कार्य के लिए शीर्षक दर्ज करें।",
+      jobTitleRequiredDesc2: "अनुवाद करने से पहले कृपया कार्य के लिए शीर्षक दर्ज करें।",
+      jobSaved: "कार्य सहेजा गया",
+      jobSavedDesc: "कार्य \"{name}\" सहेजा गया।",
+      
+      // Translation job errors/notifications
+      inputRequired: "इनपुट आवश्यक है",
+      inputRequiredDesc: "कृपया अनुवाद करने के लिए पाठ दर्ज करें।",
+      errorTitle: "त्रुटि",
+      errorStartTranslationDesc: "अनुवाद शुरू नहीं किया जा सका। सक्रिय कार्य नहीं मिला।",
+      translationComplete: "अनुवाद पूर्ण",
+      translationCompleteDesc: "कार्य \"{title}\" समाप्त हुआ।",
+      translationError: "अनुवाद त्रुटि",
+      translationErrorDesc: "पाठ का अनुवाद नहीं किया जा सका।",
+      
+      // File processing messages
+      fileProcessed: "फ़ाइल संसाधित",
+      fileProcessedDesc: "{fileName} अनुवाद पूर्ण (सिमुलेटेड)।",
+      fileFailed: "फ़ाइल विफल",
+      fileFailedDesc: "{fileName} अनुवाद करने में विफल (सिमुलेटेड)।",
+      
+      // Document translation messages
+      allFilesProcessed: "सभी फ़ाइलें संसाधित या प्रगति में",
+      allFilesProcessedDesc: "इस कार्य में अनुवाद करने के लिए कोई नई फ़ाइल नहीं है।",
+      noFilesUploaded: "कोई फ़ाइल अपलोड नहीं की गई",
+      noFilesUploadedDesc: "कृपया अनुवाद के लिए दस्तावेज़ अपलोड करें।",
+      
+      // File issues
+      fileLimitReached: "फ़ाइल सीमा पहुँच गई",
+      fileLimitReachedDesc: "प्रति कार्य अधिकतम {max} फ़ाइलें।",
+      invalidFileType: "अमान्य फ़ाइल प्रकार",
+      invalidFileTypeDesc: "{fileName} समर्थित दस्तावेज़ प्रकार नहीं है।",
+      sizeLimitExceeded: "आकार सीमा पार हो गई",
+      sizeLimitExceededDesc: "कुल अपलोड आकार {max}MB से अधिक नहीं हो सकता।",
+      
+      // Document job notifications
+      jobTypeSwitched: "कार्य प्रकार बदला गया",
+      jobTypeSwitchedDesc: "दस्तावेज़ अनुवाद मोड पर स्विच किया गया।",
+      documentJobComplete: "दस्तावेज़ अनुवाद कार्य पूर्ण",
+      documentJobCompleteDesc: "कार्य \"{title}\" ने सभी फ़ाइलों का प्रसंस्करण पूरा कर लिया है।",
+      documentJobIssues: "दस्तावेज़ अनुवाद कार्य में समस्याएँ",
+      documentJobIssuesDesc: "कार्य \"{title}\" कुछ त्रुटियों के साथ पूरा हुआ।",
+      jobUpdated: "कार्य अपडेट किया गया",
+      jobUpdatedDesc: "कार्य \"{title}\" स्थिति अपडेट की गई।",
+      
+      // Download actions
+      downloadSimulated: "डाउनलोड (सिमुलेटेड)",
+      downloadSimulatedDesc: "{fileName} डाउनलोड होगा",
+      noFilesSelected: "कोई फ़ाइल चयनित नहीं",
+      noFilesSelectedDesc: "कृपया डाउनलोड करने के लिए फ़ाइलें चुनें।",
+      downloadSelectedSimulated: "चयनित डाउनलोड (सिमुलेटेड)",
+      downloadSelectedSimulatedDesc: "डाउनलोड सिमुलेट कर रहा है: {fileList}",
+      downloadAllZipSimulated: "सभी को ZIP के रूप में डाउनलोड (सिमुलेटेड)",
+      downloadAllZipSimulatedDesc: "सभी {count} फ़ाइलों के लिए ZIP डाउनलोड सिमुलेट कर रहा है।",
+      noTranslatedFiles: "कोई अनुवादित फ़ाइल नहीं",
+      noTranslatedFilesDesc: "डाउनलोड करने के लिए कोई अनुवादित फ़ाइल नहीं है।",
+      
+      // Deletion
+      jobDeleted: "कार्य हटाया गया",
+      
+      // Archive actions
+      jobArchived: "कार्य संग्रहीत किया गया",
+      jobUnarchived: "कार्य असंग्रहीत किया गया",
+      
+      // Copied message
+      copiedToClipboard: "क्लिपबोर्ड पर कॉपी किया गया"
     },
   
     // Common UI elements

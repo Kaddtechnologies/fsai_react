@@ -49,7 +49,7 @@ export const useTranslation = () => {
    * Get a translation string for the current language
    * Falls back to English if the key doesn't exist in the selected language
    */
-  const t = (key: string) => {
+  const t = (key: string, namespace?: string) => {
     // Get the translation dictionary for the current language, fallback to English
     const languageDict = translations[language as keyof typeof translations] || translations.en;
     
@@ -78,7 +78,8 @@ export const useTranslation = () => {
 
   return {
     language,
-    t
+    t,
+    setLanguage
   };
 };
 

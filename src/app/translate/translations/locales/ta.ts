@@ -260,34 +260,64 @@ const translations = {
       translating: "மொழிபெயர்க்கிறது...",
       completed: "முடிந்தது",
   
-      // Add more translation keys
-      allTypes: "அனைத்து வகைகளும்",
-      textJobs: "உரைப் பணிகள்",
-      documentJobs: "ஆவணப் பணிகள்",
-      status: "நிலை",
-      filterByStatus: "நிலை மூலம் வடிகட்டு",
-      noJobsMatch: "பணிகள் எதுவும் நிபந்தனைகளுடன் பொருந்தவில்லை",
-      adjustFilters: "உங்கள் வடிகட்டிகளை சரிசெய்ய முயற்சிக்கவும்",
-      searchJobs: "பணிகளைத் தேடு",
-      discardChanges: "சேமிக்கப்படாத மாற்றங்களை நிராகரிக்கவா?",
-      unsavedChangesDesc: "உங்களிடம் சேமிக்கப்படாத மாற்றங்கள் உள்ளன. அவற்றை நிராகரித்து இந்தப் பணியைத் திருத்துவதை ரத்துசெய்ய விரும்புகிறீர்களா?",
-      keepEditing: "திருத்துவதைத் தொடரவும்",
-      discardAndReset: "நிராகரித்து மீட்டமை",
-      deleteJobConfirm: "பணியை நீக்கவா?",
-      deleteJobDesc: "\"{jobName}\" என்ற பணியை நீக்க விரும்புகிறீர்களா? இந்தச் செயலைச் செயல்தவிர்க்க முடியாது.",
-      maxFiles: "அதிகபட்சம் {max} கோப்புகள். மொத்தம் அதிகபட்சம் {size}MB.",
-      browseFiles: "கோப்புகளை உலாவுக",
-      selectedFiles: "தேர்ந்தெடுக்கப்பட்ட கோப்புகள் ({count}/{max}):",
-      togglePdfDocx: "PDF→DOCX ஐ மாற்று",
-      pdfToDocxTooltip: "மொழிபெயர்ப்பில் PDF ஐ DOCX ஆக மாற்றவும்",
-      removeFile: "கோப்பை அகற்று",
-      translatedDocuments: "{language} க்கான மொழிபெயர்க்கப்பட்ட ஆவணங்கள்:",
-      download: "பதிவிறக்கு",
-      downloadSelected: "தேர்ந்தெடுக்கப்பட்டதைப் பதிவிறக்கு",
-      downloadAllZip: "அனைத்தையும் ZIP ஆகப் பதிவிறக்கு",
-      translationIssues: "மொழிபெயர்ப்புச் சிக்கல்கள்",
-      actionCancelled: "செயல் ரத்துசெய்யப்பட்டது",
-      actionCancelledDesc: "தற்போதைய செயல்பாடு ரத்துசெய்யப்பட்டது."
+      // Toast messages
+      jobSaved: "பணி சேமிக்கப்பட்டது",
+      jobSavedDesc: "'{name}' வெற்றிகரமாக சேமிக்கப்பட்டது",
+      jobDeleted: "பணி நீக்கப்பட்டது",
+      jobArchived: "பணி காப்பகப்படுத்தப்பட்டது",
+      jobUnarchived: "பணி காப்பகத்திலிருந்து நீக்கப்பட்டது",
+      copiedToClipboard: "கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டது",
+      jobTypeSwitched: "பணி வகை மாற்றப்பட்டது",
+      jobTypeSwitchedDesc: "முந்தைய தரவு அழிக்கப்பட்டது",
+      nothingToSave: "சேமிக்க எதுவும் இல்லை",
+      nothingToSaveDesc: "சேமிக்க செயலில் உள்ள பணி இல்லை",
+      
+      // Error messages
+      jobTitleRequired: "பணி தலைப்பு தேவை",
+      jobTitleRequiredDesc: "இந்த பணிக்கு தலைப்பை உள்ளிடவும்",
+      jobTitleRequiredDesc2: "மொழிபெயர்ப்பதற்கு முன் தலைப்பை உள்ளிடவும்",
+      inputRequired: "உரை தேவை",
+      inputRequiredDesc: "மொழிபெயர்க்க உரையை உள்ளிடவும்",
+      errorTitle: "பிழை",
+      errorStartTranslationDesc: "மொழிபெயர்ப்பைத் தொடங்க முடியவில்லை",
+      translationError: "மொழிபெயர்ப்பு பிழை",
+      translationErrorDesc: "மொழிபெயர்ப்பை முடிக்க முடியவில்லை",
+      
+      // Status notifications
+      translationComplete: "மொழிபெயர்ப்பு முடிந்தது",
+      translationCompleteDesc: "'{title}' வெற்றிகரமாக மொழிபெயர்க்கப்பட்டது",
+      documentJobComplete: "ஆவண மொழிபெயர்ப்பு முடிந்தது",
+      documentJobCompleteDesc: "'{title}' வெற்றிகரமாக செயலாக்கப்பட்டது",
+      documentJobIssues: "ஆவண பணியில் சிக்கல்கள்",
+      documentJobIssuesDesc: "'{title}' செயலாக்கும் போது சிக்கல்களை சந்தித்தது",
+      jobUpdated: "பணி புதுப்பிக்கப்பட்டது",
+      jobUpdatedDesc: "'{title}' புதுப்பிக்கப்பட்டது",
+      
+      // File processing messages
+      fileLimitReached: "கோப்பு வரம்பை எட்டியது",
+      fileLimitReachedDesc: "ஒரு பணிக்கு அதிகபட்சம் {max} கோப்புகள்",
+      invalidFileType: "செல்லாத கோப்பு வகை",
+      invalidFileTypeDesc: "'{fileName}' ஆதரிக்கப்படவில்லை",
+      sizeLimitExceeded: "அளவு வரம்பு மீறப்பட்டது",
+      sizeLimitExceededDesc: "மொத்த அளவு {max} MB ஐ மீறுகிறது",
+      fileProcessed: "கோப்பு செயலாக்கப்பட்டது",
+      fileProcessedDesc: "'{fileName}' வெற்றிகரமாக செயலாக்கப்பட்டது",
+      fileFailed: "கோப்பு செயலாக்கம் தோல்வியடைந்தது",
+      fileFailedDesc: "'{fileName}' ஐ செயலாக்க முடியவில்லை",
+      allFilesProcessed: "அனைத்து கோப்புகளும் செயலாக்கப்பட்டன",
+      allFilesProcessedDesc: "அனைத்து கோப்புகளும் ஏற்கனவே செயலாக்கப்பட்டன",
+      noFilesUploaded: "கோப்புகள் எதுவும் பதிவேற்றப்படவில்லை",
+      noFilesUploadedDesc: "குறைந்தது ஒரு கோப்பையாவது பதிவேற்றவும்",
+      noFilesSelected: "கோப்புகள் எதுவும் தேர்ந்தெடுக்கப்படவில்லை",
+      noFilesSelectedDesc: "குறைந்தது ஒரு கோப்பையாவது தேர்ந்தெடுக்கவும்",
+      downloadSelectedSimulated: "உருவக பதிவிறக்கம்",
+      downloadSelectedSimulatedDesc: "இதற்கான உருவக பதிவிறக்கம்: {fileList}",
+      downloadAllZipSimulated: "ZIP உருவக பதிவிறக்கம்",
+      downloadAllZipSimulatedDesc: "ZIP இல் {count} கோப்புகளின் உருவக பதிவிறக்கம்",
+      noTranslatedFiles: "மொழிபெயர்க்கப்பட்ட கோப்புகள் இல்லை",
+      noTranslatedFilesDesc: "இந்த மொழிக்கு மொழிபெயர்க்கப்பட்ட கோப்புகள் இல்லை",
+      downloadSimulated: "உருவக பதிவிறக்கம்",
+      downloadSimulatedDesc: "'{fileName}' இன் உருவக பதிவிறக்கம்"
     },
   
     // Common UI elements
@@ -382,6 +412,23 @@ const translations = {
       error: "கருத்து அனுப்பத் தவறிவிட்டது. மீண்டும் முயற்சிக்கவும்.",
       characterCount: "{count}/3000",
       minCharacters: "குறைந்தபட்சம் 100 எழுத்துகள் தேவை"
+    },
+  
+    // Language names
+    languages: {
+      en: "ஆங்கிலம்",
+      es: "ஸ்பானிஷ்",
+      ta: "தமிழ்",
+      hi: "இந்தி",
+      ru: "ரஷ்யன்",
+      fr: "பிரெஞ்சு",
+      de: "ஜெர்மன்",
+      it: "இத்தாலியன்",
+      pt: "போர்த்துகீசியம்",
+      zh: "சீனம் (எளிமையாக்கப்பட்டது)",
+      ja: "ஜப்பானிய",
+      ko: "கொரியன்",
+      ar: "அரபிக்"
     }
   };
   
