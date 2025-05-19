@@ -137,6 +137,7 @@ const ConversationTypeIcon = ({ type }: { type: ConversationType }) => {
 // We need to create a wrapper component that handles loading before using SidebarProvider
 function AppWrapper({ children }: AppClientLayoutProps): JSX.Element {
   const [isMounted, setIsMounted] = useState(false);
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     setIsMounted(true);
@@ -174,7 +175,7 @@ function AppWrapper({ children }: AppClientLayoutProps): JSX.Element {
   }
   
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={!isMobile}>
       {children}
     </SidebarProvider>
   );
