@@ -685,7 +685,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-700">
                 <h2 className="text-2xl font-bold">Conversations</h2>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 pr-4">
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();

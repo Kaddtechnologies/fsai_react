@@ -1761,19 +1761,7 @@ const TranslatePage = () => {
           )}
         </div>
       </ScrollArea>
-      /**
- * TranslatePage Component - Part 4I
- * Job panel footer with action buttons
- * 
- * This section contains:
- * - Footer action buttons (delete, cancel, save, translate)
- * - Dynamic button states based on job status
- * - Progress indicators and status-specific styling
- * - Responsive layout for mobile and desktop
- * - Completion of the renderTranslationJobPanel function
- */
-
-      {/* ===== JOB PANEL FOOTER WITH ACTION BUTTONS ===== */}
+       {/* ===== JOB PANEL FOOTER WITH ACTION BUTTONS ===== */}
       {activeJob && (
         <CardFooter className="border-t p-3 md:p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
           {/* Left side - Destructive actions */}
@@ -2338,7 +2326,7 @@ const renderHistoryPanel = () => (
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">{t('translation.feedback.feedbackHistory')}</CardTitle>
+            <CardTitle className="text-lg pr-2">{t('translation.feedback.historyTitle')}</CardTitle>
             <Badge variant="secondary">{userFeedbackItems.length}</Badge>
           </div>
         </CardHeader>
@@ -2360,7 +2348,7 @@ const renderHistoryPanel = () => (
             {filteredFeedbackItems.length === 0 ? (
               <div className="text-center text-muted-foreground py-6">
                 <MessageSquareText className="mx-auto h-8 w-8 opacity-50 mb-2" />
-                <p className="text-sm">{t('translation.feedback.noFeedbackItems')}</p>
+                <p className="text-sm">{t('translation.feedback.noFeedback')}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -2411,32 +2399,17 @@ const renderHistoryPanel = () => (
       </Card>
     </div>
   );
-  /**
- * TranslatePage Component - Part 4L
- * Main component JSX return with modal dialogs and export
- * 
- * This section contains:
- * - Main component JSX return structure
- * - TooltipProvider wrapper
- * - Layout with tab system (translation, history, feedback)
- * - Modal dialogs (cancel confirmation, delete confirmation)
- * - Component export
- */
 
-  /**
-   * MAIN COMPONENT JSX RETURN
-   * The main render function that puts together all panels and modals
-   */
   return (
     <TooltipProvider>
       <div className="container mx-auto p-4 space-y-6 max-w-7xl">
         {/* ===== PAGE HEADER ===== */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            {t('translation.pageTitle')}
+            {t('translation.title')}
           </h1>
           <p className="text-muted-foreground text-sm md:text-base max-w-2xl mx-auto">
-            {t('translation.pageDescription')}
+            {t('translation.subtitle')}
           </p>
         </div>
 
