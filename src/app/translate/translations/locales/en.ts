@@ -222,7 +222,8 @@ const translations = {
     viewFullSummary: "View full summary",
     fullSummary: "Full Summary",
     chatAboutDocument: "Chat about Document",
-    rawMarkdownPreview: "Raw markdown preview of the document summary"
+    rawMarkdownPreview: "Raw markdown preview of the document summary",
+    renderedMarkdownPreview: "Rendered Markdown preview of the document summary"
   },
   
   // Translation page
@@ -260,7 +261,6 @@ const translations = {
     translating: "Translating...",
     completed: "Completed",
     
-    // Add more translation keys
     allTypes: "All Types",
     textJobs: "Text Jobs",
     documentJobs: "Document Jobs",
@@ -287,7 +287,118 @@ const translations = {
     downloadAllZip: "Download All as ZIP",
     translationIssues: "Translation Issues",
     actionCancelled: "Action Cancelled",
-    actionCancelledDesc: "Current operation was cancelled."
+    actionCancelledDesc: "Current operation was cancelled.",
+    jobCancelled: "Job cancelled",
+    jobCancelledDesc: "The new job was cancelled and not saved.",
+    changesDiscarded: "Changes Discarded",
+    changesDiscardedDesc: "Your unsaved changes have been discarded.",
+    
+    // Adding toast messages
+    nothingToSave: "Nothing to save",
+    nothingToSaveDesc: "Create or select a job to save.",
+    jobTitleRequired: "Job title required",
+    jobTitleRequiredDesc: "Please enter a title for the job.",
+    jobTitleRequiredDesc2: "Please enter a title for the job before translating.",
+    jobSaved: "Job Saved",
+    jobSavedDesc: "Job \"{name}\" saved.",
+    
+    // Translation job errors/notifications
+    inputRequired: "Input required",
+    inputRequiredDesc: "Please enter text to translate.",
+    errorTitle: "Error",
+    errorStartTranslationDesc: "Could not start translation. Active job not found.",
+    translationComplete: "Translation Complete",
+    translationCompleteDesc: "Job \"{title}\" finished.",
+    translationError: "Translation Error",
+    translationErrorDesc: "Could not translate text.",
+    
+    // File processing messages
+    fileProcessed: "File Processed",
+    fileProcessedDesc: "{fileName} translation complete (simulated).",
+    fileFailed: "File Failed",
+    fileFailedDesc: "{fileName} failed to translate (simulated).",
+    
+    // Document translation messages
+    allFilesProcessed: "All files processed or in progress",
+    allFilesProcessedDesc: "No new files to translate in this job.",
+    noFilesUploaded: "No files uploaded",
+    noFilesUploadedDesc: "Please upload documents to translate.",
+    
+    // File issues
+    fileLimitReached: "File limit reached",
+    fileLimitReachedDesc: "Maximum {max} files per job.",
+    invalidFileType: "Invalid file type",
+    invalidFileTypeDesc: "{fileName} is not a supported document type.",
+    sizeLimitExceeded: "Size limit exceeded",
+    sizeLimitExceededDesc: "Total upload size cannot exceed {max}MB.",
+    
+    // Document job notifications
+    jobTypeSwitched: "Job type switched",
+    jobTypeSwitchedDesc: "Switched to Document Translation mode.",
+    documentJobComplete: "Document Translation Job Complete",
+    documentJobCompleteDesc: "Job \"{title}\" finished processing all files.",
+    documentJobIssues: "Document Translation Job Issues",
+    documentJobIssuesDesc: "Job \"{title}\" completed with some errors.",
+    jobUpdated: "Job Update",
+    jobUpdatedDesc: "Job \"{title}\" status updated.",
+    
+    // Download actions
+    downloadSimulated: "Download (Simulated)",
+    downloadSimulatedDesc: "Would download {fileName}",
+    noFilesSelected: "No files selected",
+    noFilesSelectedDesc: "Please select files to download.",
+    downloadSelectedSimulated: "Download Selected (Simulated)",
+    downloadSelectedSimulatedDesc: "Simulating download of: {fileList}",
+    downloadAllZipSimulated: "Download All as ZIP (Simulated)",
+    downloadAllZipSimulatedDesc: "Simulating ZIP download for all {count} files.",
+    noTranslatedFiles: "No translated files",
+    noTranslatedFilesDesc: "There are no translated files to download.",
+    
+    // Deletion
+    jobDeleted: "Job Deleted",
+    
+    // Archive actions
+    jobArchived: "Job Archived",
+    jobUnarchived: "Job Unarchived",
+    
+    // Copied message
+    copiedToClipboard: "Copied to clipboard",
+
+    feedback: {
+      title: "Translation Feedback",
+      tabLabel: "User Feedback",
+      instructionsTitle: "Mistakes in the translation(s)?",
+      instructionsBody: "Please provide the original (source) keyword and the corrected (target) keyword translation to improve future results. Or for bulk feedback upload, download the template, update the feedbacks then upload the file.",
+      supportedFormats: "Supported document types (.csv, .tsv, .xlsx)",
+      topSubmitFeedback: "Submit Feedback", // Top button, might be for a simpler mode
+      viewGlossary: "View Glossary",
+      addFeedbackTitle: "Add Translation Feedback",
+      addFeedbackDescription: "Help us improve translations by providing corrections",
+      sourceKeywordPlaceholder: "Enter source keyword",
+      targetKeywordPlaceholder: "Enter target keyword",
+      bulkUploadLabel: "Bulk Upload",
+      bulkUploadDescription: "Upload multiple feedbacks via CSV/Excel file",
+      downloadTemplate: "Download Template",
+      dragDropOrBrowse: "Drag and drop your file here, or click to browse",
+      chooseFile: "Choose File",
+      submitFeedback: "Submit Feedback", // Main form submit
+      historyTitle: "Your Feedback History",
+      searchFeedback: "Search feedback...",
+      noFeedback: "No feedback found. Add yours!",
+      feedbackAddedSuccess: "Feedback submitted successfully!",
+      feedbackAddedError: "Error submitting feedback.",
+      deleteFeedbackConfirmTitle: "Delete Feedback?",
+      deleteFeedbackConfirmDesc: "Are you sure you want to delete this feedback entry? This action cannot be undone.",
+      feedbackDeleted: "Feedback deleted",
+      errorDeletingFeedback: "Error deleting feedback",
+      errorMissingFields: "Please select source/target languages and provide keywords or a file.",
+      errorFileTooLarge: "File is too large. Maximum size is 5MB.",
+      errorInvalidFileType: "Invalid file type. Please upload a CSV, TSV, or XLSX file.",
+      fileSelected: "File selected: {fileName}",
+      keywords: "Keywords",
+      bulkFile: "Bulk File",
+      submitted: "Submitted",
+    }
   },
   
   // Common UI elements
@@ -337,7 +448,9 @@ const translations = {
     viewSummarySnippet: "View summary snippet",
     viewFullSummary: "View full summary",
     defaultName: "document",
-    fullSummaryTitle: "Full Summary: {docName}"
+    fullSummaryTitle: "Full Summary: {docName}",
+    rawMarkdownPreview: "Raw markdown preview of the document summary",
+    renderedMarkdownPreview: "Rendered Markdown preview of the document summary"
   },
   
   // File uploads
@@ -382,6 +495,16 @@ const translations = {
     error: "Failed to send feedback. Please try again.",
     characterCount: "{count}/3000",
     minCharacters: "Minimum 100 characters required"
+  },
+
+  languages: {
+    en: "English",
+    es: "Spanish",
+    fr: "French",
+    de: "German",
+    ja: "Japanese",
+    ko: "Korean",
+    zh: "Chinese (Simplified)"
   }
 };
 

@@ -2,60 +2,107 @@ const translations = {
   // Settings dialog
   settings: {
     title: "设置",
-    description: "自定义您的FlowserveAI体验。更改将立即应用。",
+    secondaryTitle: "更多",
+    description: "自定义您的FlowserveAI体验。更改将立即生效。",
     language: "语言",
-    save: "保存更改"
+    theme: "主题",
+    themeOptions: {
+      light: "浅色",
+      dark: "深色",
+      system: "系统"
+    },
+    save: "保存更改",
+    saveStatus: {
+      success: "设置已保存",
+      description: "您的设置已成功更新"
+    },
+    tools: "工具",
+    preferences: "偏好设置",
+    darkMode: "深色模式",
+    support: "帮助与支持",
+    policies: "政策",
+    selectLanguage: "选择语言",
+    search: "搜索语言...",
+    noLanguageMatch: "没有与您的搜索匹配的语言"
   },
-  
+
+  // Tools section
+  tools: {
+    documents: "文档",
+    documentsDesc: "查看和管理您上传的文档",
+    chat: "聊天",
+    chatDesc: "与Flowserve AI助手聊天",
+    jobs: "翻译",
+    jobsDesc: "翻译文本和文档",
+    translate: "翻译",
+    translationModule: "翻译模块",
+    products: "产品"
+  },
+
+  // Support section
+  support: {
+    help: "帮助中心",
+    helpDesc: "获取有关使用Flowserve AI的帮助"
+  },
+
+  // Policies section
+  policies: {
+    privacy: "隐私政策",
+    privacyDesc: "我们如何处理您的数据",
+    ai: "AI指南",
+    aiDesc: "我们如何负责任地使用AI"
+  },
+
   // Empty state
   emptyState: {
-    welcome: "欢迎使用FlowserveAI",
-    subtitle: "在Flowserve网络上安全地连接并与您的文档、知识库和AI聊天",
-    startTyping: "在下方输入开始对话",
+    welcome: "欢迎来到FlowserveAI",
+    subtitle: "在Flowserve网络上安全地连接您的文档、知识库和AI并与之聊天",
+    startTyping: "在下方输入以开始对话",
     suggestions: {
       aiChat: {
-        category: "AI聊天",
-        text: "离心泵是如何工作的？"
+        category: "产品",
+        text: "解释一下Flowserve IDURCO Mark 3高硅泵"
       },
       documents: {
-        category: "文档",
-        text: "总结我的维护文档"
+        category: "产品",
+        text: "如何操作Flowserve IDURCO Mark 3高硅铁泵？"
       },
       products: {
-        category: "产品",
-        text: "搜索流量控制阀"
+        category: "福利",
+        text: "我该如何管理我的401(k)投资？"
       }
     }
   },
-  
+
   // Welcome dialog
   welcomeDialog: {
-    title: "欢迎使用Flowserve AI",
-    subtitle: "您的智能辅助、文档分析和产品知识统一平台。",
+    title: "欢迎使用 Flowserve AI",
+    subtitle: "您的智能协助、文档分析和产品知识统一平台。",
     // AI section
     ai: {
       title: "Flowserve AI",
-      subtitle: "您的数字助手",
-      description: "通过自然对话获取答案，理解复杂主题，并获得与Flowserve产品相关的各种任务的帮助。",
+      subtitle: "您的数字助理",
+      description: "进行自然对话以获取答案、理解复杂主题并获得与Flowserve产品相关的各种任务的帮助。",
       capabilities: {
         root: "Flowserve AI能为您做什么？",
         answer: "回答问题",
         explain: "提供解释",
-        assist: "协助任务"
+        assist: "协助完成任务"
       }
     },
     // Document section
     documents: {
       title: "文档分析",
-      subtitle: "与您的文档对话",
+      subtitle: "与您的文档聊天",
       maxFileSize: "最大文件大小5MB",
       onlyPDF: "仅限PDF文件",
-      vectorSearch: "向量驱动的语义搜索",
-      description: "上传您的文档（PDF）并在聊天中直接与它们互动。通过我们的语义搜索技术，提出有关其内容的具体问题，获取摘要并提取信息。",
+      vectorSearch: "矢量驱动的语义搜索",
+      extractInfo: "从文档中提取信息",
+      description: "上传您的文档（PDF）并在聊天中直接与它们互动。针对其内容提出具体问题，获取摘要，并使用我们的语义搜索技术提取信息。",
       flow: {
         upload: {
           title: "上传文档",
-          description: "安全上传您的PDF文件。"
+          description: "安全地上传您的PDF文件。"
         },
         conversation: {
           title: "开始对话",
@@ -71,11 +118,12 @@ const translations = {
     translation: {
       title: "翻译",
       subtitle: "多语言支持",
-      description: "在各种语言之间翻译文本和文档。使用侧边栏中专门的\"翻译\"工具。",
-      supportedLanguages: "支持的文本语言：",
+      description: "在各种语言之间翻译文本和文档。使用侧边栏中专用的\"翻译\"工具。",
+      supportedLanguages: "文本支持的语言：",
       supportedDocTypes: "翻译模块支持的文档类型（未来）：",
-      videoTutorial: "视频教程（占位符）",
+      videoTutorial: "视频教程",
       videoComingSoon: "视频教程即将推出。",
+      unsupportedVideo: "您的浏览器不支持视频标签。",
       flow: {
         upload: {
           title: "上传",
@@ -87,7 +135,7 @@ const translations = {
         },
         receiveTranslation: {
           title: "接收翻译",
-          description: "获取您的翻译内容。"
+          description: "获取您翻译的内容。"
         },
         provideFeedback: {
           title: "提供反馈",
@@ -96,15 +144,16 @@ const translations = {
       }
     }
   },
-  
+
   // Chat-related
   chat: {
-    newChat: "新对话",
+    newChat: "新聊天",
     placeholder: "输入消息...",
+    placeholderMobile: "输入消息...",
     send: "发送",
     typing: "Flowserve AI正在输入...",
     loadMore: "加载更多消息",
-    emptyConversation: "开始新对话",
+    emptyConversation: "开始新的对话",
     uploadFile: "上传文件",
     today: "今天",
     yesterday: "昨天",
@@ -116,81 +165,297 @@ const translations = {
     errorLoading: "加载对话时出错",
     messageSent: "消息已发送",
     documentUploadSuccess: "文档上传成功",
-    documentUploadError: "上传文档时出错",
+    documentUploadError: "文档上传错误",
     documentProcessing: "文档处理中...",
-    documentReady: "文档准备就绪"
+    documentReady: "文档准备就绪",
+    welcome: "欢迎来到FlowserveAI聊天",
+    welcomeSubtitle: "在Flowserve网络上与您的文档、知识库和AI聊天",
+    newChatCreated: "新聊天已创建",
+    conversationDeleted: "对话已删除",
+    conversationRenamed: "对话已重命名",
+    renameCancelledEmpty: {
+      title: "重命名已取消",
+      description: "新标题不能为空"
+    },
+    renameCancelledUnchanged: {
+      title: "无更改",
+      description: "标题保持不变"
+    },
+    renameCancelled: "重命名已取消",
+    messageEdited: "消息已编辑",
+    notFound: "未找到聊天 {id}",
+    noActiveSession: "没有活动的聊天会话",
+    selectOrStartNew: "请从侧边栏选择一个聊天或开始新的对话",
+    aiDisclaimer: "AI的回复可能并非总是准确的。请务必核实重要信息。",
+    enterNewTitle: "输入新标题",
+    containsDocuments: "此对话包含文档"
+  },
+
+  // Documents page
+  documentsPage: {
+    title: "我的文档",
+    description: "浏览和管理您所有已上传的文档。",
+    noDocuments: {
+      title: "未找到文档",
+      description: "您尚未上传任何文档。在任何聊天中上传文档即可在此处查看它们。",
+      action: "前往聊天"
+    },
+    document: {
+      uploaded: "已上传",
+      size: "大小",
+      viewSummary: "查看摘要",
+      chatAction: "就文档聊天"
+    },
+    loading: "加载中..."
+  },
+
+  // Documents page (used in documents/page.tsx)
+  documents: {
+    title: "我的文档",
+    description: "浏览和管理您所有已上传的文档。",
+    noDocumentsFound: "未找到文档",
+    noDocumentsDesc: "您尚未上传任何文档。在任何聊天中上传文档即可在此处查看它们。",
+    goToChat: "前往聊天",
+    uploaded: "已上传",
+    size: "大小",
+    viewSummarySnippet: "查看摘要片段",
+    viewFullSummary: "查看完整摘要",
+    fullSummary: "完整摘要",
+    chatAboutDocument: "就文档聊天",
+    rawMarkdownPreview: "文档摘要的原始markdown预览"
+  },
+
+  // Translation page
+  translation: {
+    new: "新建翻译任务",
+    edit: "编辑任务",
+    noActiveJob: "无活动任务",
+    createNew: "创建新任务或从历史记录中选择一个",
+    createNewButton: "创建新任务",
+    jobTitle: "任务标题",
+    enterJobTitle: "输入任务标题",
+    jobType: "任务类型",
+    selectJobType: "选择任务类型",
+    textTranslation: "文本翻译",
+    documentTranslation: "文档翻译",
+    sourceLanguage: "源语言",
+    selectSourceLanguage: "选择源语言",
+    autoDetect: "自动检测",
+    targetLanguage: "目标语言",
+    selectTargetLanguage: "选择目标语言",
+    enterTextToTranslate: "输入要翻译的文本...",
+    characters: "字符",
+    copyText: "复制文本",
+    speakText: "朗读文本",
+    translationWillAppear: "翻译将显示在此处...",
+    copyTranslation: "复制翻译",
+    speakTranslation: "朗读翻译",
+    jobHistory: "任务历史",
+    newJob: "新建任务",
+    searchJobs: "搜索任务",
+    status: "状态",
+    filterByStatus: "按状态筛选",
+    allTypes: "所有类型", 
+    textJobs: "文本任务",
+    documentJobs: "文档任务",
+    noJobsMatch: "没有符合条件的任务",
+    adjustFilters: "请调整筛选条件",
+    deleteJob: "删除任务",
+    cancel: "取消",
+    save: "保存",
+    saved: "已保存",
+    translate: "翻译",
+    translating: "翻译中...",
+    completed: "已完成",
+    discardChanges: "放弃未保存的更改？",
+    unsavedChangesDesc: "您有未保存的更改。您确定要放弃它们并取消编辑此任务吗？",
+    keepEditing: "继续编辑",
+    discardAndReset: "放弃并重置",
+    deleteJobConfirm: "删除任务？",
+    deleteJobDesc: "您确定要删除任务 \"{jobName}\" 吗？此操作不能撤消。",
+    maxFiles: "最多 {max} 个文件。总计最大 {size} MB。",
+    browseFiles: "浏览文件",
+    selectedFiles: "已选择文件 ({count}/{max})：",
+    togglePdfDocx: "切换 PDF→DOCX",
+    pdfToDocxTooltip: "在翻译期间将PDF转换为DOCX",
+    removeFile: "移除文件",
+    translatedDocuments: "{language} 的已翻译文档：",
+    download: "下载",
+    downloadSelected: "下载选择的文件",
+    downloadAllZip: "全部下载为ZIP",
+    translationIssues: "翻译问题",
+    actionCancelled: "操作已取消",
+    actionCancelledDesc: "当前操作已取消。",
+    
+    // Toast messages
+    jobSaved: "任务已保存",
+    jobSavedDesc: "'{name}'已成功保存",
+    jobDeleted: "任务已删除",
+    jobArchived: "任务已归档",
+    jobUnarchived: "任务已取消归档",
+    copiedToClipboard: "已复制到剪贴板",
+    jobTypeSwitched: "任务类型已切换",
+    jobTypeSwitchedDesc: "先前的数据已删除",
+    nothingToSave: "没有内容可保存",
+    nothingToSaveDesc: "没有活动任务可保存",
+    
+    // Error messages
+    jobTitleRequired: "需要任务标题",
+    jobTitleRequiredDesc: "请为此任务输入标题",
+    jobTitleRequiredDesc2: "翻译前请输入标题",
+    inputRequired: "需要文本",
+    inputRequiredDesc: "请输入要翻译的文本",
+    errorTitle: "错误",
+    errorStartTranslationDesc: "无法开始翻译",
+    translationError: "翻译错误",
+    translationErrorDesc: "无法完成翻译",
+    
+    // Status notifications
+    translationComplete: "翻译完成",
+    translationCompleteDesc: "'{title}'已成功翻译",
+    documentJobComplete: "文档翻译完成",
+    documentJobCompleteDesc: "'{title}'已成功处理",
+    documentJobIssues: "文档任务问题",
+    documentJobIssuesDesc: "处理'{title}'时遇到问题",
+    jobUpdated: "任务已更新",
+    jobUpdatedDesc: "'{title}'已更新",
+    
+    // File processing messages
+    fileLimitReached: "已达到文件限制",
+    fileLimitReachedDesc: "每个任务最多{max}个文件",
+    invalidFileType: "无效的文件类型",
+    invalidFileTypeDesc: "不支持'{fileName}'",
+    sizeLimitExceeded: "超出大小限制",
+    sizeLimitExceededDesc: "总大小超过{max}MB",
+    fileProcessed: "文件已处理",
+    fileProcessedDesc: "'{fileName}'已成功处理",
+    fileFailed: "文件处理失败",
+    fileFailedDesc: "无法处理'{fileName}'",
+    allFilesProcessed: "所有文件已处理",
+    allFilesProcessedDesc: "所有文件已经处理完毕",
+    noFilesUploaded: "未上传文件",
+    noFilesUploadedDesc: "请至少上传一个文件",
+    noFilesSelected: "未选择文件",
+    noFilesSelectedDesc: "请至少选择一个文件",
+    downloadSelectedSimulated: "模拟下载",
+    downloadSelectedSimulatedDesc: "以下内容的模拟下载：{fileList}",
+    downloadAllZipSimulated: "模拟ZIP下载",
+    downloadAllZipSimulatedDesc: "模拟{count}个文件的ZIP下载",
+    noTranslatedFiles: "没有翻译文件",
+    noTranslatedFilesDesc: "没有针对此语言的翻译文件",
+    downloadSimulated: "模拟下载",
+    downloadSimulatedDesc: "'{fileName}'的模拟下载"
+  },
+
+  // Common UI elements
+  common: {
+    close: "关闭",
+    chat: "聊天",
+    unknownError: "未知错误",
+    selectedChat: "选定的聊天",
+    appName: "FlowserveAI",
+    invalidDate: "无效日期",
+    logoAlt: "Flowserve AI"
+  },
+
+  // Action buttons
+  actions: {
+    rename: "重命名",
+    delete: "删除",
+    cancel: "取消",
+    close: "关闭",
+    goToChats: "前往聊天",
+    copiedToClipboard: "已复制到剪贴板"
+  },
+
+  // Sidebar elements
+  sidebar: {
+    conversations: "最近的对话",
+    tools: "工具"
+  },
+
+  // Account section
+  account: {
+    myAccount: "我的账户",
+    profile: "个人资料",
+    logout: "注销"
+  },
+
+  // Alerts
+  alerts: {
+    deleteConfirm: {
+      title: "删除对话？",
+      description: "您确定要删除\"{title}\"吗？此操作无法撤销。"
+    }
+  },
+
+  // Document related
+  document: {
+    viewSummarySnippet: "查看摘要片段",
+    viewFullSummary: "查看完整摘要",
+    defaultName: "文档",
+    fullSummaryTitle: "完整摘要：{docName}"
+  },
+
+  // File uploads
+  uploads: {
+    fileTooLarge: {
+      title: "文件过大",
+      description: "最大文件大小为{maxSize}MB"
+    },
+    invalidType: {
+      title: "无效的文件类型",
+      description: "允许的文件：{allowed}"
+    },
+    preparing: "正在准备上传 {fileName}...",
+    processingAi: "正在使用AI处理 {fileName}...",
+    processingComplete: "{fileName} 处理完成",
+    processingFailed: "{fileName} 处理失败",
+    readingFailed: "{fileName} 读取失败",
+    uploadFailed: "{fileName} 上传失败",
+    fileProcessed: "文件已处理",
+    fileProcessedSummary: "{fileName} 处理成功",
+    aiError: "AI处理错误",
+    couldNotProcess: "无法处理 {fileName}",
+    status: {
+      pendingUpload: "等待上传...",
+      uploading: "上传中... {progress}%",
+      pendingProcessing: "等待AI处理...",
+      processing: "处理中... {progress}%",
+      completed: "已完成",
+      failed: "失败"
+    }
+  },
+
+  // Feedback dialog
+  feedback: {
+    title: "发送反馈",
+    description: "分享您使用FlowserveAI的体验。您的反馈有助于我们改进。",
+    placeholder: "告诉我们您的体验...",
+    send: "发送反馈",
+    cancel: "取消",
+    sending: "正在发送反馈...",
+    success: "反馈发送成功！",
+    error: "发送反馈失败。请重试。",
+    characterCount: "{count}/3000",
+    minCharacters: "至少需要100个字符"
   },
   
-  // Quick Actions
-  quickActions: {
-    title: "快速操作",
-    questions: {
-      espp: {
-        question: "什么是员工股票购买计划 (ESPP)?",
-        answer: `# 员工股票购买计划 (ESPP)
-
-## 概述
-ESPP允许符合条件的员工通过工资扣除以折扣价购买Flowserve股票。
-
-## 主要特点
-- 以15%折扣购买股票
-- 自动工资扣除
-- 季度购买期
-- 无经纪费用
-- 即时归属
-
-## 资格要求
-- 正式全职员工
-- 至少90天工作经历
-- 不在休假期间
-
-## 参与方式
-1. 在开放注册期间注册
-2. 选择供款百分比（合格薪酬的1-10%）
-3. 从每份工资中扣除资金
-4. 股票按季度以15%折扣购买
-
-## 税务考虑
-- 购买使用税后美元
-- 收益按普通收入或资本利得征税
-- 咨询税务顾问获取具体指导`
-      },
-      retirement: {
-        question: "如何管理我的401(k)投资?",
-        answer: `# 管理401(k)投资
-
-## 概述
-Flowserve 401(k)计划提供多种投资选择，帮助您为退休储蓄。
-
-## 主要特点
-- 公司匹配最高可达合格薪酬的6%
-- 公司匹配即时归属
-- 广泛的投资选择
-- 专业投资管理
-- 在线账户访问
-
-## 投资选择
-1. 目标日期基金
-2. 指数基金
-3. 主动管理基金
-4. 公司股票基金
-5. 稳定价值基金
-
-## 管理方法
-1. 登录[退休门户]账户
-2. 查看当前配置
-3. 调整供款百分比
-4. 根据需要重新平衡投资组合
-5. 定期监控表现
-
-## 最佳实践
-- 至少供款6%以获得全额公司匹配
-- 在不同资产类别间分散投资
-- 每年审查和重新平衡
-- 考虑目标日期基金以简化操作
-- 随薪资增长增加供款`
-      }
-    }
+  // Language names
+  languages: {
+    en: "英语",
+    es: "西班牙语",
+    ta: "泰米尔语",
+    hi: "印地语",
+    ru: "俄语",
+    fr: "法语",
+    de: "德语",
+    it: "意大利语",
+    pt: "葡萄牙语",
+    zh: "中文（简体）",
+    ja: "日语",
+    ko: "韩语",
+    ar: "阿拉伯语"
   }
 };
 

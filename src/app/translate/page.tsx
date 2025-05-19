@@ -31,11 +31,17 @@ import useTranslation from '@/app/hooks/useTranslation';
 const supportedLanguages = [
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Spanish' },
+  { code: 'ta', name: 'Tamil' },
+  { code: 'hi', name: 'Hindi' },
+  { code: 'ru', name: 'Russian' },
   { code: 'fr', name: 'French' },
   { code: 'de', name: 'German' },
+  { code: 'it', name: 'Italian' },
+  { code: 'pt', name: 'Portuguese' },
+  { code: 'zh', name: 'Chinese (Simplified)' },
   { code: 'ja', name: 'Japanese' },
   { code: 'ko', name: 'Korean' },
-  { code: 'zh', name: 'Chinese (Simplified)' },
+  { code: 'ar', name: 'Arabic' },
 ];
 
 const MAX_JOB_TITLE_LENGTH = 100;
@@ -306,7 +312,7 @@ const TranslatePage = () => {
         setInputText(''); 
         setOutputText('');
       }
-      // toast({ title: "Job Type Switched", description: `Switched to ${newType} translation. Save or translate to confirm.`, variant: "default" });
+      toast({ title: t('translation.jobTypeSwitched'), description: t('translation.jobTypeSwitchedDesc'), variant: "default" });
     } else {
       // No active job, so set up a new temporary one with the selected type
       handleNewJob(newType);
@@ -336,11 +342,11 @@ const TranslatePage = () => {
 
   const handleSaveDraft = () => {
     if (!activeJob) {
-        toast({ title: "Nothing to save", description: "Create or select a job to save.", variant: "default" });
+        toast({ title: t('translation.nothingToSave'), description: t('translation.nothingToSaveDesc'), variant: "default" });
         return;
     }
     if (!jobTitle.trim()) {
-      toast({ title: "Job title required", description: "Please enter a title for the job.", variant: "destructive" });
+      toast({ title: t('translation.jobTitleRequired'), description: t('translation.jobTitleRequiredDesc'), variant: "destructive" });
       return;
     }
 
@@ -352,7 +358,7 @@ const TranslatePage = () => {
     );
     
     if (savedJob) {
-        toast({ title: "Job Saved", description: `Job "${savedJob.name}" saved.` });
+        toast({ title: t('translation.jobSaved'), description: translateWithParams(t, 'translation.jobSavedDesc', { name: savedJob.name }) });
     }
   };
   
@@ -377,12 +383,12 @@ const TranslatePage = () => {
   const handleTranslateTextJob = async () => {
     if (!activeJob || jobType !== 'text' || !inputText.trim()) {
         if (!inputText.trim() && jobType === 'text') {
-             toast({ title: "Input required", description: "Please enter text to translate.", variant: "destructive" });
+             toast({ title: t('translation.inputRequired'), description: t('translation.inputRequiredDesc'), variant: "destructive" });
         }
         return;
     }
     if (!jobTitle.trim()) {
-        toast({ title: "Job title required", description: "Please enter a title for the job before translating.", variant: "destructive" });
+        toast({ title: t('translation.jobTitleRequired'), description: t('translation.jobTitleRequiredDesc2'), variant: "destructive" });
         return;
     }
 
@@ -392,7 +398,7 @@ const TranslatePage = () => {
     const jobWithProgress = ensureActiveJobIsPersisted();
     if(!jobWithProgress) {
       setIsLoading(false);
-      toast({ title: "Error", description: "Could not start translation. Active job not found.", variant: "destructive" });
+      toast({ title: t('translation.errorTitle'), description: t('translation.errorStartTranslationDesc'), variant: "destructive" });
       return;
     }
     
@@ -410,11 +416,11 @@ const TranslatePage = () => {
       persistActiveJobDetails({ 
         outputTextByLanguage: { ...(activeJob?.outputTextByLanguage || {}), [targetLang]: result.translatedText },
       }, 'complete');
-      toast({ title: "Translation Complete", description: `Job "${jobTitle}" finished.` });
+      toast({ title: t('translation.translationComplete'), description: translateWithParams(t, 'translation.translationCompleteDesc', { title: jobTitle }) });
     } catch (error) {
       console.error("Translation failed:", error);
-      persistActiveJobDetails({ errorMessage: "Translation API call failed." }, 'failed');
-      toast({ title: "Translation Error", description: "Could not translate text.", variant: "destructive" });
+      persistActiveJobDetails({ errorMessage: t('translation.translationErrorDesc') }, 'failed');
+      toast({ title: t('translation.translationError'), description: t('translation.translationErrorDesc'), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -440,10 +446,10 @@ const TranslatePage = () => {
     const success = Math.random() > 0.1; 
     if (success) {
       currentFileState = { ...currentFileState, status: 'completed', progress: 100 };
-      toast({ title: "File Processed", description: `${currentFileState.originalName} translation complete (simulated).` });
+      toast({ title: t('translation.fileProcessed'), description: translateWithParams(t, 'translation.fileProcessedDesc', { fileName: currentFileState.originalName }) });
     } else {
-      currentFileState = { ...currentFileState, status: 'failed', progress: 100, error: "Simulated processing failure." };
-      toast({ title: "File Failed", description: `${currentFileState.originalName} failed to translate (simulated).`, variant: "destructive" });
+      currentFileState = { ...currentFileState, status: 'failed', progress: 100, error: t('translation.fileFailed') };
+      toast({ title: t('translation.fileFailed'), description: translateWithParams(t, 'translation.fileFailedDesc', { fileName: currentFileState.originalName }), variant: "destructive" });
     }
     setUploadedFiles(prev => prev.map(f => f.id === currentFileState.id ? currentFileState : f));
     return currentFileState;
@@ -471,7 +477,7 @@ const TranslatePage = () => {
       jobContext = switchedJob;
       setInputText(''); // Clear text fields explicitly
       setOutputText('');
-      toast({ title: "Job type switched", description: "Switched to Document Translation mode."});
+      toast({ title: t('translation.jobTypeSwitched'), description: t('translation.jobTypeSwitchedDesc'), variant: "default" });
     }
     
     processFiles(Array.from(files), jobContext); // Pass the current jobContext
@@ -486,15 +492,15 @@ const TranslatePage = () => {
 
     for (const file of filesToProcess) {
       if (currentSourceFiles.length + newUploads.length >= MAX_FILES_PER_JOB) {
-        toast({ title: "File limit reached", description: `Maximum ${MAX_FILES_PER_JOB} files per job.`, variant: "destructive" });
+        toast({ title: t('translation.fileLimitReached'), description: translateWithParams(t, 'translation.fileLimitReachedDesc', { max: MAX_FILES_PER_JOB }), variant: "destructive" });
         break;
       }
       if (!ALLOWED_DOC_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext)) && !ALLOWED_DOC_MIMES[file.type]) {
-        toast({ title: "Invalid file type", description: `${file.name} is not a supported document type.`, variant: "destructive" });
+        toast({ title: t('translation.invalidFileType'), description: translateWithParams(t, 'translation.invalidFileTypeDesc', { fileName: file.name }), variant: "destructive" });
         continue;
       }
       if (currentTotalSize + file.size > MAX_TOTAL_UPLOAD_SIZE_BYTES) {
-        toast({ title: "Size limit exceeded", description: `Total upload size cannot exceed ${MAX_TOTAL_UPLOAD_SIZE_MB}MB.`, variant: "destructive" });
+        toast({ title: t('translation.sizeLimitExceeded'), description: translateWithParams(t, 'translation.sizeLimitExceededDesc', { max: MAX_TOTAL_UPLOAD_SIZE_MB }), variant: "destructive" });
         break;
       }
 
@@ -517,7 +523,6 @@ const TranslatePage = () => {
       // Update the temporary activeJob with these new files. 
       // It will be persisted on save/translate if it's a new job.
       setActiveJob(prev => prev ? { ...prev, sourceFiles: updatedSourceFilesList, type: 'document', status: 'draft' } : null);
-      // toast({ title: "Files Added", description: `${newUploads.length} file(s) added to the job. Save or translate to confirm.` });
     }
   };
   
@@ -536,14 +541,14 @@ const TranslatePage = () => {
   const handleTranslateDocumentJob = async () => {
     if (!activeJob || jobType !== 'document' || uploadedFiles.filter(f => f.status === 'queued' || f.status === 'failed').length === 0) {
         if (jobType === 'document' && uploadedFiles.every(f => f.status === 'completed' || f.status === 'processing')) {
-            toast({title: "All files processed or in progress", description: "No new files to translate in this job.", variant: "default"});
+            toast({title: t('translation.allFilesProcessed'), description: t('translation.allFilesProcessedDesc'), variant: "default"});
         } else if (jobType === 'document' && uploadedFiles.length === 0) {
-             toast({title: "No files uploaded", description: "Please upload documents to translate.", variant: "destructive"});
+             toast({title: t('translation.noFilesUploaded'), description: t('translation.noFilesUploadedDesc'), variant: "destructive"});
         }
         return;
     }
      if (!jobTitle.trim()) {
-        toast({ title: "Job title required", description: "Please enter a title for the job before translating.", variant: "destructive" });
+        toast({ title: t('translation.jobTitleRequired'), description: t('translation.jobTitleRequiredDesc2'), variant: "destructive" });
         return;
     }
     
@@ -552,7 +557,7 @@ const TranslatePage = () => {
     const jobForTranslation = ensureActiveJobIsPersisted();
     if (!jobForTranslation) {
       setIsLoading(false);
-      toast({ title: "Error", description: "Could not start translation. Active job not found.", variant: "destructive" });
+      toast({ title: t('translation.errorTitle'), description: t('translation.errorStartTranslationDesc'), variant: "destructive" });
       return;
     }
     
@@ -601,11 +606,11 @@ const TranslatePage = () => {
     persistActiveJobDetails({ status: finalStatus }); // Persist final job status
     
     if (finalStatus === 'complete') {
-      toast({ title: "Document Translation Job Complete", description: `Job "${jobTitle}" finished processing all files.` });
+      toast({ title: t('translation.documentJobComplete'), description: translateWithParams(t, 'translation.documentJobCompleteDesc', { title: jobTitle }) });
     } else if (finalStatus === 'failed') {
-      toast({ title: "Document Translation Job Issues", description: `Job "${jobTitle}" completed with some errors.`, variant: "destructive" });
+      toast({ title: t('translation.documentJobIssues'), description: translateWithParams(t, 'translation.documentJobIssuesDesc', { title: jobTitle }), variant: "destructive" });
     } else if (finalStatus === 'in-progress' && !currentSourceFilesState.some(f => f.status === 'processing' || f.status === 'queued')) {
-      toast({ title: "Job Update", description: `Job "${jobTitle}" status updated.`});
+      toast({ title: t('translation.jobUpdated'), description: translateWithParams(t, 'translation.jobUpdatedDesc', { title: jobTitle })});
     }
     setIsLoading(false);
   };
@@ -619,18 +624,18 @@ const TranslatePage = () => {
         .filter(([_,isSelected]) => isSelected)
         .map(([fileName,_]) => fileName);
     if (filesToDownload.length === 0) {
-        toast({title: "No files selected", description: "Please select files to download.", variant: "destructive"});
+        toast({title: t('translation.noFilesSelected'), description: t('translation.noFilesSelectedDesc'), variant: "destructive"});
         return;
     }
-    toast({title: "Download Selected (Simulated)", description: `Simulating download of: ${filesToDownload.join(', ')}`});
+    toast({title: t('translation.downloadSelectedSimulated'), description: translateWithParams(t, 'translation.downloadSelectedSimulatedDesc', { fileList: filesToDownload.join(', ') })});
   };
 
   const handleDownloadAllZip = () => {
     if (!activeJob || !activeJob.translatedFilesByLanguage?.[targetLang] || activeJob.translatedFilesByLanguage[targetLang].length === 0) {
-        toast({title: "No translated files", description: "There are no translated files to download.", variant: "destructive"});
+        toast({title: t('translation.noTranslatedFiles'), description: t('translation.noTranslatedFilesDesc'), variant: "destructive"});
         return;
     }
-    toast({title: "Download All as ZIP (Simulated)", description: `Simulating ZIP download for all ${activeJob.translatedFilesByLanguage[targetLang].length} files.`});
+    toast({title: t('translation.downloadAllZipSimulated'), description: translateWithParams(t, 'translation.downloadAllZipSimulatedDesc', { count: activeJob.translatedFilesByLanguage[targetLang].length })});
   };
 
 
@@ -659,7 +664,7 @@ const TranslatePage = () => {
     if (activeJob?.id === jobIdPendingDeletion) {
       resetMainFormToEmpty(true);
     }
-    toast({ title: "Job Deleted" });
+    toast({ title: t('translation.jobDeleted') });
     setShowDeleteConfirmModal(false);
     setJobIdPendingDeletion(null);
   };
@@ -681,14 +686,14 @@ const TranslatePage = () => {
                  loadJobToForm(reloadedJob); // Reload to reflect status change in form
              }
         }
-        toast({ title: jobToUpdate.status === 'archived' ? "Job Unarchived" : "Job Archived" });
+        toast({ title: jobToUpdate.status === 'archived' ? t('translation.jobUnarchived') : t('translation.jobArchived') });
      }
   };
 
   const handleCopy = (text: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
-    toast({ title: "Copied to clipboard" });
+    toast({ title: t('translation.copiedToClipboard') });
   };
 
   const handleTTS = (text: string) => {
@@ -923,7 +928,7 @@ const TranslatePage = () => {
                                         <TooltipContent><p>{artifact.name}</p></TooltipContent>
                                       </Tooltip>
                                   </div>
-                                  <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => toast({title: "Download (Simulated)", description: `Would download ${artifact.name}`})}>
+                                  <Button variant="outline" size="sm" className="h-7 text-xs shrink-0" onClick={() => toast({title: t('translation.downloadSimulated'), description: translateWithParams(t, 'translation.downloadSimulatedDesc', { fileName: artifact.name })})}>
                                       <Download size={14} className="mr-1"/> {t('translation.download')}
                                   </Button>
                                 </li>

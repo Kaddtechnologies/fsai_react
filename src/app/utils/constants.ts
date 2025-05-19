@@ -133,6 +133,7 @@ export const TRANSLATION_CONFIG: TranslationConfig = {
   availableLanguages: [
     { code: 'en', name: 'English', nativeName: 'English' },
     { code: 'es', name: 'Spanish', nativeName: 'Español' },
+    { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
     { code: 'fr', name: 'French', nativeName: 'Français' },
     { code: 'de', name: 'German', nativeName: 'Deutsch' },
     { code: 'it', name: 'Italian', nativeName: 'Italiano' },
@@ -141,10 +142,13 @@ export const TRANSLATION_CONFIG: TranslationConfig = {
     { code: 'ja', name: 'Japanese', nativeName: '日本語' },
     { code: 'ko', name: 'Korean', nativeName: '한국어' },
     { code: 'ar', name: 'Arabic', nativeName: 'العربية' },
+    { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+    { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
   ],
   autoDetect: true,
   apiEndpoint: '/api/translate',
   enableCache: true,
+  defaultLanguage: 'en',
 };
 
 /**

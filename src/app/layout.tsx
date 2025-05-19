@@ -4,10 +4,14 @@ import { roboto, robotoMono } from '@/lib/fonts';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import AppClientLayout from '@/components/layout/app-client-layout';
+import StorageInitializer from '@/components/storage/storage-initializer';
 
 export const metadata: Metadata = {
   title: 'FlowserveAI',
   description: 'Unified AI-powered workspace for documents, products, and chat.',
+  icons: {
+    icon: '/assets/icons/favicon.ico',
+  },
   viewport: {
     width: 'device-width',
     initialScale: 1,
@@ -30,7 +34,9 @@ export default function RootLayout({
             Loading... 
           </div>
         }>
-          <AppClientLayout>{children}</AppClientLayout>
+          <StorageInitializer>
+            <AppClientLayout>{children}</AppClientLayout>
+          </StorageInitializer>
         </Suspense>
         <Toaster />
       </body>

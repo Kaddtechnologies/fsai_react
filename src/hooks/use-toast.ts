@@ -173,16 +173,21 @@ function toast({ ...props }: Toast) {
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
+  
+  // Use a stable reference to setState to avoid dependency issues
+  const stableSetState = React.useCallback((value: State) => {
+    setState(value);
+  }, []);
 
   React.useEffect(() => {
-    listeners.push(setState)
+    listeners.push(stableSetState)
     return () => {
-      const index = listeners.indexOf(setState)
+      const index = listeners.indexOf(stableSetState)
       if (index > -1) {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [])
 
   return {
     ...state,

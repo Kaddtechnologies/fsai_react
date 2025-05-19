@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from 'react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, Fragment, memo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -45,11 +45,11 @@ import {
   MessageSquare,
   User,
   MessageCircle,
-  Ellipsis,
   Menu,
   X,
   Plus,
-  Search
+  Search,
+  LucideEdit3
 } from 'lucide-react';
 import type { Conversation, Message, ConversationType, Document } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -79,10 +79,11 @@ import { cn } from '@/lib/utils';
 import WelcomeDialog from '@/components/help/welcome-dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Separator } from '@/components/ui/separator';
-import MoreBottomSheet from '@/components/settings/settings.bottomsheet';
+import SettingsSidePanel from '@/components/settings/settings.sidepanel';
 import { MOCK_USER } from '@/app/utils/constants';
 import useTranslation from '@/app/hooks/useTranslation';
 import FeedbackDialog from '@/components/feedback/feedback-dialog';
+import SettingsDialog from '@/components/settings/settings-dialog';
 // Define Loader2 directly in the file
 const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
@@ -136,6 +137,7 @@ const ConversationTypeIcon = ({ type }: { type: ConversationType }) => {
 // We need to create a wrapper component that handles loading before using SidebarProvider
 function AppWrapper({ children }: AppClientLayoutProps): JSX.Element {
   const [isMounted, setIsMounted] = useState(false);
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     setIsMounted(true);
@@ -173,11 +175,119 @@ function AppWrapper({ children }: AppClientLayoutProps): JSX.Element {
   }
   
   return (
-    <SidebarProvider defaultOpen={true}>
+    <SidebarProvider defaultOpen={!isMobile}>
       {children}
     </SidebarProvider>
   );
 }
+
+// Conversation list component 
+const ConversationList = memo(({ 
+  conversations, 
+  searchQuery, 
+  activeConversationId,
+  onConversationSelect,
+  onRename,
+  onDelete,
+  formatDate,
+  getMessagePreview,
+  getUnreadCount,
+  t
+}: { 
+  conversations: Conversation[],
+  searchQuery: string,
+  activeConversationId: string | null,
+  onConversationSelect: (id: string) => void,
+  onRename: (id: string, title: string) => void,
+  onDelete: (id: string) => void,
+  formatDate: (date: Date) => string,
+  getMessagePreview: (messages: Message[]) => string,
+  getUnreadCount: (id: string) => number,
+  t: (key: string) => string
+}) => {
+  const filteredConversations = searchQuery.trim() === '' 
+    ? conversations 
+    : conversations.filter(conv => 
+        conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+  
+  if (filteredConversations.length === 0) {
+    return (
+      <div className="p-4 text-center text-gray-400">
+        No conversations found
+      </div>
+    );
+  }
+  
+  return (
+    <>
+      {filteredConversations.map((conv) => {
+        const lastMessagePreview = getMessagePreview(conv.messages);
+        const unreadCount = getUnreadCount(conv.id);
+        const formattedDate = formatDate(new Date(conv.updatedAt));
+        
+        return (
+          <div 
+            key={conv.id}
+            className={`relative p-4 border-b border-gray-700 hover:bg-[#2a2f45] ${activeConversationId === conv.id ? 'bg-[#2a3050]' : ''}`}
+          >
+            <div 
+              className="cursor-pointer"
+              onClick={() => onConversationSelect(conv.id)}
+            >
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-white">{conv.title}</h3>
+                {unreadCount > 0 && (
+                  <span className="bg-primary-gradient text-white text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <p className="text-gray-400 text-sm mt-1 line-clamp-1">{lastMessagePreview}</p>
+              <p className="text-gray-500 text-xs mt-2">{formattedDate}</p>
+            </div>
+            
+            {/* Actions menu */}
+            <div className="absolute top-2 right-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button 
+                    className="p-1 text-gray-400 hover:text-white focus:outline-none"
+                    onClick={(e) => e.stopPropagation()} // Stop event bubbling
+                  >
+                    <EllipsisVertical size={16} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="left" align="end" className="bg-[#2a2f45] text-white border-gray-700">
+                  <DropdownMenuItem 
+                    className="hover:bg-[#3a3f55] cursor-pointer focus:bg-[#3a3f55]"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Stop event bubbling
+                      onRename(conv.id, conv.title);
+                    }}
+                  >
+                    <Edit3 className="mr-2 h-4 w-4" /> {t('actions.rename')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="text-red-400 hover:bg-[#3a3f55] cursor-pointer focus:bg-[#3a3f55]"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Stop event bubbling
+                      onDelete(conv.id);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> {t('actions.delete')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+});
+
+ConversationList.displayName = 'ConversationList';
 
 function AppContent({ children }: { children: ReactNode }): JSX.Element
   {
@@ -190,6 +300,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const { t } = useTranslation();
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -200,29 +311,51 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
   const [newTitle, setNewTitle] = useState('');
   const [isWelcomeDialogOpen, setIsWelcomeDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
+  
+  // Add a ref to track if we've already loaded from storage
+  const hasLoadedFromStorage = useRef(false);
 
-  const loadStateFromLocalStorage = useCallback(() => {
-    if (typeof window === 'undefined') return;
-    const storedConversations = localStorage.getItem('flowserveai-conversations');
-    let loadedConversations: Conversation[] = [];
-    if (storedConversations) {
-      try {
-        loadedConversations = JSON.parse(storedConversations);
-        loadedConversations.sort((a, b) => b.updatedAt - a.updatedAt);
-      } catch (e) {
-        console.error("Failed to parse conversations from localStorage", e);
-        localStorage.removeItem('flowserveai-conversations');
-      }
+  // Memoized callbacks for Sheet components to prevent render loops
+  const handleSheetOpenChange = useCallback((open: boolean) => {
+    // Avoid needless re-renders by only updating when the state actually changes
+    if (open !== sidebarContext.open) {
+      sidebarContext.setOpen(open);
     }
+  }, [sidebarContext]);
+  
+  const handleToggleSidebar = useCallback(() => {
+    sidebarContext.setOpen(!sidebarContext.open);
+  }, [sidebarContext]);
+
+  const handleMoreSheetOpenChange = useCallback((open: boolean) => {
+    // Only update if state is changing
+    if (open !== isMoreSheetOpen) {
+      setIsMoreSheetOpen(open);
+    }
+  }, [isMoreSheetOpen]);
+
+  const handleToggleMoreSheet = useCallback(() => {
+    setIsMoreSheetOpen(!isMoreSheetOpen);
+  }, [isMoreSheetOpen]);
+
+  // Load state from the storage system using our new API
+  // Stable callback for loading state from localStorage
+  const loadStateFromLocalStorage = useCallback(() => {
+    // Only run this once
+    if (hasLoadedFromStorage.current) return;
+    
+    if (typeof window === 'undefined') return;
+    
+    // Get conversations from storage using stable utilities
+    const loadedConversations = storageUtils.getConversations();
     setConversations(loadedConversations);
 
+    // Determine the active conversation ID from URL or storage
     const chatIdFromUrl = searchParams.get('chatId');
-    const storedActiveId = localStorage.getItem('flowserveai-activeConversationId');
-
+    const storedActiveId = storageUtils.getActiveConversationId();
     let currentActiveId = chatIdFromUrl;
 
-    if (!currentActiveId && storedActiveId && loadedConversations.find(c => c.id === storedActiveId)) {
+    if (!currentActiveId && storedActiveId && loadedConversations.find((c: { id: any; }) => c.id === storedActiveId)) {
       currentActiveId = storedActiveId;
     }
     if (!currentActiveId && loadedConversations.length > 0 && pathname === '/') {
@@ -231,35 +364,54 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
     
     setActiveConversationId(currentActiveId);
 
+    // Sync active ID with storage and URL
     if (currentActiveId) {
-      if(currentActiveId !== storedActiveId) {
-        localStorage.setItem('flowserveai-activeConversationId', currentActiveId);
+      if (currentActiveId !== storedActiveId) {
+        storageUtils.setActiveConversationId(currentActiveId);
       }
       if (pathname === '/' && (!chatIdFromUrl || chatIdFromUrl !== currentActiveId)) {
-         const documentIdToDiscuss = searchParams.get('documentIdToDiscuss');
-         router.replace(`/?chatId=${currentActiveId}${documentIdToDiscuss ? `&documentIdToDiscuss=${documentIdToDiscuss}`: ''}`, { scroll: false });
+        const documentIdToDiscuss = searchParams.get('documentIdToDiscuss');
+        router.replace(`/?chatId=${currentActiveId}${documentIdToDiscuss ? `&documentIdToDiscuss=${documentIdToDiscuss}`: ''}`, { scroll: false });
       }
     } else if (pathname === '/' && chatIdFromUrl) {
       router.replace('/', {scroll: false});
     }
+    
+    // Mark as loaded to prevent multiple loads
+    hasLoadedFromStorage.current = true;
   }, [pathname, router, searchParams]);
 
+  // Define handleStorageUpdate outside of useEffect
+  const handleStorageUpdate = useCallback((event: StorageEvent | CustomEvent) => {
+    // Don't respond to storage events until after initial load
+    if (!hasLoadedFromStorage.current) return;
+    
+    let key: string | null = null;
+    if (event instanceof StorageEvent) {
+      key = event.key;
+    } else if (event instanceof CustomEvent && event.detail) {
+      key = event.detail.key;
+    }
+
+    if (key === 'flowserveai-conversations' || key === 'flowserveai-activeConversationId') {
+      // Instead of calling loadStateFromLocalStorage which would be blocked,
+      // do a simplified reload of just what changed
+      if (typeof window !== 'undefined') {
+        if (key === 'flowserveai-conversations') {
+          const loadedConversations = storageUtils.getConversations();
+          setConversations(loadedConversations);
+        } else if (key === 'flowserveai-activeConversationId') {
+          const storedActiveId = storageUtils.getActiveConversationId();
+          if (storedActiveId !== activeConversationId) {
+            setActiveConversationId(storedActiveId);
+          }
+        }
+      }
+    }
+  }, [activeConversationId]);
 
   useEffect(() => {
     loadStateFromLocalStorage();
-
-    const handleStorageUpdate = (event: StorageEvent | CustomEvent) => {
-      let key: string | null = null;
-      if (event instanceof StorageEvent) {
-          key = event.key;
-      } else if (event instanceof CustomEvent && event.detail) {
-          key = event.detail.key;
-      }
-
-      if (key === 'flowserveai-conversations' || key === 'flowserveai-activeConversationId') {
-        loadStateFromLocalStorage();
-      }
-    };
 
     window.addEventListener('storage', handleStorageUpdate);
     window.addEventListener('flowserveai-storage-updated', handleStorageUpdate as EventListener);
@@ -268,41 +420,49 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
       window.removeEventListener('storage', handleStorageUpdate);
       window.removeEventListener('flowserveai-storage-updated', handleStorageUpdate as EventListener);
     };
-  }, [loadStateFromLocalStorage]);
+  }, [loadStateFromLocalStorage, handleStorageUpdate]);
 
-
-  // Filter conversations based on search query
+  // Sync conversations to storage - with change detection to avoid loops
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredConversations(conversations);
-    } else {
-      const filtered = conversations.filter(conv => 
-        conv.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredConversations(filtered);
-    }
-  }, [searchQuery, conversations]);
-
-  useEffect(() => {
+    // Wait until after initial load to start syncing back to storage
+    if (!hasLoadedFromStorage.current) return;
+    
     if (conversations.length > 0) {
-      const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
-      localStorage.setItem('flowserveai-conversations', JSON.stringify(sortedConversations));
+      // Use JSON comparison to prevent unnecessary updates
+      const currentStoredConversations = storageUtils.getConversations();
+      const currentJSON = JSON.stringify(currentStoredConversations);
+      const newJSON = JSON.stringify(conversations);
+      
+      if (currentJSON !== newJSON) {
+        storageUtils.setConversations(conversations);
+      }
     } else if (conversations.length === 0) {
-      localStorage.removeItem('flowserveai-conversations');
-      localStorage.removeItem('flowserveai-activeConversationId');
+      const currentStoredConversations = storageUtils.getConversations();
+      // Only update if there are currently stored conversations
+      if (currentStoredConversations && currentStoredConversations.length > 0) {
+        storageUtils.setConversations([]);
+        storageUtils.setActiveConversationId(null);
+      }
     }
   }, [conversations]);
 
+  // Sync active conversation ID to storage - with change detection
   useEffect(() => {
-    if (activeConversationId) {
-      localStorage.setItem('flowserveai-activeConversationId', activeConversationId);
-    } else if (!activeConversationId && conversations.length === 0) {
-       localStorage.removeItem('flowserveai-activeConversationId');
+    // Wait until after initial load to start syncing back to storage
+    if (!hasLoadedFromStorage.current) return;
+    
+    const currentStoredId = storageUtils.getActiveConversationId();
+    if (activeConversationId && activeConversationId !== currentStoredId) {
+      storageUtils.setActiveConversationId(activeConversationId);
+    } else if (!activeConversationId && conversations.length === 0 && currentStoredId !== null) {
+      storageUtils.setActiveConversationId(null);
     }
   }, [activeConversationId, conversations.length]);
 
-
   const createNewChat = async () => {
+    // Import directly to avoid circular dependencies
+    const { upsertConversation, setActiveConversationId } = require('@/lib/storage');
+    
     const newConversationId = `conv-${Date.now()}`;
     const newConversation: Conversation = {
       id: newConversationId,
@@ -312,8 +472,14 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
       updatedAt: Date.now(),
     };
 
+    // Update storage with new conversation
+    upsertConversation(newConversation);
+    
+    // Update local state
     setConversations(prev => [newConversation, ...prev].sort((a,b) => b.updatedAt - a.updatedAt));
     setActiveConversationId(newConversationId);
+    
+    // Update URL
     router.push(`/?chatId=${newConversationId}`);
     
     // Close the sidebar when creating a new chat
@@ -426,29 +592,110 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
     return 0;
   };
 
+  // Function to render individual conversation items in the mobile view
+  const renderConversationItem = (conv: Conversation) => {
+    const lastMessagePreview = getLastMessagePreview(conv.messages);
+    const unreadCount = getUnreadCount(conv.id);
+    const formattedDate = formatDateForMobile(new Date(conv.updatedAt));
+    
+    return (
+      <div 
+        key={conv.id}
+        className={`relative p-4 border-b border-gray-700 hover:bg-[#2a2f45] ${activeConversationId === conv.id ? 'bg-[#2a3050]' : ''}`}
+      >
+        <div 
+          className="cursor-pointer"
+          onClick={() => handleMobileConversationSelect(conv.id)}
+        >
+          <div className="flex justify-between items-start">
+            <h3 className="font-bold text-white">{conv.title}</h3>
+            {unreadCount > 0 && (
+              <span className="bg-primary-gradient text-white text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <p className="text-gray-400 text-sm mt-1 line-clamp-1">{lastMessagePreview}</p>
+          <p className="text-gray-500 text-xs mt-2">{formattedDate}</p>
+        </div>
+        
+        <div className="absolute top-2 right-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button 
+                className="p-1 text-gray-400 hover:text-white focus:outline-none"
+                onClick={(e) => e.stopPropagation()} 
+              >
+                <EllipsisVertical size={16} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="left" align="end" className="bg-[#2a2f45] text-white border-gray-700">
+              <DropdownMenuItem 
+                className="hover:bg-[#3a3f55] cursor-pointer focus:bg-[#3a3f55]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requestRenameConversation(conv.id, conv.title);
+                }}
+              >
+                <Edit3 className="mr-2 h-4 w-4" /> {t('actions.rename')}
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="text-red-400 hover:bg-[#3a3f55] cursor-pointer focus:bg-[#3a3f55]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requestDeleteConversation(conv.id);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> {t('actions.delete')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    );
+  };
+
+  // Handle conversation selection in mobile view
+  const handleMobileConversationSelect = useCallback((id: string) => {
+    setActiveConversationId(id);
+    router.push(`/?chatId=${id}`);
+    // Close sidebar after selection
+    handleSheetOpenChange(false);
+  }, [setActiveConversationId, router, handleSheetOpenChange]);
+
+  // Create a wrapper for formatRelativeCustom that matches the expected signature
+  const formatDateForMobile = useCallback((date: Date) => {
+    // @ts-ignore - formatRelativeCustom actually accepts Date objects, but has a wider type signature
+    return formatRelativeCustom(date, new Date());
+  }, []);
+
   return (
     <>
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar - Simplified Implementation */}
       {isMobile && (
-        <Sheet open={sidebarContext.open} onOpenChange={sidebarContext.setOpen}>
-          <SheetContent side="left" className="p-0 w-full max-w-[100vw] sm:max-w-[350px] bg-[#1e2231] text-white">
+        <Sheet 
+          open={sidebarContext.open} 
+          onOpenChange={handleSheetOpenChange}
+        >
+          <SheetContent 
+            side="left" 
+            className="p-0 w-full max-w-[100vw] sm:max-w-[350px] bg-[#1e2231] text-white"
+          >
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-700">
                 <h2 className="text-2xl font-bold">Conversations</h2>
                 <div className="flex items-center gap-4">
                   <button 
-                    onClick={createNewChat}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      createNewChat();
+                    }}
                     className="bg-primary-gradient rounded-md p-2 text-white"
                   >
-                    <Plus size={24} />
+                    <LucideEdit3 size={24} />
                   </button>
-                  <button 
-                    onClick={() => sidebarContext.setOpen(false)}
-                    className="text-gray-400"
-                  >
-                    <X size={24} />
-                  </button>
+                
                 </div>
               </div>
               
@@ -468,77 +715,30 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                 </div>
               </div>
               
-              {/* Conversation List */}
+              {/* Conversation List without useMemo */}
               <div className="flex-1 overflow-y-auto">
-                {filteredConversations.length === 0 ? (
-                  <div className="p-4 text-center text-gray-400">
-                    No conversations found
-                  </div>
-                ) : (
-                  filteredConversations.map((conv) => {
-                    const lastMessagePreview = getLastMessagePreview(conv.messages);
-                    const unreadCount = getUnreadCount(conv.id);
-                    const formattedDate = formatRelativeCustom(new Date(conv.updatedAt), new Date());
-                    
-                    return (
-                      <div 
-                        key={conv.id}
-                        className={`relative p-4 border-b border-gray-700 hover:bg-[#2a2f45] ${activeConversationId === conv.id ? 'bg-[#2a3050]' : ''}`}
-                      >
-                        <div 
-                          className="cursor-pointer"
-                          onClick={() => {
-                            setActiveConversationId(conv.id);
-                            router.push(`/?chatId=${conv.id}`);
-                            sidebarContext.setOpen(false);
-                          }}
-                        >
-                          <div className="flex justify-between items-start">
-                            <h3 className="font-bold text-white">{conv.title}</h3>
-                            {unreadCount > 0 && (
-                              <span className="bg-primary-gradient text-white text-xs font-medium rounded-full w-6 h-6 flex items-center justify-center">
-                                {unreadCount}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-400 text-sm mt-1 line-clamp-1">{lastMessagePreview}</p>
-                          <p className="text-gray-500 text-xs mt-2">{formattedDate}</p>
-                        </div>
-                        
-                        {/* Actions menu */}
-                        <div className="absolute top-2 right-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="p-1 text-gray-400 hover:text-white focus:outline-none">
-                                <EllipsisVertical size={16} />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent side="left" align="end" className="bg-[#2a2f45] text-white border-gray-700">
-                              <DropdownMenuItem 
-                                className="hover:bg-[#3a3f55] cursor-pointer focus:bg-[#3a3f55]"
-                                onClick={() => requestRenameConversation(conv.id, conv.title)}
-                              >
-                                <Edit3 className="mr-2 h-4 w-4" /> {t('actions.rename')}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="text-red-400 hover:bg-[#3a3f55] cursor-pointer focus:bg-[#3a3f55]"
-                                onClick={() => requestDeleteConversation(conv.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> {t('actions.delete')}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                {searchQuery.trim() === '' 
+                  ? conversations.length === 0 ? (
+                      <div className="p-4 text-center text-gray-400">
+                        No conversations found
                       </div>
-                    );
-                  })
-                )}
+                    ) : conversations.map(renderConversationItem)
+                  : conversations.filter(conv => 
+                      conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+                    ).length === 0 ? (
+                      <div className="p-4 text-center text-gray-400">
+                        No conversations found
+                      </div>
+                    ) : conversations
+                        .filter(conv => conv.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map(renderConversationItem)
+                }
               </div>
             </div>
           </SheetContent>
         </Sheet>
       )}
-
+      
       {/* Desktop Sidebar */}
       <Sidebar collapsible="icon" side="left" variant="sidebar" className="border-r border-sidebar-border md:block hidden">
         <SidebarHeader className="p-4 items-center">
@@ -569,7 +769,8 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
 
           <SidebarGroup className="mt-4">
             <SidebarGroupLabel className="flex items-center justify-between"> <span>{t('sidebar.conversations')}</span> </SidebarGroupLabel>
-            <ScrollArea className="h-[calc(100vh-480px)] group-data-[collapsible=icon]:h-[calc(100vh-380px)]">
+            <div className="h-[calc(100vh-480px)] group-data-[collapsible=icon]:h-[calc(100vh-380px)] overflow-y-auto pr-2">
+              <ScrollArea>
               <SidebarMenu>
                 {conversations.map((conv) => {
                   const hasDocuments = checkHasDocuments(conv.messages);
@@ -667,7 +868,8 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                 );
               })}
               </SidebarMenu>
-            </ScrollArea>
+              </ScrollArea>
+            </div>
           </SidebarGroup>
 
           <SidebarGroup className="mt-auto">
@@ -719,6 +921,15 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                     <HelpCircle className="shrink-0" /> <span className="group-data-[collapsible=icon]:hidden ml-2">{t('support.help')}</span>
                 </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setIsSettingsDialogOpen(true)} 
+                  tooltip={t('settings.title')}
+                  className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:mx-auto"
+                >
+                    <Settings className="shrink-0" /> <span className="group-data-[collapsible=icon]:hidden ml-2">{t('settings.title')}</span>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
            </SidebarMenu>
 
            <DropdownMenu>
@@ -741,7 +952,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
             <DropdownMenuContent side="top" align="start" className="w-56">
               <DropdownMenuLabel>{t('account.myAccount')}</DropdownMenuLabel> <DropdownMenuSeparator />
               <DropdownMenuItem disabled><Users className="mr-2 h-4 w-4" /> {t('account.profile')}</DropdownMenuItem>
-              <DropdownMenuItem disabled><Settings className="mr-2 h-4 w-4" /> {t('settings.title')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsSettingsDialogOpen(true)}><Settings className="mr-2 h-4 w-4" /> {t('settings.title')}</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled> <LogOut className="mr-2 h-4 w-4" /> {t('account.logout')} </DropdownMenuItem>
             </DropdownMenuContent>
@@ -754,7 +965,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
           <div className="flex items-center gap-3">
             {isMobile ? (
               <button 
-                onClick={() => sidebarContext.setOpen(!sidebarContext.open)}
+                onClick={handleToggleSidebar}
                 className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <Menu size={20} />
@@ -794,7 +1005,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
 
         {/* Mobile Bottom Navigation */}
         {isMobile && <div className="fixed bottom-0 left-0 right-0 h-16 bg-background border-t border-slate-200 dark:border-slate-700 flex justify-around items-center px-2 z-10">
-          <button 
+          <button
             className={`flex flex-col items-center justify-center px-3 ${pathname === '/documents' ? 'text-primary' : 'text-muted-foreground'}`}
             onClick={() => router.push('/documents')}
           >
@@ -803,7 +1014,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
             </div>
             <span className="text-xs mt-1">{t('tools.documents')}</span>
           </button>
-          <button 
+          <button
             className={`flex flex-col items-center justify-center px-3 ${pathname === '/' ? 'text-primary' : 'text-muted-foreground'}`}
             onClick={() => router.push('/')}
           >
@@ -812,7 +1023,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
             </div>
             <span className="text-xs mt-1">{t('common.chat')}</span>
           </button>
-          <button 
+          <button
             className={`flex flex-col items-center justify-center px-3 ${pathname === '/translate' ? 'text-primary' : 'text-muted-foreground'}`}
             onClick={() => router.push('/translate')}
           >
@@ -821,16 +1032,22 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
             </div>
             <span className="text-xs mt-1">{t('tools.translate')}</span>
           </button>
-          <button 
+          <button
             className={`flex flex-col items-center justify-center px-3 ${isMoreSheetOpen ? 'text-primary' : 'text-muted-foreground'}`}
-            onClick={() => setIsMoreSheetOpen(!isMoreSheetOpen)}
+            onClick={handleToggleMoreSheet}
           >
             <div className={`p-1.5 rounded-full ${isMoreSheetOpen ? 'bg-primary/10' : ''}`}>
-              <Ellipsis size={20} />
+              <Settings size={20} />
             </div>
             <span className="text-xs mt-1">{t('settings.secondaryTitle')}</span>
           </button>
         </div>}
+        
+        {/* Restore Settings Panel with proper callback */}
+        {isMobile && <SettingsSidePanel 
+          isOpen={isMoreSheetOpen} 
+          setIsOpen={handleMoreSheetOpenChange} 
+        />}
       </SidebarInset>
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
@@ -883,11 +1100,55 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
       </AlertDialog>
       <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
       <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
-      {isMobile && <MoreBottomSheet isOpen={isMoreSheetOpen} setIsOpen={setIsMoreSheetOpen} />}
+      {!isMobile && <SettingsDialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen} />}
     </>
   );
 }
-
+// Memoized storage utility functions
+const storageUtils = {
+  getConversations: () => {
+    try {
+      const { getConversations } = require('@/lib/storage');
+      return getConversations();
+    } catch (e) {
+      console.error("Failed to retrieve conversations from storage", e);
+      return [];
+    }
+  },
+  getActiveConversationId: () => {
+    try {
+      const { getActiveConversationId } = require('@/lib/storage');
+      return getActiveConversationId();
+    } catch (e) {
+      console.error("Failed to retrieve active conversation ID", e);
+      return null;
+    }
+  },
+  setActiveConversationId: (id: string | null) => {
+    try {
+      const { setActiveConversationId } = require('@/lib/storage');
+      setActiveConversationId(id);
+    } catch (e) {
+      console.error("Failed to set active conversation ID", e);
+    }
+  },
+  upsertConversation: (conversation: Conversation) => {
+    try {
+      const { upsertConversation } = require('@/lib/storage');
+      upsertConversation(conversation);
+    } catch (e) {
+      console.error("Failed to upsert conversation", e);
+    }
+  },
+  setConversations: (conversations: Conversation[]) => {
+    try {
+      const { setConversations } = require('@/lib/storage');
+      setConversations(conversations);
+    } catch (e) {
+      console.error("Failed to set conversations", e);
+    }
+  }
+};
 export default function AppClientLayout({ children }: AppClientLayoutProps): JSX.Element {
   return (
     <AppWrapper>
