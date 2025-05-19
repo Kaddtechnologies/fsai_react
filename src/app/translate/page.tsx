@@ -1749,10 +1749,7 @@ const TranslatePage = () => {
                         {/* Individual file errors */}
                         {uploadedFiles.filter(f => f.status === 'failed').map(f => (
                           <p key={f.id} className="mt-1">
-                            {t('translation.fileError', { 
-                              fileName: f.originalName, 
-                              error: (f.error || t('translation.processingFailed')) as any 
-                            })}
+                            {t('translation.fileError')}
                           </p>
                         ))}
                       </CardContent>
@@ -1906,194 +1903,195 @@ const TranslatePage = () => {
    * Render the job history panel
    * Shows list of previous translation jobs with search and filter capabilities
    */
-  const renderHistoryPanel = () => (
-    <Card className="flex-1 shadow-xl flex flex-col overflow-hidden min-h-[400px]">
-      {/* ===== HISTORY PANEL HEADER ===== */}
-      <CardHeader className="pb-3 p-3">
-        <div className="flex flex-col gap-3">
-          <CardTitle className="text-xl">{t('translation.jobHistory')}</CardTitle>
-          
-          {/* New job button */}
-          <Button 
-            size="sm" 
-            onClick={() => handleNewJob()}
-            className="bg-primary hover:bg-primary/90 transition-colors self-start w-full"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" /> 
-            <span className="whitespace-nowrap">{t('translation.newJob')}</span>
-          </Button>
+  
+const renderHistoryPanel = () => (
+  <Card className="flex-1 shadow-xl flex flex-col overflow-hidden min-h-[400px]">
+    {/* ===== HISTORY PANEL HEADER ===== */}
+    <CardHeader className="pb-3 p-3">
+      <div className="flex flex-col gap-3">
+        <CardTitle className="text-xl">{t('translation.jobHistory')}</CardTitle>
+        
+        {/* New job button */}
+        <Button 
+          size="sm" 
+          onClick={() => handleNewJob()}
+          className="bg-primary hover:bg-primary/90 transition-colors self-start w-full"
+        >
+          <PlusCircle className="mr-2 h-4 w-4" /> 
+          <span className="whitespace-nowrap">{t('translation.newJob')}</span>
+        </Button>
+      </div>
+    </CardHeader>
+    
+    {/* ===== SEARCH AND FILTERS SECTION ===== */}
+    <CardContent className="pt-0 px-3 md:px-4 pb-3 md:pb-4">
+      <div className="space-y-3 md:space-y-4">
+        {/* Search field */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t('translation.searchJobs')}
+            value={historySearchTerm}
+            onChange={(e) => setHistorySearchTerm(e.target.value)}
+            className="pl-9 h-9 md:h-10 w-full"
+          />
         </div>
-      </CardHeader>
-      
-      {/* ===== SEARCH AND FILTERS SECTION ===== */}
-      <CardContent className="pt-0 px-3 md:px-4 pb-3 md:pb-4">
-        <div className="space-y-3 md:space-y-4">
-          {/* Search field */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder={t('translation.searchJobs')}
-              value={historySearchTerm}
-              onChange={(e) => setHistorySearchTerm(e.target.value)}
-              className="pl-9 h-9 md:h-10 w-full"
-            />
+        
+        {/* Filter controls */}
+        <div className="flex flex-col gap-2">
+          {/* Job type filter */}
+          <div className="w-full">
+            <Select 
+              value={historyFilterType} 
+              onValueChange={(v) => setHistoryFilterType(v as 'all' | TranslationJobType)}
+            >
+              <SelectTrigger className="h-9 md:h-10 w-full">
+                <SelectValue placeholder={t('translation.allTypes')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('translation.allTypes')}</SelectItem>
+                <SelectItem value="text">{t('translation.textJobs')}</SelectItem>
+                <SelectItem value="document">{t('translation.documentJobs')}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
-          {/* Filter controls */}
-          <div className="flex flex-col gap-2">
-            {/* Job type filter */}
-            <div className="w-full">
-              <Select 
-                value={historyFilterType} 
-                onValueChange={(v) => setHistoryFilterType(v as 'all' | TranslationJobType)}
-              >
-                <SelectTrigger className="h-9 md:h-10 w-full">
-                  <SelectValue placeholder={t('translation.allTypes')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t('translation.allTypes')}</SelectItem>
-                  <SelectItem value="text">{t('translation.textJobs')}</SelectItem>
-                  <SelectItem value="document">{t('translation.documentJobs')}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Status filter and archive toggle */}
+          <div className="flex gap-2">
+            {/* Status filter dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-9 md:h-10 flex-1">
+                  <ListFilter className="mr-2 h-4 w-4" /> 
+                  <span className="whitespace-nowrap">{t('translation.status')}</span> 
+                  {historyFilterStatus.length > 0 && 
+                    <Badge variant="secondary" className="ml-2">
+                      {historyFilterStatus.length}
+                    </Badge>
+                  }
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>{t('translation.filterByStatus')}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {(['draft', 'in-progress', 'complete', 'failed', 'archived'] as TranslationJobStatus[]).map(status => ( 
+                  <DropdownMenuCheckboxItem
+                    key={status}
+                    checked={historyFilterStatus.includes(status)}
+                    onCheckedChange={() => toggleHistoryFilterStatus(status)}
+                    className="capitalize"
+                  >
+                    {status.replace('-', ' ')}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             
-            {/* Status filter and archive toggle */}
-            <div className="flex gap-2">
-              {/* Status filter dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="h-9 md:h-10 flex-1">
-                    <ListFilter className="mr-2 h-4 w-4" /> 
-                    <span className="whitespace-nowrap">{t('translation.status')}</span> 
-                    {historyFilterStatus.length > 0 && 
-                      <Badge variant="secondary" className="ml-2">
-                        {historyFilterStatus.length}
-                      </Badge>
-                    }
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  <DropdownMenuLabel>{t('translation.filterByStatus')}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {(['draft', 'in-progress', 'complete', 'failed', 'archived'] as TranslationJobStatus[]).map(status => ( 
-                    <DropdownMenuCheckboxItem
-                      key={status}
-                      checked={historyFilterStatus.includes(status)}
-                      onCheckedChange={() => toggleHistoryFilterStatus(status)}
-                      className="capitalize"
-                    >
-                      {status.replace('-', ' ')}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              {/* Archive toggle button */}
-              <Button 
-                variant={showArchived ? "secondary" : "outline"} 
-                size="icon" 
-                className="h-9 md:h-10 w-10 shrink-0" 
-                onClick={() => setShowArchived(!showArchived)}
-                title="Show/Hide Archived Jobs"
-              >
-                <Archive size={16} />
-              </Button>
-            </div>
+            {/* Archive toggle button */}
+            <Button 
+              variant={showArchived ? "secondary" : "outline"} 
+              size="icon" 
+              className="h-9 md:h-10 w-10 shrink-0" 
+              onClick={() => setShowArchived(!showArchived)}
+              title="Show/Hide Archived Jobs"
+            >
+              <Archive size={16} />
+            </Button>
           </div>
         </div>
-      </CardContent>
-      
-      {/* ===== JOBS LIST SECTION ===== */}
-      <ScrollArea className="flex-grow p-2">
-        {filteredJobs.length === 0 ? (
-          {/* Empty state when no jobs match filters */}
-          <div className="text-center text-muted-foreground py-6 px-3">
-            <div className="bg-slate-800/50 p-3 rounded-full mx-auto mb-3 w-10 h-10 md:w-14 md:h-14 flex items-center justify-center">
-              <Info className="h-5 w-5 md:h-6 md:w-6 opacity-70" />
-            </div>
-            <h3 className="text-sm md:text-base font-medium mb-1">{t('translation.noJobsMatch')}</h3>
-            <p className="text-xs opacity-70 max-w-[180px] mx-auto">
-              {t('translation.adjustFilters')}
-            </p>
+      </div>
+    </CardContent>
+    
+    {/* ===== JOBS LIST SECTION ===== */}
+    <ScrollArea className="flex-grow p-2">
+      {filteredJobs.length === 0 ? (
+        /* Empty state when no jobs match filters */
+        <div className="text-center text-muted-foreground py-6 px-3">
+          <div className="bg-slate-800/50 p-3 rounded-full mx-auto mb-3 w-10 h-10 md:w-14 md:h-14 flex items-center justify-center">
+            <Info className="h-5 w-5 md:h-6 md:w-6 opacity-70" />
           </div>
-        ) : (
-          {/* Jobs list */}
-          <div className="space-y-3 px-1 md:px-2">
-            {filteredJobs.map(job => (
-              <Card
-                key={job.id}
-                className={cn(
-                  "hover:shadow-md transition-shadow cursor-pointer border",
-                  activeJob?.id === job.id ? "ring-2 ring-primary border-primary" : "border-border"
-                )}
-                onClick={() => handleSelectJobFromHistory(job.id)}
-              >
-                <CardContent className="p-2 md:p-3">
-                  {/* Job info section */}
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="flex-grow min-w-0">
-                      {/* Job name */}
-                      <p className="font-semibold truncate text-sm md:text-base" title={job.name}>
-                        {job.name}
-                      </p>
-                      
-                      {/* Job metadata */}
-                      <div className="flex items-center text-xs text-muted-foreground mt-1">
-                        <span className="capitalize">{job.type}</span>
-                        <span className="mx-2">•</span>
-                        <Clock size={12} className="mr-1" /> 
-                        {format(new Date(job.updatedAt), "MMM d, HH:mm")}
-                      </div>
-                    </div>
+          <h3 className="text-sm md:text-base font-medium mb-1">{t('translation.noJobsMatch')}</h3>
+          <p className="text-xs opacity-70 max-w-[180px] mx-auto">
+            {t('translation.adjustFilters')}
+          </p>
+        </div>
+      ) : (
+        /* Jobs list */
+        <div className="space-y-3 px-1 md:px-2">
+          {filteredJobs.map(job => (
+            <Card
+              key={job.id}
+              className={cn(
+                "hover:shadow-md transition-shadow cursor-pointer border",
+                activeJob?.id === job.id ? "ring-2 ring-primary border-primary" : "border-border"
+              )}
+              onClick={() => handleSelectJobFromHistory(job.id)}
+            >
+              <CardContent className="p-2 md:p-3">
+                {/* Job info section */}
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-grow min-w-0">
+                    {/* Job name */}
+                    <p className="font-semibold truncate text-sm md:text-base" title={job.name}>
+                      {job.name}
+                    </p>
                     
-                    {/* Job status badge */}
-                    <JobStatusBadge status={job.status} />
+                    {/* Job metadata */}
+                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                      <span className="capitalize">{job.type}</span>
+                      <span className="mx-2">•</span>
+                      <Clock size={12} className="mr-1" /> 
+                      {format(new Date(job.updatedAt), "MMM d, HH:mm")}
+                    </div>
                   </div>
                   
-                  {/* Job action buttons */}
-                  <div className="flex justify-end mt-2">
-                    {/* Archive/unarchive button */}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className={cn(
-                        "h-8 w-8", 
-                        job.status === 'archived' 
-                          ? "text-primary" 
-                          : "text-muted-foreground hover:text-primary"
-                      )}
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        handleArchiveJob(job.id); 
-                      }}
-                      title={job.status === 'archived' ? "Unarchive" : "Archive"}
-                    >
-                      <Archive size={14} />
-                    </Button>
-                    
-                    {/* Delete job button */}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive" 
-                      onClick={(e) => {
-                        e.stopPropagation(); 
-                        requestDeleteJob(job.id);
-                      }}
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
-    </Card>
-  );
+                  {/* Job status badge */}
+                  <JobStatusBadge status={job.status} />
+                </div>
+                
+                {/* Job action buttons */}
+                <div className="flex justify-end mt-2">
+                  {/* Archive/unarchive button */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className={cn(
+                      "h-8 w-8", 
+                      job.status === 'archived' 
+                        ? "text-primary" 
+                        : "text-muted-foreground hover:text-primary"
+                    )}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      handleArchiveJob(job.id); 
+                    }}
+                    title={job.status === 'archived' ? "Unarchive" : "Archive"}
+                  >
+                    <Archive size={14} />
+                  </Button>
+                  
+                  {/* Delete job button */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive" 
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      requestDeleteJob(job.id);
+                    }}
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </ScrollArea>
+  </Card>
+);
 
   /**
  * TranslatePage Component - Part 4K
