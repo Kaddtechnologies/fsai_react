@@ -131,3 +131,14 @@ export interface FlowStep {
   title: string;
   description: string;
 }
+
+export interface UserFeedbackEntry {
+    id: string;
+    sourceLanguage: string;
+    targetLanguage: string;
+    isBulk: boolean;
+    createdAt: number;
+    fileName?: string;
+    sourceKeyword?: string;
+    targetKeyword?: string;
+}

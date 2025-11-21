@@ -92,7 +92,7 @@ import FeedbackDialog from '@/components/feedback/feedback-dialog';
 import SettingsDialog from '@/components/settings/settings-dialog';
 // Define Loader2 directly in the file
 const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
 );
 
 interface AppClientLayoutProps {
@@ -932,8 +932,8 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                     <div className="flex-shrink-0 group-data-[collapsible=icon]:hidden ml-1 mr-1">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                               <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70" />
+                               <Button variant="ghost" size="icon" className="h-7 w-7 text-sidebar-foreground/70 hover:text-sidebar-foreground">
+                                <EllipsisVertical className="h-4 w-4" />
                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
