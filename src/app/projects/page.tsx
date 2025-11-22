@@ -516,12 +516,15 @@ const ProjectsPage = () => {
                                         handleProjectChatSend();
                                     }
                                 }}
+                                disabled={isChatLoading}
                             />
                              <div className="absolute bottom-2 right-2 flex items-center gap-1">
                                 <Button variant="ghost" size="icon" disabled><Sparkles className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" disabled><Image className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" disabled><Globe className="h-4 w-4" /></Button>
-                                <Button size="sm" onClick={handleProjectChatSend} disabled={!chatInputValue.trim() || isChatLoading}>Send</Button>
+                                <Button size="sm" onClick={handleProjectChatSend} disabled={!chatInputValue.trim() || isChatLoading}>
+                                  {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
+                                </Button>
                             </div>
                         </div>
                     </CardContent>
@@ -625,3 +628,4 @@ const ProjectsPage = () => {
 };
 
 export default ProjectsPage;
+ 
