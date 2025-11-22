@@ -25,6 +25,7 @@ import type { Project, Document, Message } from '@/lib/types';
 import { MOCK_USER } from '@/app/utils/constants';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
 const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#8A6FDF', '#FF9F1C'];
@@ -90,7 +91,7 @@ const FileTypeIcon = ({ type, size = 20 }: { type: Document['type'], size?: numb
       case 'excel': return <FileSpreadsheet size={size} className="text-green-500" />;
       case 'word': return <FileText size={size} className="text-blue-500" />;
       case 'powerpoint': return <FileTypeLucideIcon size={size} className="text-orange-500" />;
-      case 'text':
+      case 'text': return <FileText size={size} className="text-gray-500" />;
       default: return <FileIcon size={size} className="text-muted-foreground" />;
     }
   };
@@ -282,6 +283,7 @@ const ProjectsPage = () => {
       if (activeProject?.id === projectId) {
           router.push('/projects');
       }
+      toast({ title: "Project Deleted", description: "The project has been successfully deleted." });
   };
 
   const handleDeleteFile = (fileId: string) => {
@@ -381,24 +383,44 @@ const ProjectsPage = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {projects.map(project => (
-            <Card key={project.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => router.push(`/projects?projectId=${project.id}`)}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }}></span>
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
+            <Card key={project.id} className="hover:shadow-lg transition-shadow flex flex-col">
+              <div className="flex-grow cursor-pointer" onClick={() => router.push(`/projects?projectId=${project.id}`)}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <span className="w-3 h-3 rounded-full" style={{ backgroundColor: project.color }}></span>
+                      <CardTitle className="text-lg">{project.name}</CardTitle>
+                    </div>
                   </div>
-                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => {e.stopPropagation(); handleDeleteProject(project.id);}}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                   </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">
-                  <p>{project.files.length} files</p>
-                  <p>Updated: {new Date(project.updatedAt).toLocaleDateString()}</p>
-                </div>
-              </CardContent>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground">
+                    <p>{project.files.length} files</p>
+                    <p>Updated: {new Date(project.updatedAt).toLocaleDateString()}</p>
+                  </div>
+                </CardContent>
+              </div>
+              <div className="p-4 pt-0">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="w-full" onClick={(e) => e.stopPropagation()}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the project "{project.name}".
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </Card>
           ))}
         </div>
@@ -629,3 +651,4 @@ const ProjectsPage = () => {
 
 export default ProjectsPage;
  
+    
