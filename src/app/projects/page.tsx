@@ -105,9 +105,18 @@ const ProjectsPage = () => {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+  
+  // Dialog states
   const [isCreateProjectDialogOpen, setIsCreateProjectDialogOpen] = useState(false);
+  const [isEditProjectDialogOpen, setIsEditProjectDialogOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  // Form states for create/edit
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectColor, setNewProjectColor] = useState(COLORS[0]);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  
   const [isUploading, setIsUploading] = useState(false);
   
   // State for project chat
@@ -254,6 +263,12 @@ const ProjectsPage = () => {
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = ""; // Reset file input
   };
+  
+  const openCreateDialog = () => {
+      setNewProjectName('');
+      setNewProjectColor(COLORS[0]);
+      setIsCreateProjectDialogOpen(true);
+  };
 
   const handleCreateProject = () => {
     if (newProjectName.trim() === '') return;
@@ -271,19 +286,50 @@ const ProjectsPage = () => {
     const updatedProjects = [...projects, newProject].sort((a, b) => b.createdAt - a.createdAt);
     setProjects(updatedProjects);
     
-    setNewProjectName('');
-    setNewProjectColor(COLORS[0]);
     setIsCreateProjectDialogOpen(false);
     router.push(`/projects?projectId=${newProject.id}`);
+    toast({ title: "Project Created", description: `Successfully created "${newProject.name}".` });
   };
   
-  const handleDeleteProject = (projectId: string) => {
-      const updatedProjects = projects.filter(p => p.id !== projectId);
+  const openEditDialog = (project: Project) => {
+    setEditingProject(project);
+    setNewProjectName(project.name);
+    setNewProjectColor(project.color);
+    setIsEditProjectDialogOpen(true);
+  };
+
+  const handleEditProject = () => {
+      if (!editingProject || newProjectName.trim() === '') return;
+      
+      const updatedProjects = projects.map(p => 
+          p.id === editingProject.id 
+          ? { ...p, name: newProjectName, color: newProjectColor, updatedAt: Date.now() }
+          : p
+      );
       setProjects(updatedProjects);
-      if (activeProject?.id === projectId) {
+      setIsEditProjectDialogOpen(false);
+      setEditingProject(null);
+      toast({ title: "Project Updated", description: `Successfully updated "${newProjectName}".` });
+  };
+
+  const requestDeleteProject = (project: Project) => {
+    setProjectToDelete(project);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteProject = () => {
+      if (!projectToDelete) return;
+
+      const updatedProjects = projects.filter(p => p.id !== projectToDelete.id);
+      setProjects(updatedProjects);
+
+      if (activeProject?.id === projectToDelete.id) {
           router.push('/projects');
       }
-      toast({ title: "Project Deleted", description: "The project has been successfully deleted." });
+      
+      toast({ title: "Project Deleted", description: `Project "${projectToDelete.name}" has been deleted.` });
+      setShowDeleteConfirm(false);
+      setProjectToDelete(null);
   };
 
   const handleDeleteFile = (fileId: string) => {
@@ -362,12 +408,19 @@ const ProjectsPage = () => {
     }
   };
 
+  const showComingSoonToast = (featureName: string) => {
+    toast({
+        title: "Feature Coming Soon",
+        description: `${featureName} functionality is not yet implemented.`,
+    });
+  };
+
 
   const renderProjectList = () => (
     <div className="space-y-4">
         <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold">Projects</h1>
-            <Button onClick={() => setIsCreateProjectDialogOpen(true)}>
+            <Button onClick={openCreateDialog}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Create Project
             </Button>
         </div>
@@ -376,7 +429,7 @@ const ProjectsPage = () => {
             <Folder className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-medium">No projects yet</h3>
           <p className="mt-1 text-sm text-muted-foreground">Get started by creating your first project.</p>
-          <Button className="mt-4" onClick={() => setIsCreateProjectDialogOpen(true)}>
+          <Button className="mt-4" onClick={openCreateDialog}>
             <PlusCircle className="mr-2 h-4 w-4" /> Create Project
           </Button>
         </Card>
@@ -401,25 +454,9 @@ const ProjectsPage = () => {
                 </CardContent>
               </div>
               <div className="p-4 pt-0">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="w-full" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="destructive" className="w-full" onClick={(e) => { e.stopPropagation(); requestDeleteProject(project); }}>
                       <Trash2 className="mr-2 h-4 w-4" /> Delete
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the project "{project.name}".
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDeleteProject(project.id)}>Continue</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                  </Button>
               </div>
             </Card>
           ))}
@@ -541,9 +578,9 @@ const ProjectsPage = () => {
                                 disabled={isChatLoading}
                             />
                              <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                                <Button variant="ghost" size="icon" disabled><Sparkles className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" disabled><Image className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon" disabled><Globe className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => showComingSoonToast('Web Search')}><Sparkles className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => showComingSoonToast('Image Generation')}><Image className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" onClick={() => showComingSoonToast('AI Tools')}><Globe className="h-4 w-4" /></Button>
                                 <Button size="sm" onClick={handleProjectChatSend} disabled={!chatInputValue.trim() || isChatLoading}>
                                   {isChatLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Send'}
                                 </Button>
@@ -562,9 +599,10 @@ const ProjectsPage = () => {
                             {activeProject.name}
                         </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <Button variant="outline" className="w-full justify-between" disabled>Edit Project <Edit className="h-4 w-4" /></Button>
-                         <Button variant="outline" className="w-full justify-between mt-2" disabled>Share Project <Share2 className="h-4 w-4" /></Button>
+                    <CardContent className="space-y-2">
+                        <Button variant="outline" className="w-full justify-start gap-2" onClick={() => openEditDialog(activeProject)}><Edit className="h-4 w-4" /> Edit Project</Button>
+                        <Button variant="outline" className="w-full justify-start gap-2" onClick={() => showComingSoonToast('Share Project')}><Share2 className="h-4 w-4" /> Share Project</Button>
+                         <Button variant="destructive" className="w-full justify-start gap-2" onClick={() => requestDeleteProject(activeProject)}><Trash2 className="h-4 w-4" /> Delete Project</Button>
                     </CardContent>
                 </Card>
 
@@ -582,7 +620,7 @@ const ProjectsPage = () => {
                                 </Avatar>
                                 <span className="font-medium">SharePoint</span>
                             </div>
-                            <Button variant="secondary">Connect</Button>
+                            <Button variant="secondary" onClick={() => showComingSoonToast('SharePoint Connector')}>Connect</Button>
                         </div>
                         <div className="flex items-center justify-between p-3 rounded-md border">
                             <div className="flex items-center gap-3">
@@ -592,7 +630,7 @@ const ProjectsPage = () => {
                                 </Avatar>
                                 <span className="font-medium">Microsoft 365</span>
                             </div>
-                            <Button variant="secondary">Connect</Button>
+                            <Button variant="secondary" onClick={() => showComingSoonToast('Microsoft 365 Connector')}>Connect</Button>
                         </div>
                     </CardContent>
                 </Card>
@@ -601,54 +639,86 @@ const ProjectsPage = () => {
     </TooltipProvider>
     );
   };
+  
+  const renderProjectDialog = (
+      mode: 'create' | 'edit',
+      isOpen: boolean,
+      onOpenChange: (open: boolean) => void
+  ) => {
+    const isEdit = mode === 'edit';
+    const title = isEdit ? "Edit Project" : "Create New Project";
+    const description = isEdit ? "Update the project details." : "Organize your knowledge and chats into a new project.";
+    const buttonText = isEdit ? "Save Changes" : "Create Project";
+    const handleSubmit = isEdit ? handleEditProject : handleCreateProject;
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+            <DialogHeader>
+                <DialogTitle>{title}</DialogTitle>
+                <DialogDescription>{description}</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="project-name" className="text-right">Name</Label>
+                <Input
+                    id="project-name"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    className="col-span-3"
+                    placeholder="E.g., Q3 Marketing Campaign"
+                />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Color</Label>
+                <div className="col-span-3 flex gap-2">
+                    {COLORS.map(color => (
+                    <button
+                        key={color}
+                        onClick={() => setNewProjectColor(color)}
+                        className="w-8 h-8 rounded-full transition-all"
+                        style={{ backgroundColor: color, outline: newProjectColor === color ? `2px solid hsl(var(--ring))` : 'none' }}
+                        aria-label={`Select color ${color}`}
+                    />
+                    ))}
+                </div>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+                <Button onClick={handleSubmit}>{buttonText}</Button>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+  };
 
   return (
     <div className="container mx-auto py-8">
       {activeProject ? renderProjectDetail() : renderProjectList()}
+      
+      {renderProjectDialog('create', isCreateProjectDialogOpen, setIsCreateProjectDialogOpen)}
+      {renderProjectDialog('edit', isEditProjectDialogOpen, setIsEditProjectDialogOpen)}
 
-      <Dialog open={isCreateProjectDialogOpen} onOpenChange={setIsCreateProjectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>
-              Organize your knowledge and chats into a new project.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="project-name" className="text-right">Name</Label>
-              <Input
-                id="project-name"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                className="col-span-3"
-                placeholder="E.g., Q3 Marketing Campaign"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Color</Label>
-              <div className="col-span-3 flex gap-2">
-                {COLORS.map(color => (
-                  <button
-                    key={color}
-                    onClick={() => setNewProjectColor(color)}
-                    className="w-8 h-8 rounded-full transition-all"
-                    style={{ backgroundColor: color, outline: newProjectColor === color ? `2px solid hsl(var(--ring))` : 'none' }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-            <Button onClick={handleCreateProject}>Create Project</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+            <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this project?</AlertDialogTitle>
+                <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the project "{projectToDelete?.name}".
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDeleteProject}>Continue</AlertDialogAction>
+            </AlertDialogFooter>
+            </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 };
 
 export default ProjectsPage;
- 
+
     
