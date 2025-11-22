@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { 
     PlusCircle, Folder, File as FileIcon, Trash2, Edit, ChevronRight, Share2, UploadCloud, 
     Settings, MoreVertical, Search, Check, Image, Sparkles, Globe, Loader2, XCircle,
-    FileText, FileSpreadsheet, FileType as FileTypeLucideIcon, CheckCircle
+    FileText, FileSpreadsheet, FileType as FileTypeLucideIcon, CheckCircle, BotMessageSquare, User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,8 +20,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { summarizeDocument } from '@/ai/flows/summarize-document';
-import type { Project, Document } from '@/lib/types';
+import { generateChatResponse } from '@/ai/flows/generate-chat-response';
+import type { Project, Document, Message } from '@/lib/types';
 import { MOCK_USER } from '@/app/utils/constants';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#8A6FDF', '#FF9F1C'];
 const MAX_FILE_SIZE_MB = 5;
@@ -104,13 +108,27 @@ const ProjectsPage = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectColor, setNewProjectColor] = useState(COLORS[0]);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // State for project chat
+  const [chatInputValue, setChatInputValue] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+
 
   useEffect(() => {
     const storedProjects = localStorage.getItem('flowserveai-projects');
     if (storedProjects) {
       try {
-        const parsedProjects = JSON.parse(storedProjects);
+        const parsedProjects: Project[] = JSON.parse(storedProjects);
         setProjects(parsedProjects);
+        
+        const projectId = searchParams.get('projectId');
+        if (projectId) {
+            const project = parsedProjects.find(p => p.id === projectId);
+            setActiveProject(project || null);
+            setChatMessages(project?.messages || []);
+        }
+
       } catch (error) {
         console.error("Failed to parse projects from localStorage", error);
       }
@@ -118,8 +136,10 @@ const ProjectsPage = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('flowserveai-projects', JSON.stringify(projects));
-     // Announce the change to other components like the sidebar
+    if (projects.length > 0 || localStorage.getItem('flowserveai-projects')) {
+        localStorage.setItem('flowserveai-projects', JSON.stringify(projects));
+    }
+    // Announce the change to other components like the sidebar
     window.dispatchEvent(new CustomEvent('flowserveai-storage-updated', { detail: { key: 'flowserveai-projects' } }));
   }, [projects]);
 
@@ -129,25 +149,31 @@ const ProjectsPage = () => {
     if (projectId) {
       const project = projects.find(p => p.id === projectId);
       setActiveProject(project || null);
+      setChatMessages(project?.messages || []);
     } else {
       setActiveProject(null);
+      setChatMessages([]);
     }
   }, [searchParams, projects]);
 
-  const updateProjectFile = (projectId: string, fileId: string, updates: Partial<Document>) => {
+  const updateProjectProperty = <K extends keyof Project>(projectId: string, property: K, value: Project[K]) => {
     setProjects(prevProjects => 
         prevProjects.map(p => {
             if (p.id === projectId) {
-                return {
-                    ...p,
-                    files: p.files.map(f => f.id === fileId ? { ...f, ...updates } : f),
-                    updatedAt: Date.now()
-                };
+                return { ...p, [property]: value, updatedAt: Date.now() };
             }
             return p;
-        })
+        }).sort((a,b) => b.updatedAt - a.updatedAt)
     );
   };
+  
+  const updateProjectFile = (projectId: string, fileId: string, updates: Partial<Document>) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    const updatedFiles = project.files.map(f => f.id === fileId ? { ...f, ...updates } : f);
+    updateProjectProperty(projectId, 'files', updatedFiles);
+  };
+
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -177,8 +203,11 @@ const ProjectsPage = () => {
       };
 
       // Add file to active project state immediately
-      setActiveProject(prev => prev ? {...prev, files: [initialDocument, ...prev.files]} : null);
-      setProjects(prev => prev.map(p => p.id === activeProject.id ? {...p, files: [initialDocument, ...p.files]} : p));
+      const currentProject = projects.find(p => p.id === activeProject.id);
+      if (currentProject) {
+        const updatedFiles = [initialDocument, ...(currentProject.files || [])];
+        updateProjectProperty(activeProject.id, 'files', updatedFiles);
+      }
       
       // Simulate upload
       updateProjectFile(activeProject.id, clientDocumentId, { status: 'uploading_to_backend', progress: 10 });
@@ -233,11 +262,12 @@ const ProjectsPage = () => {
       name: newProjectName,
       color: newProjectColor,
       files: [],
+      messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
 
-    const updatedProjects = [...projects, newProject];
+    const updatedProjects = [...projects, newProject].sort((a, b) => b.createdAt - a.createdAt);
     setProjects(updatedProjects);
     
     setNewProjectName('');
@@ -257,12 +287,77 @@ const ProjectsPage = () => {
   const handleDeleteFile = (fileId: string) => {
     if (!activeProject) return;
     const updatedFiles = activeProject.files.filter(f => f.id !== fileId);
-    setProjects(prevProjects =>
-        prevProjects.map(p => 
-            p.id === activeProject.id ? { ...p, files: updatedFiles, updatedAt: Date.now() } : p
-        )
-    );
+    updateProjectProperty(activeProject.id, 'files', updatedFiles);
     toast({ title: "File removed", description: `File has been removed from the project.` });
+  };
+  
+  const handleProjectChatSend = async () => {
+    if (!chatInputValue.trim() || !activeProject) return;
+    
+    const userMessage: Message = {
+      id: `proj-msg-${Date.now()}`,
+      conversationId: activeProject.id,
+      content: chatInputValue,
+      sender: 'user',
+      timestamp: Date.now(),
+    };
+    
+    const updatedMessages = [...chatMessages, userMessage];
+    setChatMessages(updatedMessages);
+    setChatInputValue('');
+    setIsChatLoading(true);
+
+    try {
+        const historyForAI = updatedMessages
+            .filter(msg => msg.sender === 'user' || msg.sender === 'ai')
+            .slice(0, -1)
+            .map(msg => ({
+                role: msg.sender as 'user' | 'ai',
+                content: msg.content
+            }));
+            
+        const projectContext = {
+            name: activeProject.name,
+            fileSummaries: activeProject.files
+                .filter(f => f.status === 'completed' && f.summary)
+                .map(f => `File: ${f.name}\nSummary: ${f.summary}`)
+                .join('\n\n---\n\n')
+        };
+        
+        const aiResult = await generateChatResponse({
+            userInput: userMessage.content,
+            history: historyForAI,
+            projectContext: projectContext
+        });
+
+        const aiMessage: Message = {
+            id: `proj-msg-${Date.now() + 1}`,
+            conversationId: activeProject.id,
+            content: aiResult.aiResponse,
+            sender: 'ai',
+            timestamp: Date.now(),
+        };
+
+        const finalMessages = [...updatedMessages, aiMessage];
+        setChatMessages(finalMessages);
+        updateProjectProperty(activeProject.id, 'messages', finalMessages);
+    } catch(e) {
+        console.error("Project chat AI error:", e);
+        const errorMessage: Message = {
+            id: `proj-msg-err-${Date.now()}`,
+            conversationId: activeProject.id,
+            content: "Sorry, I encountered an error. Please try again.",
+            sender: 'ai',
+            timestamp: Date.now(),
+            type: 'error',
+        };
+        const finalMessages = [...updatedMessages, errorMessage];
+        setChatMessages(finalMessages);
+        updateProjectProperty(activeProject.id, 'messages', finalMessages);
+        toast({ title: "AI Error", description: "Could not get a response.", variant: "destructive" });
+    } finally {
+        setIsChatLoading(false);
+    }
   };
 
 
@@ -315,6 +410,7 @@ const ProjectsPage = () => {
     if (!activeProject) return null;
 
     return (
+    <TooltipProvider>
         <div className="flex h-full gap-6">
             {/* Main Content: Files and Chat */}
             <div className="flex-1 flex flex-col gap-6">
@@ -343,7 +439,12 @@ const ProjectsPage = () => {
                                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                                 <FileTypeIcon type={file.type} />
                                                 <div className="flex-1 min-w-0">
-                                                    <p className="font-medium truncate" title={file.name}>{file.name}</p>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <p className="font-medium truncate" title={file.name}>{file.name}</p>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent><p>{file.name}</p></TooltipContent>
+                                                    </Tooltip>
                                                     <div className="text-xs text-muted-foreground flex items-center gap-2">
                                                         {(file.status === 'uploading_to_backend' || file.status === 'ai_processing') && file.progress < 100 && (
                                                             <Progress value={file.progress} className="w-24 h-1" />
@@ -371,14 +472,56 @@ const ProjectsPage = () => {
                         <CardTitle>Project Chat</CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-end">
-                        <div className="flex-grow p-4 border rounded-md mb-4 text-sm text-muted-foreground">Chat history will appear here...</div>
+                        <ScrollArea className="flex-grow p-4 border rounded-md mb-4 h-96">
+                          <div className="space-y-4">
+                            {chatMessages.map(msg => (
+                                <div key={msg.id} className={cn("flex items-start gap-3", msg.sender === 'user' ? "justify-end" : "justify-start")}>
+                                   {msg.sender === 'ai' && (
+                                       <Avatar className="h-8 w-8 border-2 border-primary">
+                                         <AvatarFallback><BotMessageSquare /></AvatarFallback>
+                                       </Avatar>
+                                   )}
+                                    <div className={cn("max-w-[75%] p-3 rounded-lg shadow-sm", msg.sender === 'user' ? "bg-primary text-primary-foreground" : "bg-card")}>
+                                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                    </div>
+                                   {msg.sender === 'user' && (
+                                       <Avatar className="h-8 w-8">
+                                            <AvatarImage src={MOCK_USER.avatarUrl} />
+                                            <AvatarFallback>{MOCK_USER.name.substring(0,1)}</AvatarFallback>
+                                       </Avatar>
+                                   )}
+                                </div>
+                            ))}
+                            {isChatLoading && (
+                                <div className="flex items-start gap-3 justify-start">
+                                    <Avatar className="h-8 w-8 border-2 border-primary">
+                                        <AvatarFallback><BotMessageSquare /></AvatarFallback>
+                                    </Avatar>
+                                    <div className="max-w-[75%] p-3 rounded-lg shadow-sm bg-card">
+                                        <div className="flex items-center space-x-1"> <span className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.3s]"></span> <span className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.15s]"></span> <span className="h-2 w-2 bg-muted-foreground rounded-full animate-pulse"></span> </div>
+                                    </div>
+                                </div>
+                            )}
+                           </div>
+                        </ScrollArea>
                          <div className="relative">
-                            <Textarea placeholder="Chat with your project knowledge..." className="pr-20" />
+                            <Textarea 
+                                placeholder={`Chat with ${activeProject.name}...`} 
+                                className="pr-20"
+                                value={chatInputValue}
+                                onChange={(e) => setChatInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleProjectChatSend();
+                                    }
+                                }}
+                            />
                              <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                                <Button variant="ghost" size="icon"><Sparkles className="h-4 w-4" /></Button>
-                                <Button variant="ghost" size="icon"><Image className="h-4 w-4" /></Button>
-                                 <Button variant="ghost" size="icon"><Globe className="h-4 w-4" /></Button>
-                                <Button size="sm">Send</Button>
+                                <Button variant="ghost" size="icon" disabled><Sparkles className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" disabled><Image className="h-4 w-4" /></Button>
+                                <Button variant="ghost" size="icon" disabled><Globe className="h-4 w-4" /></Button>
+                                <Button size="sm" onClick={handleProjectChatSend} disabled={!chatInputValue.trim() || isChatLoading}>Send</Button>
                             </div>
                         </div>
                     </CardContent>
@@ -395,8 +538,8 @@ const ProjectsPage = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <Button variant="outline" className="w-full justify-between">Edit Project <Edit className="h-4 w-4" /></Button>
-                         <Button variant="outline" className="w-full justify-between mt-2">Share Project <Share2 className="h-4 w-4" /></Button>
+                        <Button variant="outline" className="w-full justify-between" disabled>Edit Project <Edit className="h-4 w-4" /></Button>
+                         <Button variant="outline" className="w-full justify-between mt-2" disabled>Share Project <Share2 className="h-4 w-4" /></Button>
                     </CardContent>
                 </Card>
 
@@ -430,6 +573,7 @@ const ProjectsPage = () => {
                 </Card>
             </div>
         </div>
+    </TooltipProvider>
     );
   };
 

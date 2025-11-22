@@ -1,4 +1,5 @@
 
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -113,6 +114,7 @@ export interface Project {
   name: string;
   color: string;
   files: Document[];
+  messages: Message[];
   createdAt: number;
   updatedAt: number;
 }
@@ -130,15 +132,4 @@ export interface FlowStep {
   icon: React.ElementType;
   title: string;
   description: string;
-}
-
-export interface UserFeedbackEntry {
-    id: string;
-    sourceLanguage: string;
-    targetLanguage: string;
-    isBulk: boolean;
-    createdAt: number;
-    fileName?: string;
-    sourceKeyword?: string;
-    targetKeyword?: string;
 }
