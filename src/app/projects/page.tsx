@@ -59,7 +59,7 @@ const getDocumentTypeFromMime = (mimeType: string, fileName: string): Document['
 };
 
 // Placeholder for a real backend upload function
-async function uploadFileToBackend(file: File, onProgress: (percentage: number) => void): Promise<{ success: boolean; backendId?: string; fileUrl?: string; error?: string }}> {
+async function uploadFileToBackend(file: File, onProgress: (percentage: number) => void): Promise<{ success: boolean; backendId?: string; fileUrl?: string; error?: string; }> {
   console.warn("uploadFileToBackend: This is a placeholder. Implement actual backend upload connected to your database and vectorization process.");
   
   let progress = 0;
@@ -720,5 +720,3 @@ const ProjectsPage = () => {
 };
 
 export default ProjectsPage;
-
-    
