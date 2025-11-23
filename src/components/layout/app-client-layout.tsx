@@ -49,13 +49,8 @@ import {
   Menu,
   X,
   Plus,
-<<<<<<< HEAD
-  Search,
-  LucideEdit3
-=======
   Folder,
   Search
->>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
 } from 'lucide-react';
 import type { Conversation, Message, ConversationType, Document, Project } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -409,9 +404,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
       key = event.detail.key;
     }
 
-    if (key === 'flowserveai-conversations' || key === 'flowserveai-activeConversationId') {
-      // Instead of calling loadStateFromLocalStorage which would be blocked,
-      // do a simplified reload of just what changed
+    if (key === 'flowserveai-conversations' || key === 'flowserveai-activeConversationId' || key === 'flowserveai-projects') {
       if (typeof window !== 'undefined') {
         if (key === 'flowserveai-conversations') {
           const loadedConversations = storageUtils.getConversations();
@@ -421,6 +414,15 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
           if (storedActiveId !== activeConversationId) {
             setActiveConversationId(storedActiveId);
           }
+        } else if (key === 'flowserveai-projects') {
+           const storedProjects = localStorage.getItem('flowserveai-projects');
+            if (storedProjects) {
+              try {
+                  setProjects(JSON.parse(storedProjects));
+              } catch (e) {
+                  console.error("Failed to parse projects from localStorage", e);
+              }
+            }
         }
       }
     }
@@ -429,22 +431,6 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
   useEffect(() => {
     loadStateFromLocalStorage();
 
-<<<<<<< HEAD
-=======
-    const handleStorageUpdate = (event: StorageEvent | CustomEvent) => {
-      let key: string | null = null;
-      if (event instanceof StorageEvent) {
-          key = event.key;
-      } else if (event instanceof CustomEvent && event.detail) {
-          key = event.detail.key;
-      }
-
-      if (key === 'flowserveai-conversations' || key === 'flowserveai-activeConversationId' || key === 'flowserveai-projects') {
-        loadStateFromLocalStorage();
-      }
-    };
-
->>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
     window.addEventListener('storage', handleStorageUpdate);
     window.addEventListener('flowserveai-storage-updated', handleStorageUpdate as EventListener);
 
@@ -702,13 +688,8 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
   }, []);
 
   return (
-<<<<<<< HEAD
     <>
       {/* Mobile Sidebar - Simplified Implementation */}
-=======
-    <SidebarProvider>
-      {/* Mobile Sidebar */}
->>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
       {isMobile && (
         <Sheet 
           open={sidebarContext.open} 
@@ -730,7 +711,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                     }}
                     className="bg-primary-gradient rounded-md p-2 text-white"
                   >
-                    <LucideEdit3 size={24} />
+                    <Edit3 size={24} />
                   </button>
                 
                 </div>
@@ -1179,13 +1160,8 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
       </AlertDialog>
       <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
       <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
-<<<<<<< HEAD
       {!isMobile && <SettingsDialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen} />}
     </>
-=======
-      {isMobile && <MoreBottomSheet isOpen={isMoreSheetOpen} setIsOpen={setIsMoreSheetOpen} />}
-    </SidebarProvider>
->>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
   );
 }
 // Memoized storage utility functions
