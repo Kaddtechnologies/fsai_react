@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from 'react';
@@ -31,7 +32,7 @@ import {
   Settings,
   Trash2,
   Edit3,
-  ChevronDown, // Reverted to ChevronDown
+  ChevronDown,
   ChevronRight,
   LogOut,
   Users,
@@ -48,10 +49,15 @@ import {
   Menu,
   X,
   Plus,
+<<<<<<< HEAD
   Search,
   LucideEdit3
+=======
+  Folder,
+  Search
+>>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
 } from 'lucide-react';
-import type { Conversation, Message, ConversationType, Document } from '@/lib/types';
+import type { Conversation, Message, ConversationType, Document, Project } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
@@ -86,7 +92,7 @@ import FeedbackDialog from '@/components/feedback/feedback-dialog';
 import SettingsDialog from '@/components/settings/settings-dialog';
 // Define Loader2 directly in the file
 const Loader2 = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
 );
 
 interface AppClientLayoutProps {
@@ -304,6 +310,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingConvId, setDeletingConvId] = useState<string | null>(null);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -349,6 +356,15 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
     // Get conversations from storage using stable utilities
     const loadedConversations = storageUtils.getConversations();
     setConversations(loadedConversations);
+    
+    const storedProjects = localStorage.getItem('flowserveai-projects');
+    if (storedProjects) {
+        try {
+            setProjects(JSON.parse(storedProjects));
+        } catch (e) {
+            console.error("Failed to parse projects from localStorage", e);
+        }
+    }
 
     // Determine the active conversation ID from URL or storage
     const chatIdFromUrl = searchParams.get('chatId');
@@ -413,6 +429,22 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
   useEffect(() => {
     loadStateFromLocalStorage();
 
+<<<<<<< HEAD
+=======
+    const handleStorageUpdate = (event: StorageEvent | CustomEvent) => {
+      let key: string | null = null;
+      if (event instanceof StorageEvent) {
+          key = event.key;
+      } else if (event instanceof CustomEvent && event.detail) {
+          key = event.detail.key;
+      }
+
+      if (key === 'flowserveai-conversations' || key === 'flowserveai-activeConversationId' || key === 'flowserveai-projects') {
+        loadStateFromLocalStorage();
+      }
+    };
+
+>>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
     window.addEventListener('storage', handleStorageUpdate);
     window.addEventListener('flowserveai-storage-updated', handleStorageUpdate as EventListener);
 
@@ -670,8 +702,13 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
   }, []);
 
   return (
+<<<<<<< HEAD
     <>
       {/* Mobile Sidebar - Simplified Implementation */}
+=======
+    <SidebarProvider>
+      {/* Mobile Sidebar */}
+>>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
       {isMobile && (
         <Sheet 
           open={sidebarContext.open} 
@@ -766,6 +803,47 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
               </Button>
             </SidebarMenuItem>
           </SidebarMenu>
+          
+          <SidebarGroup className="mt-4">
+              <SidebarGroupLabel className="flex items-center justify-between">
+                  <span>Projects</span>
+              </SidebarGroupLabel>
+              <SidebarMenu>
+                  {projects.map((project) => (
+                      <SidebarMenuItem key={project.id}>
+                          <Link href={`/projects?projectId=${project.id}`} passHref>
+                              <SidebarMenuButton
+                                  isActive={searchParams.get('projectId') === project.id}
+                                  tooltip={project.name}
+                                  className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:mx-auto"
+                              >
+                                  <span
+                                      className="w-2 h-2 rounded-full shrink-0"
+                                      style={{ backgroundColor: project.color }}
+                                  />
+                                  <span className="group-data-[collapsible=icon]:hidden ml-2 truncate">
+                                      {project.name}
+                                  </span>
+                              </SidebarMenuButton>
+                          </Link>
+                      </SidebarMenuItem>
+                  ))}
+                  <SidebarMenuItem>
+                      <Link href="/projects" passHref>
+                          <SidebarMenuButton
+                              isActive={pathname === '/projects' && !searchParams.get('projectId')}
+                              tooltip="Manage Projects"
+                              className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:mx-auto"
+                          >
+                              <Folder />
+                              <span className="group-data-[collapsible=icon]:hidden ml-2">
+                                  Manage Projects
+                              </span>
+                          </SidebarMenuButton>
+                      </Link>
+                  </SidebarMenuItem>
+              </SidebarMenu>
+          </SidebarGroup>
 
           <SidebarGroup className="mt-4">
             <SidebarGroupLabel className="flex items-center justify-between"> <span>{t('sidebar.conversations')}</span> </SidebarGroupLabel>
@@ -855,7 +933,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <EllipsisVertical className="h-4 w-4 text-sidebar-foreground/70" />
+                                <ChevronDown className="h-4 w-4 text-sidebar-foreground/70" />
                                </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent side="right" align="start">
@@ -978,6 +1056,7 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
                 {pathname === '/' && activeConversationId ? (conversations.find(c=>c.id === activeConversationId)?.title || t('common.chat')) :
                  pathname === '/translate' ? t('tools.translationModule') :
                  pathname === '/documents' ? t('tools.documents') :
+                 pathname === '/projects' ? 'Projects' :
                  t('common.appName')}
               </h2>
               {isMobile && (
@@ -1100,8 +1179,13 @@ function AppContent({ children }: { children: ReactNode }): JSX.Element
       </AlertDialog>
       <WelcomeDialog open={isWelcomeDialogOpen} onOpenChange={setIsWelcomeDialogOpen} />
       <FeedbackDialog open={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} />
+<<<<<<< HEAD
       {!isMobile && <SettingsDialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen} />}
     </>
+=======
+      {isMobile && <MoreBottomSheet isOpen={isMoreSheetOpen} setIsOpen={setIsMoreSheetOpen} />}
+    </SidebarProvider>
+>>>>>>> ad9e4af (I want to add new features. I want a project feature where users can cre)
   );
 }
 // Memoized storage utility functions
