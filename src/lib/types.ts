@@ -1,4 +1,5 @@
 
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -108,16 +109,14 @@ export interface TranslationJob {
   errorMessage?: string; // If the job itself failed
 }
 
-export interface UserFeedbackEntry {
+export interface Project {
   id: string;
-  sourceLanguage: string;
-  targetLanguage: string;
-  sourceKeyword?: string; // For non-bulk
-  targetKeyword?: string; // For non-bulk
-  isBulk: boolean;
-  fileName?: string; // For bulk upload
-  fileContent?: string; // For bulk upload, actual content or link
+  name: string;
+  color: string;
+  files: Document[];
+  messages: Message[];
   createdAt: number;
+  updatedAt: number;
 }
 
 
